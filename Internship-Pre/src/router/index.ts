@@ -9,6 +9,12 @@ const staticRoutes: RouteRecordRaw[] = [
     meta: { title: "登录" },
   },
   {
+    path: "/dashboard",
+    name: "Dashboard",
+    component: () => import("@/views/dashboard/Dashboard.vue"),
+    meta: { title: "首页" },
+  },
+  {
     path: "/",
     redirect: "/dashboard",
   },

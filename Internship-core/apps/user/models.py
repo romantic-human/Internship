@@ -1,12 +1,36 @@
 """用户模块 — 参考《组织架构模块设计方案.md》第 5.2 节"""
+import bcrypt
 from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.utils import timezone
 
 
-class User(models.Model):
+class UserManager(BaseUserManager):
+    """自定义用户管理器"""
+
+    def create_user(self, username, password=None, **extra_fields):
+        if not username:
+            raise ValueError("用户名不能为空")
+        user = self.model(username=username, **extra_fields)
+        if password:
+            user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, username, password=None, **extra_fields):
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("status", 1)
+        return self.create_user(username, password, **extra_fields)
+
+
+class User(AbstractBaseUser):
     """用户表 — 对应设计文档 3.3.1 sys_user"""
 
+    USERNAME_FIELD = "username"
+    REQUIRED_FIELDS = []
+    objects = UserManager()
+
     username = models.CharField(max_length=64, unique=True, verbose_name="用户名")
-    password = models.CharField(max_length=128, verbose_name="密码")
     nickname = models.CharField(max_length=64, blank=True, default="", verbose_name="昵称")
     real_name = models.CharField(max_length=64, blank=True, default="", verbose_name="真实姓名")
     email = models.EmailField(max_length=128, blank=True, default="", verbose_name="邮箱")
@@ -34,6 +58,57 @@ class User(models.Model):
 
     def __str__(self):
         return self.username
+
+    def set_password(self, raw_password: str):
+        """使用 bcrypt 加密密码"""
+        self.password = bcrypt.hashpw(
+            raw_password.encode("utf-8"), bcrypt.gensalt()
+        ).decode("utf-8")
+
+    def check_password(self, raw_password: str) -> bool:
+        """验证密码"""
+        if not self.password:
+            return False
+        return bcrypt.checkpw(
+            raw_password.encode("utf-8"), self.password.encode("utf-8")
+        )
+
+    @property
+    def is_active(self) -> bool:
+        """Django 要求 — status=1 且未删除视为激活"""
+        return self.status == 1
+
+    @property
+    def is_staff(self) -> bool:
+        """Django Admin 权限"""
+        return self.is_superuser
+
+    @property
+    def role_list(self) -> list:
+        """获取用户角色标识列表"""
+        relations = self.userrolerelation_set.select_related("role").all()
+        return [r.role.role_key for r in relations if r.role.status == 1]
+
+    @property
+    def permission_list(self) -> list:
+        """获取用户权限标识列表（通过角色-菜单关联获取）"""
+        if self.is_superuser:
+            return ["*:*:*"]
+        relations = self.userrolerelation_set.select_related(
+            "role__rolemenurelation__menu__menupermissionrelation__permission"
+        ).all()
+        perms = set()
+        for ur in relations:
+            for rm in ur.role.rolemenurelation_set.all():
+                for mp in rm.menu.menupermissionrelation_set.all():
+                    perms.add(mp.permission.permission_key)
+        return list(perms)
+
+    def has_perm(self, perm, obj=None):
+        return self.is_superuser
+
+    def has_module_perms(self, app_label):
+        return self.is_superuser
 
 
 class UserRoleRelation(models.Model):
