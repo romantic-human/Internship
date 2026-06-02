@@ -1,6 +1,8 @@
 """
 URL configuration for Internship project.
 """
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import (
@@ -22,3 +24,7 @@ urlpatterns = [
     path("api/log/", include("apps.log.urls")),
     path("api/config/", include("apps.config_app.urls")),
 ]
+
+# 开发环境提供 media 文件服务
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
