@@ -1,0 +1,1 @@
+# apps/menu/__init__.py

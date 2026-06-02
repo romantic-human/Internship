@@ -1,0 +1,1 @@
+# apps/log/__init__.py
