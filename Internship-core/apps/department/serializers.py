@@ -30,5 +30,5 @@ class DepartmentTreeSerializer(serializers.ModelSerializer):
         ]
 
     def get_children(self, obj):
-        children = Department.objects.filter(parent=obj).order_by("sort_order")
+        children = getattr(obj, "_children", [])
         return DepartmentTreeSerializer(children, many=True).data

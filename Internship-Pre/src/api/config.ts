@@ -1,10 +1,21 @@
 import request from "@/utils/request";
 
-export function getConfigList(params: any) {
-  return request.get("/config", { params });
+export interface ConfigItem {
+  id: number;
+  config_name: string;
+  config_key: string;
+  config_value: string;
+  config_type: number;
+  sort_order: number;
+  status: number;
+  create_time: string;
 }
 
-export function getConfigDetail(id: number) {
+export function getConfigList(params: Record<string, any>): Promise<{ records: ConfigItem[]; total: number }> {
+  return request.get("/config/", { params });
+}
+
+export function getConfigDetail(id: number): Promise<ConfigItem> {
   return request.get(`/config/${id}`);
 }
 
@@ -12,11 +23,11 @@ export function getConfigByKey(key: string) {
   return request.get("/config/by-key/", { params: { key } });
 }
 
-export function createConfig(data: any) {
+export function createConfig(data: Partial<ConfigItem>) {
   return request.post("/config", data);
 }
 
-export function updateConfig(id: number, data: any) {
+export function updateConfig(id: number, data: Partial<ConfigItem>) {
   return request.put(`/config/${id}`, data);
 }
 

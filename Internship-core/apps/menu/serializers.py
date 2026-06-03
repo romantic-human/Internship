@@ -32,5 +32,5 @@ class MenuTreeSerializer(serializers.ModelSerializer):
         ]
 
     def get_children(self, obj):
-        children = Menu.objects.filter(parent=obj).order_by("sort_order")
+        children = getattr(obj, "_children", [])
         return MenuTreeSerializer(children, many=True).data

@@ -10,8 +10,10 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
-DEBUG = os.getenv("DEBUG", "True").lower() == "true"
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("环境变量 SECRET_KEY 未设置")
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
 
 # ── Application definition ──────────────────────────────────────────
@@ -71,26 +73,19 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 # ── Database ─────────────────────────────────────────────────────────
-import pymysql
-pymysql.install_as_MySQLdb()
-
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": os.getenv("DB_NAME", "internship_db"),
-        "USER": os.getenv("DB_USER", "root"),
-        "PASSWORD": os.getenv("DB_PASSWORD", "123456"),
-        "HOST": os.getenv("DB_HOST", "127.0.0.1"),
-        "PORT": os.getenv("DB_PORT", "3306"),
-        "OPTIONS": {"charset": "utf8mb4"},
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
 # ── Redis / Cache ────────────────────────────────────────────────────
+REDIS_URL = os.getenv("REDIS_URL", "redis://:123456@127.0.0.1:6379/1")
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": "redis://:123456@127.0.0.1:6379/1",
+        "LOCATION": REDIS_URL,
     }
 }
 
@@ -150,7 +145,7 @@ SIMPLE_JWT = {
 
 # ── CORS 配置 ────────────────────────────────────────────────────────
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = DEBUG  # 开发环境允许所有来源
+CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
 
 # ── Swagger 配置 ─────────────────────────────────────────────────────
 SPECTACULAR_SETTINGS = {

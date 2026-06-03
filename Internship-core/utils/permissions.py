@@ -14,5 +14,5 @@ class HasPermission(BasePermission):
         required_permission = getattr(view, "permission_key", None)
         if required_permission is None:
             return True
-        user_permissions = request.user.permissions if hasattr(request.user, "permissions") else []
+        user_permissions = request.user.permission_list if hasattr(request.user, "permission_list") else []
         return required_permission in user_permissions

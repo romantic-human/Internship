@@ -99,13 +99,10 @@ class UserViewSet(viewsets.ModelViewSet):
                 message="参数错误", code=2000, http_status=400,
             )
 
-        # 检查用户名是否已存在
-        username = serializer.validated_data["username"]
-        if User.objects.filter(username=username).exists():
+        try:
+            user = serializer.save()
+        except Exception:
             return APIResponse.conflict(message="用户名已存在")
-
-        # 创建用户（UserCreateSerializer.create 中已处理 bcrypt 加密）
-        user = serializer.save()
 
         # 注册后自动登录，返回 token
         refresh = RefreshToken.for_user(user)
@@ -221,6 +218,11 @@ class UserViewSet(viewsets.ModelViewSet):
         if not file:
             return APIResponse.error(
                 message="请选择文件", code=2000, http_status=400,
+            )
+
+        if file.size > 2 * 1024 * 1024:
+            return APIResponse.error(
+                message="文件大小不能超过 2MB", code=2000, http_status=400,
             )
 
         # 校验文件类型

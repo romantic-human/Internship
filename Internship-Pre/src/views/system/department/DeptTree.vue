@@ -53,7 +53,11 @@ async function fetchTree() {
 }
 function handleAdd() { currentFormData.value = null; formVisible.value = true; }
 function handleEdit(row: any) { currentFormData.value = { ...row }; formVisible.value = true; }
-async function handleDelete(row: any) { await deleteDepartment(row.id); ElMessage.success("删除成功"); await fetchTree(); }
-async function handleStatusChange(row: any, val: number) { await updateDepartmentStatus(row.id, val); ElMessage.success("状态更新成功"); }
+async function handleDelete(row: any) {
+  try { await deleteDepartment(row.id); ElMessage.success("删除成功"); await fetchTree(); } catch { ElMessage.error("删除失败"); }
+}
+async function handleStatusChange(row: any, val: number) {
+  try { await updateDepartmentStatus(row.id, val); ElMessage.success("状态更新成功"); } catch { ElMessage.error("状态更新失败"); }
+}
 onMounted(fetchTree);
 </script>

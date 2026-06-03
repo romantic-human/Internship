@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -57,10 +58,11 @@ class PermissionViewSet(viewsets.ModelViewSet):
             ).values_list("menu_id", flat=True)
             return APIResponse.success(data=list(menu_ids))
         menu_ids = request.data.get("menuIds", [])
-        MenuPermissionRelation.objects.filter(permission=instance).delete()
-        if menu_ids:
-            relations = [MenuPermissionRelation(permission=instance, menu_id=mid) for mid in menu_ids]
-            MenuPermissionRelation.objects.bulk_create(relations)
+        with transaction.atomic():
+            MenuPermissionRelation.objects.filter(permission=instance).delete()
+            if menu_ids:
+                relations = [MenuPermissionRelation(permission=instance, menu_id=mid) for mid in menu_ids]
+                MenuPermissionRelation.objects.bulk_create(relations)
         return APIResponse.success(message="绑定成功")
 
     @action(detail=True, methods=["put"], url_path="sort")
@@ -75,6 +77,11 @@ class PermissionViewSet(viewsets.ModelViewSet):
         data = request.data
         if not isinstance(data, list):
             return APIResponse.error(message="请传入数组")
-        instances = [Permission(id=item["id"], sort_order=item.get("sortOrder", 0)) for item in data]
+        instances = []
+        for item in data:
+            item_id = item.get("id")
+            if not item_id:
+                return APIResponse.error(message="每项需要 id 字段")
+            instances.append(Permission(id=item_id, sort_order=item.get("sortOrder", 0)))
         Permission.objects.bulk_update(instances, ["sort_order"])
         return APIResponse.success(message="排序更新成功")

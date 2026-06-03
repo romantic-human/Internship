@@ -1,4 +1,5 @@
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.response import Response
 
 
 class StandardPagination(PageNumberPagination):
@@ -10,12 +11,10 @@ class StandardPagination(PageNumberPagination):
     max_page_size = 50
 
     def get_paginated_response(self, data):
-        from rest_framework.response import Response
-
         return Response(
             {
                 "code": 200,
-                "message": "success",
+                "message": "操作成功",
                 "data": {
                     "records": data,
                     "total": self.page.paginator.count,

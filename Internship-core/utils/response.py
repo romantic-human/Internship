@@ -7,13 +7,13 @@ class APIResponse:
     @staticmethod
     def success(data=None, message="操作成功"):
         return DRFResponse(
-            {"code": 200, "message": message, "data": data or {}},
+            {"code": 200, "message": message, "data": data if data is not None else {}},
         )
 
     @staticmethod
     def created(data=None, message="新增成功"):
         return DRFResponse(
-            {"code": 200, "message": message, "data": data or {}},
+            {"code": 200, "message": message, "data": data if data is not None else {}},
             status=201,
         )
 

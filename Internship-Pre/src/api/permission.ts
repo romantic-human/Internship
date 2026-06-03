@@ -1,18 +1,27 @@
 import request from "@/utils/request";
 
-export function getPermissionList(params: any) {
-  return request.get("/permission", { params });
+export interface PermissionItem {
+  id: number;
+  permission_name: string;
+  permission_key: string;
+  sort_order: number;
+  status: number;
+  create_time: string;
 }
 
-export function getPermissionDetail(id: number) {
+export function getPermissionList(params: Record<string, any>): Promise<{ records: PermissionItem[]; total: number }> {
+  return request.get("/permission/", { params });
+}
+
+export function getPermissionDetail(id: number): Promise<PermissionItem> {
   return request.get(`/permission/${id}`);
 }
 
-export function createPermission(data: any) {
+export function createPermission(data: Partial<PermissionItem>) {
   return request.post("/permission", data);
 }
 
-export function updatePermission(id: number, data: any) {
+export function updatePermission(id: number, data: Partial<PermissionItem>) {
   return request.put(`/permission/${id}`, data);
 }
 
@@ -20,7 +29,7 @@ export function deletePermission(id: number) {
   return request.delete(`/permission/${id}`);
 }
 
-export function getPermissionMenus(id: number) {
+export function getPermissionMenus(id: number): Promise<number[]> {
   return request.get(`/permission/${id}/menus`);
 }
 

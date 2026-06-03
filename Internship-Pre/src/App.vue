@@ -1,7 +1,11 @@
 <template>
-  <router-view />
+  <Layout v-if="route.meta.layout !== false" />
+  <router-view v-else />
 </template>
 
 <script setup lang="ts">
-// App 根组件
+import { useRoute } from "vue-router";
+import Layout from "@/layout/Layout.vue";
+
+const route = useRoute();
 </script>

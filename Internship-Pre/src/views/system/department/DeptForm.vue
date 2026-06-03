@@ -37,7 +37,7 @@ import { createDepartment, updateDepartment, getDepartmentTree } from "@/api/dep
 import { ElMessage } from "element-plus";
 import type { FormInstance } from "element-plus";
 
-const props = defineProps<{ visible: boolean; formData: any; treeOptions?: any[] }>();
+const props = defineProps<{ visible: boolean; formData: any }>();
 const emit = defineEmits<{ close: []; success: [] }>();
 const formRef = ref<FormInstance>();
 const submitting = ref(false);

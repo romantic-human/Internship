@@ -1,11 +1,12 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
+import { useAuthStore } from "@/store/auth";
 
 const staticRoutes: RouteRecordRaw[] = [
   {
     path: "/login",
     name: "Login",
     component: () => import("@/views/login/Login.vue"),
-    meta: { title: "登录" },
+    meta: { title: "登录", layout: false },
   },
   {
     path: "/",
@@ -75,14 +76,13 @@ const router = createRouter({
   routes: staticRoutes,
 });
 
-// 路由守卫：未登录 → 跳转登录页
-router.beforeEach((to, _from, next) => {
-  const token = localStorage.getItem("access_token");
-  if (to.path !== "/login" && !token) {
-    next("/login");
-  } else {
-    next();
-  }
+const whiteList = ["/login"];
+
+router.beforeEach((to) => {
+  document.title = to.meta.title ? `${to.meta.title} - 管理系统` : "管理系统";
+  if (whiteList.includes(to.path)) return true;
+  const authStore = useAuthStore();
+  if (!authStore.token) return "/login";
 });
 
 export default router;

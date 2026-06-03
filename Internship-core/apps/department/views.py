@@ -67,8 +67,18 @@ class DepartmentViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="tree")
     def tree(self, request):
-        depts = Department.objects.filter(parent__isnull=True).order_by("sort_order")
-        return APIResponse.success(data=DepartmentTreeSerializer(depts, many=True).data)
+        all_depts = list(Department.objects.all().order_by("sort_order"))
+        parent_map = {}
+        for d in all_depts:
+            d._children = []
+            parent_map[d.id] = d
+        roots = []
+        for d in all_depts:
+            if d.parent_id and d.parent_id in parent_map:
+                parent_map[d.parent_id]._children.append(d)
+            else:
+                roots.append(d)
+        return APIResponse.success(data=DepartmentTreeSerializer(roots, many=True).data)
 
     @action(detail=True, methods=["put"], url_path="status")
     def status(self, request, pk=None):
@@ -92,6 +102,11 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         data = request.data
         if not isinstance(data, list):
             return APIResponse.error(message="请传入数组")
-        instances = [Department(id=item["id"], sort_order=item.get("sortOrder", 0)) for item in data]
+        instances = []
+        for item in data:
+            item_id = item.get("id")
+            if not item_id:
+                return APIResponse.error(message="每项需要 id 字段")
+            instances.append(Department(id=item_id, sort_order=item.get("sortOrder", 0)))
         Department.objects.bulk_update(instances, ["sort_order"])
         return APIResponse.success(message="排序更新成功")

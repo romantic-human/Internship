@@ -57,12 +57,18 @@ class OperationLogViewSet(viewsets.ReadOnlyModelViewSet):
         return APIResponse.success(data=serializer.data)
 
     def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()
+        return APIResponse.success(message="删除成功")
+
+    @action(detail=False, methods=["delete"], url_path="clear")
+    def clear(self, request):
         OperationLog.objects.all().delete()
         return APIResponse.success(message="日志已清空")
 
     @action(detail=False, methods=["get"], url_path="export")
     def export(self, request):
-        queryset = self.filter_queryset(self.get_queryset())
+        queryset = self.filter_queryset(self.get_queryset())[:10000]
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "操作日志"

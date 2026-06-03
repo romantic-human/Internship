@@ -67,13 +67,22 @@ class MenuViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="tree")
     def tree(self, request):
-        menus = Menu.objects.filter(parent__isnull=True).order_by("sort_order")
-        return APIResponse.success(data=MenuTreeSerializer(menus, many=True).data)
+        all_menus = list(Menu.objects.all().order_by("sort_order"))
+        parent_map = {}
+        for m in all_menus:
+            m._children = []
+            parent_map[m.id] = m
+        roots = []
+        for m in all_menus:
+            if m.parent_id and m.parent_id in parent_map:
+                parent_map[m.parent_id]._children.append(m)
+            else:
+                roots.append(m)
+        return APIResponse.success(data=MenuTreeSerializer(roots, many=True).data)
 
     @action(detail=False, methods=["get"], url_path="options")
     def options(self, request):
-        menus = Menu.objects.filter(parent__isnull=True).order_by("sort_order")
-        return APIResponse.success(data=MenuTreeSerializer(menus, many=True).data)
+        return self.tree(request)
 
     @action(detail=True, methods=["put"], url_path="status")
     def status(self, request, pk=None):
@@ -100,7 +109,9 @@ class MenuViewSet(viewsets.ModelViewSet):
             return APIResponse.error(message="请传入数组")
         instances = []
         for item in data:
-            instance = Menu(id=item["id"], sort_order=item.get("sortOrder", 0))
-            instances.append(instance)
+            item_id = item.get("id")
+            if not item_id:
+                return APIResponse.error(message="每项需要 id 字段")
+            instances.append(Menu(id=item_id, sort_order=item.get("sortOrder", 0)))
         Menu.objects.bulk_update(instances, ["sort_order"])
         return APIResponse.success(message="排序更新成功")

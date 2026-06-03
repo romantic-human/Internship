@@ -1,6 +1,20 @@
 import request from "@/utils/request";
 
-export function getDepartmentTree() {
+export interface DeptItem {
+  id: number;
+  parent_id: number | null;
+  dept_name: string;
+  leader: string;
+  phone: string;
+  email: string;
+  sort_order: number;
+  status: number;
+  create_time: string;
+  update_time: string;
+  children?: DeptItem[];
+}
+
+export function getDepartmentTree(): Promise<DeptItem[]> {
   return request.get("/department/tree");
 }
 
@@ -8,11 +22,11 @@ export function getDepartmentDetail(id: number) {
   return request.get(`/department/${id}`);
 }
 
-export function createDepartment(data: any) {
+export function createDepartment(data: Partial<DeptItem>) {
   return request.post("/department", data);
 }
 
-export function updateDepartment(id: number, data: any) {
+export function updateDepartment(id: number, data: Partial<DeptItem>) {
   return request.put(`/department/${id}`, data);
 }
 
