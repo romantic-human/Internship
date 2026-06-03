@@ -107,15 +107,8 @@ TIME_ZONE = "Asia/Shanghai"
 USE_I18N = True
 USE_TZ = True
 
-<<<<<<< Updated upstream
-# ── Static & Media files ──────────────────────────────────────────────
-=======
 # ── Static / Media ───────────────────────────────────────────────────
->>>>>>> Stashed changes
 STATIC_URL = "static/"
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
-
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
