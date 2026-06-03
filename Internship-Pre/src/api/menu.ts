@@ -24,6 +24,14 @@ export function updateMenuStatus(id: number, status: number) {
   return request.put(`/menu/${id}/status`, { status });
 }
 
+export function updateMenuSort(id: number, sortOrder: number) {
+  return request.put(`/menu/${id}/sort`, { sortOrder });
+}
+
+export function batchSortMenu(data: { id: number; sortOrder: number }[]) {
+  return request.post("/menu/batch-sort", data);
+}
+
 export function getMenuOptions() {
   return request.get("/menu/options");
 }
