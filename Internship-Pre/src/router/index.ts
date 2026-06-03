@@ -12,19 +12,13 @@ const staticRoutes: RouteRecordRaw[] = [
     path: "/dashboard",
     name: "Dashboard",
     component: () => import("@/views/dashboard/Dashboard.vue"),
-    meta: { title: "首页", layout: true },
+    meta: { title: "首页" },
   },
   {
     path: "/profile",
     name: "Profile",
     component: () => import("@/views/system/profile/Profile.vue"),
     meta: { title: "个人中心" },
-  },
-  {
-    path: "/department",
-    name: "Department",
-    component: () => import("@/views/system/department/DepartmentList.vue"),
-    meta: { title: "部门管理(组长)" },
   },
   {
     path: "/system/menu",
@@ -74,6 +68,7 @@ router.beforeEach((to) => {
   if (whiteList.includes(to.path)) return true;
   const authStore = useAuthStore();
   if (!authStore.token) return "/login";
+  if (to.path === "/login") return "/dashboard";
 });
 
 export default router;

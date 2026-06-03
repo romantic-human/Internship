@@ -171,7 +171,7 @@ const infoRules: FormRules = {
 
 async function loadProfile() {
   try {
-    const data = await getUserProfile();
+    const data: any = await getUserProfile();
     profileForm.nickname = data.nickname || "";
     profileForm.real_name = data.real_name || "";
     profileForm.email = data.email || "";
@@ -287,7 +287,7 @@ async function handleUploadAvatar() {
 
   avatarUploading.value = true;
   try {
-    const res = await uploadAvatar(selectedFile.value);
+    const res: any = await uploadAvatar(selectedFile.value);
     avatarUrl.value = res.url;
     if (authStore.userInfo) {
       authStore.userInfo.avatar = res.url;

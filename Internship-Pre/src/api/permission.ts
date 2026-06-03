@@ -18,7 +18,7 @@ export function getPermissionDetail(id: number): Promise<PermissionItem> {
 }
 
 export function createPermission(data: Partial<PermissionItem>) {
-  return request.post("/permission", data);
+  return request.post("/permission/", data);
 }
 
 export function updatePermission(id: number, data: Partial<PermissionItem>) {

@@ -79,7 +79,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus";
 import { Plus, Refresh } from "@element-plus/icons-vue";
 import {
@@ -105,7 +105,7 @@ const form = reactive({
   email: "",
   sort_order: 0,
   status: 1,
-  parentId: null as number | null,
+  parent_id: null as number | null,
 });
 
 const rules: FormRules = {
@@ -129,7 +129,7 @@ function resetForm() {
   form.email = "";
   form.sort_order = 0;
   form.status = 1;
-  form.parentId = null;
+  form.parent_id = null;
 }
 
 function handleAdd(parent: any | null) {
@@ -137,7 +137,7 @@ function handleAdd(parent: any | null) {
   editId.value = null;
   parentDept.value = parent;
   resetForm();
-  if (parent) form.parentId = parent.id;
+  if (parent) form.parent_id = parent.id;
   dialogVisible.value = true;
 }
 
@@ -151,7 +151,7 @@ function handleEdit(row: any) {
   form.email = row.email || "";
   form.sort_order = row.sort_order;
   form.status = row.status;
-  form.parentId = null;
+  form.parent_id = null;
   dialogVisible.value = true;
 }
 
@@ -190,7 +190,7 @@ async function handleSave() {
       await updateDepartment(editId.value, payload);
       ElMessage.success("更新成功");
     } else {
-      if (form.parentId) payload.parentId = form.parentId;
+      if (form.parent_id) payload.parent_id = form.parent_id;
       await createDepartment(payload);
       ElMessage.success("新增成功");
     }
@@ -201,7 +201,7 @@ async function handleSave() {
   finally { saving.value = false; }
 }
 
-loadTree();
+onMounted(loadTree);
 </script>
 
 <style scoped>

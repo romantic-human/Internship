@@ -23,7 +23,7 @@ export function getDepartmentDetail(id: number) {
 }
 
 export function createDepartment(data: Partial<DeptItem>) {
-  return request.post("/department", data);
+  return request.post("/department/", data);
 }
 
 export function updateDepartment(id: number, data: Partial<DeptItem>) {
