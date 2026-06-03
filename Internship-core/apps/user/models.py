@@ -94,14 +94,21 @@ class User(AbstractBaseUser):
         """获取用户权限标识列表（通过角色-菜单关联获取）"""
         if self.is_superuser:
             return ["*:*:*"]
-        relations = self.userrolerelation_set.select_related(
-            "role__rolemenurelation__menu__menupermissionrelation__permission"
-        ).all()
-        perms = set()
-        for ur in relations:
-            for rm in ur.role.rolemenurelation_set.all():
-                for mp in rm.menu.menupermissionrelation_set.all():
-                    perms.add(mp.permission.permission_key)
+        # 通过 prefetch_related 优化查询
+        role_ids = self.userrolerelation_set.values_list("role_id", flat=True)
+        from apps.role.models import RoleMenuRelation
+        from apps.permission.models import MenuPermissionRelation
+        from apps.menu.models import Menu
+        menu_ids = RoleMenuRelation.objects.filter(
+            role_id__in=role_ids, role__status=1
+        ).values_list("menu_id", flat=True)
+        perm_ids = MenuPermissionRelation.objects.filter(
+            menu_id__in=menu_ids
+        ).values_list("permission_id", flat=True)
+        from apps.permission.models import Permission
+        perms = Permission.objects.filter(id__in=perm_ids, status=1).values_list(
+            "permission_key", flat=True
+        )
         return list(perms)
 
     def has_perm(self, perm, obj=None):

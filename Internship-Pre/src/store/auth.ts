@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { login as loginApi } from "@/api/user";
+import { login as loginApi, register as registerApi } from "@/api/user";
 
 export const useAuthStore = defineStore("auth", () => {
   const token = ref<string>(localStorage.getItem("access_token") || "");
@@ -9,6 +9,19 @@ export const useAuthStore = defineStore("auth", () => {
   const permissions = ref<string[]>([]);
   const roles = ref<string[]>([]);
   const dynamicRoutesLoaded = ref(false);
+
+  /** 注册 */
+  async function register(username: string, password: string, nickname?: string) {
+    const res = await registerApi({ username, password, nickname });
+    token.value = res.access_token;
+    refreshToken.value = res.refresh_token;
+    userInfo.value = res.user;
+    permissions.value = res.user.permissions || [];
+    roles.value = res.user.roles || [];
+    localStorage.setItem("access_token", res.access_token);
+    localStorage.setItem("refresh_token", res.refresh_token);
+    await generateDynamicRoutes();
+  }
 
   /** 登录 */
   async function login(username: string, password: string) {
@@ -53,6 +66,7 @@ export const useAuthStore = defineStore("auth", () => {
     permissions,
     roles,
     dynamicRoutesLoaded,
+    register,
     login,
     logout,
     generateDynamicRoutes,

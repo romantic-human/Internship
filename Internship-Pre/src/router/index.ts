@@ -21,6 +21,12 @@ const staticRoutes: RouteRecordRaw[] = [
     meta: { title: "个人中心" },
   },
   {
+    path: "/department",
+    name: "Department",
+    component: () => import("@/views/system/department/DepartmentList.vue"),
+    meta: { title: "部门管理" },
+  },
+  {
     path: "/",
     redirect: "/dashboard",
   },
