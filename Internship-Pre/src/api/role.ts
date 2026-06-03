@@ -13,7 +13,7 @@ export function getRoleDetail(id: number) {
 }
 
 export function createRole(data: any) {
-  return request.post("/role", data);
+  return request.post("/role/", data);
 }
 
 export function updateRole(id: number, data: any) {

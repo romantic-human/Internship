@@ -20,11 +20,11 @@ export function getConfigDetail(id: number): Promise<ConfigItem> {
 }
 
 export function getConfigByKey(key: string) {
-  return request.get("/config/by-key/", { params: { key } });
+  return request.get("/config/by-key", { params: { key } });
 }
 
 export function createConfig(data: Partial<ConfigItem>) {
-  return request.post("/config", data);
+  return request.post("/config/", data);
 }
 
 export function updateConfig(id: number, data: Partial<ConfigItem>) {

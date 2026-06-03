@@ -43,7 +43,7 @@ export function uploadAvatar(file: File) {
 
 // ── 用户管理 ───────────────────────────────────────────────
 export function getUserList(params: any) {
-  return request.get("/user/list", { params });
+  return request.get("/user/", { params });
 }
 
 export function getUserDetail(id: number) {
@@ -51,7 +51,7 @@ export function getUserDetail(id: number) {
 }
 
 export function createUser(data: any) {
-  return request.post("/user", data);
+  return request.post("/user/", data);
 }
 
 export function updateUser(id: number, data: any) {

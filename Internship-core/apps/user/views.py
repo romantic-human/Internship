@@ -152,12 +152,30 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["put"])
     def status(self, request, pk=None):
         """修改状态 — PUT /api/user/:id/status"""
-        return APIResponse.success()
+        try:
+            user = self.get_object()
+            status_val = request.data.get("status")
+            if status_val not in (0, 1):
+                return APIResponse.error(message="状态值无效", code=2000, http_status=400)
+            user.status = status_val
+            user.save(update_fields=["status"])
+            return APIResponse.success(message="状态更新成功")
+        except Exception:
+            return APIResponse.error(message="用户不存在", code=2004, http_status=404)
 
     @action(detail=False, methods=["put"])
     def reset_password(self, request):
         """重置密码 — PUT /api/user/reset-password"""
-        return APIResponse.success()
+        user_id = request.data.get("userId")
+        if not user_id:
+            return APIResponse.error(message="userId 不能为空", code=2000, http_status=400)
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return APIResponse.error(message="用户不存在", code=2004, http_status=404)
+        user.set_password("123456")
+        user.save(update_fields=["password"])
+        return APIResponse.success(message="密码已重置为 123456")
 
     @action(detail=False, methods=["put"], url_path="update-password")
     def update_password(self, request):
