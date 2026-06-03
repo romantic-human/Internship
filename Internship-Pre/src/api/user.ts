@@ -53,3 +53,11 @@ export function getUserProfile() {
 export function updateUserProfile(data: any) {
   return request.put("/user/profile", data);
 }
+
+export function uploadAvatar(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return request.post("/user/avatar", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+}

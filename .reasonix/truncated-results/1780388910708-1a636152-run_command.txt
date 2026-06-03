@@ -1,0 +1,865 @@
+$ git diff develop..origin/feature/sunyf -- .gitignore "Internship-Pre/" "Internship-core/"
+[exit 0]
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..0915f29
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,22 @@
++# Python
++__pycache__/
++*.py[cod]
++*.so
++
++# Django
++db.sqlite3
++media/
++migrations/
++
++# Environment
++.env
++venv/
++.venv/
++
++# IDE
++.vscode/
++.idea/
++
++# OS
++.DS_Store
++Thumbs.db
+\ No newline at end of file
+diff --git a/Internship-Pre/.env.example b/Internship-Pre/.env.example
+index 0372e84..7a8b94e 100644
+--- a/Internship-Pre/.env.example
++++ b/Internship-Pre/.env.example
+@@ -1,3 +1,3 @@
+ # API Base URL（开发环境使用 Vite 代理，无需配置）
+ VITE_API_BASE_URL=/api
+-VITE_APP_TITLE=组织架构管理系统
++VITE_APP_TITLE=组织架构管理系统
+\ No newline at end of file
+diff --git a/Internship-Pre/index.html b/Internship-Pre/index.html
+index 2ef6869..db64e63 100644
+--- a/Internship-Pre/index.html
++++ b/Internship-Pre/index.html
+@@ -10,4 +10,4 @@
+     <div id="app"></div>
+     <script type="module" src="/src/main.ts"></script>
+   </body>
+-</html>
++</html>
+\ No newline at end of file
+diff --git a/Internship-Pre/package.json b/Internship-Pre/package.json
+index 3c001de..82e5da5 100644
+--- a/Internship-Pre/package.json
++++ b/Internship-Pre/package.json
+@@ -22,4 +22,4 @@
+     "vite": "^5.1.0",
+     "vue-tsc": "^2.0.0"
+   }
+-}
++}
+\ No newline at end of file
+diff --git a/Internship-Pre/src/App.vue b/Internship-Pre/src/App.vue
+index 1044390..3ae44e4 100644
+--- a/Internship-Pre/src/App.vue
++++ b/Internship-Pre/src/App.vue
+@@ -4,4 +4,4 @@
+ 
+ <script setup lang="ts">
+ // App 根组件
+-</script>
++</script>
+\ No newline at end of file
+diff --git a/Internship-Pre/src/api/config.ts b/Internship-Pre/src/api/config.ts
+index 1ff1a1a..25d1335 100644
+--- a/Internship-Pre/src/api/config.ts
++++ b/Internship-Pre/src/api/config.ts
+@@ -18,4 +18,4 @@ export function createConfig(data: any) {
+ 
+ export function updateConfig(id: number, data: any) {
+   return request.put(`/config/${id}`, data);
+-}
++}
+\ No newline at end of file
+diff --git a/Internship-Pre/src/api/department.ts b/Internship-Pre/src/api/department.ts
+index 9c549ce..515695f 100644
+--- a/Internship-Pre/src/api/department.ts
++++ b/Internship-Pre/src/api/department.ts
+@@ -22,4 +22,4 @@ export function deleteDepartment(id: number) {
+ 
+ export function updateDepartmentStatus(id: number, status: number) {
+   return request.put(`/department/${id}/status`, { status });
+-}
++}
+\ No newline at end of file
+diff --git a/Internship-Pre/src/api/log.ts b/Internship-Pre/src/api/log.ts
+index bead0a1..3ddc71b 100644
+--- a/Internship-Pre/src/api/log.ts
++++ b/Internship-Pre/src/api/log.ts
+@@ -14,4 +14,4 @@ export function clearLogs() {
+ 
+ export function exportLogs(params: any) {
+   return request.get("/log/export", { params, responseType: "blob" });
+-}
++}
+\ No newline at end of file
+diff --git a/Internship-Pre/src/api/menu.ts b/Internship-Pre/src/api/menu.ts
+index 6aa0ca6..e11cc84 100644
+--- a/Internship-Pre/src/api/menu.ts
++++ b/Internship-Pre/src/api/menu.ts
+@@ -26,4 +26,4 @@ export function updateMenuStatus(id: number, status: number) {
+ 
+ export function getMenuOptions() {
+   return request.get("/menu/options");
+-}
++}
+\ No newline at end of file
+diff --git a/Internship-Pre/src/api/permission.ts b/Internship-Pre/src/api/permission.ts
+index 32d3d0a..43ae8c3 100644
+--- a/Internship-Pre/src/api/permission.ts
++++ b/Internship-Pre/src/api/permission.ts
+@@ -26,4 +26,4 @@ export function getPermissionMenus(id: number) {
+ 
+ export function bindPermissionMenus(id: number, menuIds: number[]) {
+   return request.put(`/permission/${id}/menus`, { menuIds });
+-}
++}
+\ No newline at end of file
+diff --git a/Internship-Pre/src/api/role.ts b/Internship-Pre/src/api/role.ts
+index 88407cb..9393a23 100644
+--- a/Internship-Pre/src/api/role.ts
++++ b/Internship-Pre/src/api/role.ts
+@@ -46,4 +46,4 @@ export function getRoleUsers(id: number) {
+ 
+ export function assignRoleUsers(id: number, userIds: number[]) {
+   return request.put(`/role/${id}/users`, { userIds });
+-}
++}
+\ No newline at end of file
+diff --git a/Internship-Pre/src/api/user.ts b/Internship-Pre/src/api/user.ts
+index e7bf0bc..a7156c8 100644
+--- a/Internship-Pre/src/api/user.ts
++++ b/Internship-Pre/src/api/user.ts
+@@ -52,4 +52,4 @@ export function getUserProfile() {
+ 
+ export function updateUserProfile(data: any) {
+   return request.put("/user/profile", data);
+-}
++}
+\ No newline at end of file
+diff --git a/Internship-Pre/src/directives/permission.ts b/Internship-Pre/src/directives/permission.ts
+index e819027..e2c4c95 100644
+--- a/Internship-Pre/src/directives/permission.ts
++++ b/Internship-Pre/src/directives/permission.ts
+@@ -16,4 +16,4 @@ export function setupPermissionDirective(app: App) {
+       }
+     },
+   });
+-}
++}
+\ No newline at end of file
+diff --git a/Internship-Pre/src/main.ts b/Internship-Pre/src/main.ts
+index b6b7f64..534f1b4 100644
+--- a/Internship-Pre/src/main.ts
++++ b/Internship-Pre/src/main.ts
+@@ -25,4 +25,4 @@ app.use(router);
+ // 权限指令
+ setupPermissionDirective(app);
+ 
+-app.mount("#app");
++app.mount("#app");
+\ No newline at end of file
+diff --git a/Internship-Pre/src/router/index.ts b/Internship-Pre/src/router/index.ts
+index 873f59f..5c68162 100644
+--- a/Internship-Pre/src/router/index.ts
++++ b/Internship-Pre/src/router/index.ts
+@@ -25,4 +25,4 @@ const router = createRouter({
+   routes: staticRoutes,
+ });
+ 
+-export default router;
++export default router;
+\ No newline at end of file
+diff --git a/Internship-Pre/src/store/app.ts b/Internship-Pre/src/store/app.ts
+index d0f9b8b..882663f 100644
+--- a/Internship-Pre/src/store/app.ts
++++ b/Internship-Pre/src/store/app.ts
+@@ -9,4 +9,4 @@ export const useAppStore = defineStore("app", () => {
+   }
+ 
+   return { sidebarCollapsed, toggleSidebar };
+-});
++});
+\ No newline at end of file
+diff --git a/Internship-Pre/src/store/auth.ts b/Internship-Pre/src/store/auth.ts
+index a9241d1..df75069 100644
+--- a/Internship-Pre/src/store/auth.ts
++++ b/Internship-Pre/src/store/auth.ts
+@@ -58,4 +58,4 @@ export const useAuthStore = defineStore("auth", () => {
+     generateDynamicRoutes,
+     hasPermission,
+   };
+-});
++});
+\ No newline at end of file
+diff --git a/Internship-Pre/src/store/index.ts b/Internship-Pre/src/store/index.ts
+index cc08e1a..35b5a40 100644
+--- a/Internship-Pre/src/store/index.ts
++++ b/Internship-Pre/src/store/index.ts
+@@ -1,2 +1,2 @@
+ export * from "./auth";
+-export * from "./app";
++export * from "./app";
+\ No newline at end of file
+diff --git a/Internship-Pre/src/utils/request.ts b/Internship-Pre/src/utils/request.ts
+index 603d923..d553007 100644
+--- a/Internship-Pre/src/utils/request.ts
++++ b/Internship-Pre/src/utils/request.ts
+@@ -58,4 +58,4 @@ request.interceptors.response.use(
+   },
+ );
+ 
+-export default request;
++export default request;
+\ No newline at end of file
+diff --git a/Internship-Pre/src/views/dashboard/Dashboard.vue b/Internship-Pre/src/views/dashboard/Dashboard.vue
+index d9cd34c..b4d0a1c 100644
+--- a/Internship-Pre/src/views/dashboard/Dashboard.vue
++++ b/Internship-Pre/src/views/dashboard/Dashboard.vue
+@@ -24,4 +24,4 @@ function handleLogout() {
+   padding: 40px;
+   text-align: center;
+ }
+-</style>
++</style>
+\ No newline at end of file
+diff --git a/Internship-Pre/src/views/login/Login.vue b/Internship-Pre/src/views/login/Login.vue
+index a42641a..a1484ce 100644
+--- a/Internship-Pre/src/views/login/Login.vue
++++ b/Internship-Pre/src/views/login/Login.vue
+@@ -111,4 +111,4 @@ async function handleLogin() {
+ .login-btn {
+   width: 100%;
+ }
+-</style>
++</style>
+\ No newline at end of file
+diff --git a/Internship-Pre/tsconfig.json b/Internship-Pre/tsconfig.json
+index 2725b7d..e8616f0 100644
+--- a/Internship-Pre/tsconfig.json
++++ b/Internship-Pre/tsconfig.json
+@@ -17,4 +17,4 @@
+   },
+   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],
+   "references": [{ "path": "./tsconfig.node.json" }]
+-}
++}
+\ No newline at end of file
+diff --git a/Internship-Pre/tsconfig.node.json b/Internship-Pre/tsconfig.node.json
+index cfa1ab5..6d06e9f 100644
+--- a/Internship-Pre/tsconfig.node.json
++++ b/Internship-Pre/tsconfig.node.json
+@@ -7,4 +7,4 @@
+     "allowSyntheticDefaultImports": true
+   },
+   "include": ["vite.config.ts"]
+-}
++}
+\ No newline at end of file
+diff --git a/Internship-Pre/vite.config.ts b/Internship-Pre/vite.config.ts
+index 332b193..625fee3 100644
+--- a/Internship-Pre/vite.config.ts
++++ b/Internship-Pre/vite.config.ts
+@@ -18,4 +18,4 @@ export default defineConfig({
+       },
+     },
+   },
+-});
++});
+\ No newline at end of file
+diff --git a/Internship-core/.env.example b/Internship-core/.env.example
+index 370ddf5..15641be 100644
+--- a/Internship-core/.env.example
++++ b/Internship-core/.env.example
+@@ -17,4 +17,4 @@ REDIS_PASSWORD=
+ 
+ # JWT 配置
+ JWT_ACCESS_TOKEN_LIFETIME_MINUTES=120
+-JWT_REFRESH_TOKEN_LIFETIME_DAYS=7
++JWT_REFRESH_TOKEN_LIFETIME_DAYS=7
+\ No newline at end of file
+diff --git a/Internship-core/apps/__init__.py b/Internship-core/apps/__init__.py
+index e30a757..8eac5c8 100644
+--- a/Internship-core/apps/__init__.py
++++ b/Internship-core/apps/__init__.py
+@@ -1 +1 @@
+-# apps/__init__.py
++# apps/__init__.py
+\ No newline at end of file
+diff --git a/Internship-core/apps/config_app/__init__.py b/Internship-core/apps/config_app/__init__.py
+index b006c09..c89bbbc 100644
+--- a/Internship-core/apps/config_app/__init__.py
++++ b/Internship-core/apps/config_app/__init__.py
+@@ -1 +1 @@
+-# apps/config_app/__init__.py
++# apps/config_app/__init__.py
+\ No newline at end of file
+diff --git a/Internship-core/apps/config_app/models.py b/Internship-core/apps/config_app/models.py
+index e25c7a3..1299cb0 100644
+--- a/Internship-core/apps/config_app/models.py
++++ b/Internship-core/apps/config_app/models.py
+@@ -18,4 +18,4 @@ class SystemConfig(models.Model):
+         db_table = "sys_config"
+         verbose_name = "系统配置"
+         verbose_name_plural = verbose_name
+-        ordering = ["sort_order"]
++        ordering = ["sort_order"]
+\ No newline at end of file
+diff --git a/Internship-core/apps/config_app/serializers.py b/Internship-core/apps/config_app/serializers.py
+index 8e2bd9a..6b24e47 100644
+--- a/Internship-core/apps/config_app/serializers.py
++++ b/Internship-core/apps/config_app/serializers.py
+@@ -6,4 +6,4 @@ from .models import SystemConfig
+ class SystemConfigSerializer(serializers.ModelSerializer):
+     class Meta:
+         model = SystemConfig
+-        fields = "__all__"
++        fields = "__all__"
+\ No newline at end of file
+diff --git a/Internship-core/apps/config_app/urls.py b/Internship-core/apps/config_app/urls.py
+index 8ebde2f..756278f 100644
+--- a/Internship-core/apps/config_app/urls.py
++++ b/Internship-core/apps/config_app/urls.py
+@@ -4,4 +4,4 @@ from .views import SystemConfigViewSet
+ 
+ router = DefaultRouter()
+ router.register("", SystemConfigViewSet, basename="config")
+-urlpatterns = router.urls
++urlpatterns = router.urls
+\ No newline at end of file
+diff --git a/Internship-core/apps/config_app/views.py b/Internship-core/apps/config_app/views.py
+index e1f8008..3b268e9 100644
+--- a/Internship-core/apps/config_app/views.py
++++ b/Internship-core/apps/config_app/views.py
+@@ -16,4 +16,4 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
+         config = SystemConfig.objects.filter(config_key=key).first()
+         if config:
+             return APIResponse.success(data=config.config_value)
+-        return APIResponse.not_found()
++        return APIResponse.not_found()
+\ No newline at end of file
+diff --git a/Internship-core/apps/department/__init__.py b/Internship-core/apps/department/__init__.py
+index e6720ff..70a9261 100644
+--- a/Internship-core/apps/department/__init__.py
++++ b/Internship-core/apps/department/__init__.py
+@@ -1 +1 @@
+-# apps/department/__init__.py
++# apps/department/__init__.py
+\ No newline at end of file
+diff --git a/Internship-core/apps/department/models.py b/Internship-core/apps/department/models.py
+index eba821b..dc7b425 100644
+--- a/Internship-core/apps/department/models.py
++++ b/Internship-core/apps/department/models.py
+@@ -26,4 +26,4 @@ class Department(models.Model):
+         db_table = "sys_department"
+         verbose_name = "部门"
+         verbose_name_plural = verbose_name
+-        ordering = ["sort_order"]
++        ordering = ["sort_order"]
+\ No newline at end of file
+diff --git a/Internship-core/apps/department/serializers.py b/Internship-core/apps/department/serializers.py
+index f3ff696..caf5b18 100644
+--- a/Internship-core/apps/department/serializers.py
++++ b/Internship-core/apps/department/serializers.py
+@@ -19,4 +19,4 @@ class DepartmentTreeSerializer(serializers.ModelSerializer):
+ class DepartmentSerializer(serializers.ModelSerializer):
+     class Meta:
+         model = Department
+-        fields = "__all__"
++        fields = "__all__"
+\ No newline at end of file
+diff --git a/Internship-core/apps/department/urls.py b/Internship-core/apps/department/urls.py
+index f6f5347..3dfabc5 100644
+--- a/Internship-core/apps/department/urls.py
++++ b/Internship-core/apps/department/urls.py
+@@ -4,4 +4,4 @@ from .views import DepartmentViewSet
+ 
+ router = DefaultRouter()
+ router.register("", DepartmentViewSet, basename="department")
+-urlpatterns = router.urls
++urlpatterns = router.urls
+\ No newline at end of file
+diff --git a/Internship-core/apps/department/views.py b/Internship-core/apps/department/views.py
+index c277675..130f6ea 100644
+--- a/Internship-core/apps/department/views.py
++++ b/Internship-core/apps/department/views.py
+@@ -18,4 +18,4 @@ class DepartmentViewSet(viewsets.ModelViewSet):
+ 
+     @action(detail=True, methods=["put"])
+     def status(self, request, pk=None):
+-        return APIResponse.success()
++        return APIResponse.success()
+\ No newline at end of file
+diff --git a/Internship-core/apps/log/__init__.py b/Internship-core/apps/log/__init__.py
+index e1ca40a..3c57fed 100644
+--- a/Internship-core/apps/log/__init__.py
++++ b/Internship-core/apps/log/__init__.py
+@@ -1 +1 @@
+-# apps/log/__init__.py
++# apps/log/__init__.py
+\ No newline at end of file
+diff --git a/Internship-core/apps/log/models.py b/Internship-core/apps/log/models.py
+index 266951d..c821789 100644
+--- a/Internship-core/apps/log/models.py
++++ b/Internship-core/apps/log/models.py
+@@ -21,4 +21,4 @@ class OperationLog(models.Model):
+         db_table = "sys_operation_log"
+         verbose_name = "操作日志"
+         verbose_name_plural = verbose_name
+-        ordering = ["-create_time"]
++        ordering = ["-create_time"]
+\ No newline at end of file
+diff --git a/Internship-core/apps/log/serializers.py b/Internship-core/apps/log/serializers.py
+index 755c4f4..0a5a925 100644
+--- a/Internship-core/apps/log/serializers.py
++++ b/Internship-core/apps/log/serializers.py
+@@ -15,4 +15,4 @@ class OperationLogListSerializer(serializers.ModelSerializer):
+         fields = [
+             "id", "username", "module", "operation", "method",
+             "request_url", "ip", "status", "execution_time", "create_time",
+-        ]
++        ]
+\ No newline at end of file
+diff --git a/Internship-core/apps/log/urls.py b/Internship-core/apps/log/urls.py
+index e1b7908..d5f4d91 100644
+--- a/Internship-core/apps/log/urls.py
++++ b/Internship-core/apps/log/urls.py
+@@ -4,4 +4,4 @@ from .views import OperationLogViewSet
+ 
+ router = DefaultRouter()
+ router.register("", OperationLogViewSet, basename="log")
+-urlpatterns = router.urls
++urlpatterns = router.urls
+\ No newline at end of file
+diff --git a/Internship-core/apps/log/views.py b/Internship-core/apps/log/views.py
+index 3e056ea..b81ba79 100644
+--- a/Internship-core/apps/log/views.py
++++ b/Internship-core/apps/log/views.py
+@@ -23,4 +23,4 @@ class OperationLogViewSet(viewsets.ReadOnlyModelViewSet):
+     @action(detail=False, methods=["get"])
+     def export(self, request):
+         """导出日志 — GET /api/log/export"""
+-        return APIResponse.success(data={"message": "待实现"})
++        return APIResponse.success(data={"message": "待实现"})
+\ No newline at end of file
+diff --git a/Internship-core/apps/menu/__init__.py b/Internship-core/apps/menu/__init__.py
+index 52bb625..218fa6c 100644
+--- a/Internship-core/apps/menu/__init__.py
++++ b/Internship-core/apps/menu/__init__.py
+@@ -1 +1 @@
+-# apps/menu/__init__.py
++# apps/menu/__init__.py
+\ No newline at end of file
+diff --git a/Internship-core/apps/menu/models.py b/Internship-core/apps/menu/models.py
+index 49ee0cd..9f43fc8 100644
+--- a/Internship-core/apps/menu/models.py
++++ b/Internship-core/apps/menu/models.py
+@@ -30,4 +30,4 @@ class Menu(models.Model):
+         db_table = "sys_menu"
+         verbose_name = "菜单"
+         verbose_name_plural = verbose_name
+-        ordering = ["sort_order"]
++        ordering = ["sort_order"]
+\ No newline at end of file
+diff --git a/Internship-core/apps/menu/serializers.py b/Internship-core/apps/menu/serializers.py
+index 7387fb1..04b7189 100644
+--- a/Internship-core/apps/menu/serializers.py
++++ b/Internship-core/apps/menu/serializers.py
+@@ -22,4 +22,4 @@ class MenuTreeSerializer(serializers.ModelSerializer):
+ class MenuSerializer(serializers.ModelSerializer):
+     class Meta:
+         model = Menu
+-        fields = "__all__"
++        fields = "__all__"
+\ No newline at end of file
+diff --git a/Internship-core/apps/menu/urls.py b/Internship-core/apps/menu/urls.py
+index c176d5a..e907609 100644
+--- a/Internship-core/apps/menu/urls.py
++++ b/Internship-core/apps/menu/urls.py
+@@ -4,4 +4,4 @@ from .views import MenuViewSet
+ 
+ router = DefaultRouter()
+ router.register("", MenuViewSet, basename="menu")
+-urlpatterns = router.urls
++urlpatterns = router.urls
+\ No newline at end of file
+diff --git a/Internship-core/apps/menu/views.py b/Internship-core/apps/menu/views.py
+index 0f758d8..c88c232 100644
+--- a/Internship-core/apps/menu/views.py
++++ b/Internship-core/apps/menu/views.py
+@@ -23,4 +23,4 @@ class MenuViewSet(viewsets.ModelViewSet):
+ 
+     @action(detail=True, methods=["put"])
+     def status(self, request, pk=None):
+-        return APIResponse.success()
++        return APIResponse.success()
+\ No newline at end of file
+diff --git a/Internship-core/apps/permission/__init__.py b/Internship-core/apps/permission/__init__.py
+index ad9e0c3..6fbf79e 100644
+--- a/Internship-core/apps/permission/__init__.py
++++ b/Internship-core/apps/permission/__init__.py
+@@ -1 +1 @@
+-# apps/permission/__init__.py
++# apps/permission/__init__.py
+\ No newline at end of file
+diff --git a/Internship-core/apps/permission/models.py b/Internship-core/apps/permission/models.py
+index 3345be4..d681156 100644
+--- a/Internship-core/apps/permission/models.py
++++ b/Internship-core/apps/permission/models.py
+@@ -27,4 +27,4 @@ class MenuPermissionRelation(models.Model):
+ 
+     class Meta:
+         db_table = "sys_menu_permission_relation"
+-        unique_together = ("menu", "permission")
++        unique_together = ("menu", "permission")
+\ No newline at end of file
+diff --git a/Internship-core/apps/permission/serializers.py b/Internship-core/apps/permission/serializers.py
+index d58e224..29c6730 100644
+--- a/Internship-core/apps/permission/serializers.py
++++ b/Internship-core/apps/permission/serializers.py
+@@ -6,4 +6,4 @@ from .models import Permission
+ class PermissionSerializer(serializers.ModelSerializer):
+     class Meta:
+         model = Permission
+-        fields = "__all__"
++        fields = "__all__"
+\ No newline at end of file
+diff --git a/Internship-core/apps/permission/urls.py b/Internship-core/apps/permission/urls.py
+index 1e85d82..6b2c5b8 100644
+--- a/Internship-core/apps/permission/urls.py
++++ b/Internship-core/apps/permission/urls.py
+@@ -4,4 +4,4 @@ from .views import PermissionViewSet
+ 
+ router = DefaultRouter()
+ router.register("", PermissionViewSet, basename="permission")
+-urlpatterns = router.urls
++urlpatterns = router.urls
+\ No newline at end of file
+diff --git a/Internship-core/apps/permission/views.py b/Internship-core/apps/permission/views.py
+index cd3520d..154d57c 100644
+--- a/Internship-core/apps/permission/views.py
++++ b/Internship-core/apps/permission/views.py
+@@ -13,4 +13,4 @@ class PermissionViewSet(viewsets.ModelViewSet):
+     @action(detail=True, methods=["get", "put"], url_path="menus")
+     def menus(self, request, pk=None):
+         """获取/绑定权限到菜单"""
+-        return APIResponse.success(data={"message": "待实现"})
++        return APIResponse.success(data={"message": "待实现"})
+\ No newline at end of file
+diff --git a/Internship-core/apps/role/__init__.py b/Internship-core/apps/role/__init__.py
+index 8d37b03..18d6683 100644
+--- a/Internship-core/apps/role/__init__.py
++++ b/Internship-core/apps/role/__init__.py
+@@ -1 +1 @@
+-# apps/role/__init__.py
++# apps/role/__init__.py
+\ No newline at end of file
+diff --git a/Internship-core/apps/role/models.py b/Internship-core/apps/role/models.py
+index e972267..501fb95 100644
+--- a/Internship-core/apps/role/models.py
++++ b/Internship-core/apps/role/models.py
+@@ -28,4 +28,4 @@ class RoleMenuRelation(models.Model):
+ 
+     class Meta:
+         db_table = "sys_role_menu_relation"
+-        unique_together = ("role", "menu")
++        unique_together = ("role", "menu")
+\ No newline at end of file
+diff --git a/Internship-core/apps/role/serializers.py b/Internship-core/apps/role/serializers.py
+index 652925a..11cdcb3 100644
+--- a/Internship-core/apps/role/serializers.py
++++ b/Internship-core/apps/role/serializers.py
+@@ -14,4 +14,4 @@ class AssignMenuSerializer(serializers.Serializer):
+ 
+ 
+ class AssignUserSerializer(serializers.Serializer):
+-    user_ids = serializers.ListField(child=serializers.IntegerField())
++    user_ids = serializers.ListField(child=serializers.IntegerField())
+\ No newline at end of file
+diff --git a/Internship-core/apps/role/urls.py b/Internship-core/apps/role/urls.py
+index aa97388..927d5af 100644
+--- a/Internship-core/apps/role/urls.py
++++ b/Internship-core/apps/role/urls.py
+@@ -4,4 +4,4 @@ from .views import RoleViewSet
+ 
+ router = DefaultRouter()
+ router.register("", RoleViewSet, basename="role")
+-urlpatterns = router.urls
++urlpatterns = router.urls
+\ No newline at end of file
+diff --git a/Internship-core/apps/role/views.py b/Internship-core/apps/role/views.py
+index fff270f..e4a8850 100644
+--- a/Internship-core/apps/role/views.py
++++ b/Internship-core/apps/role/views.py
+@@ -27,4 +27,4 @@ class RoleViewSet(viewsets.ModelViewSet):
+     @action(detail=True, methods=["get", "put"], url_path="users")
+     def users(self, request, pk=None):
+         """获取/分配角色下的用户"""
+-        return APIResponse.success(data={"message": "待实现"})
++        return APIResponse.success(data={"message": "待实现"})
+\ No newline at end of file
+diff --git a/Internship-core/apps/user/__init__.py b/Internship-core/apps/user/__init__.py
+index 77980d2..9cdfdf6 100644
+--- a/Internship-core/apps/user/__init__.py
++++ b/Internship-core/apps/user/__init__.py
+@@ -1 +1 @@
+-# apps/user/__init__.py
++# apps/user/__init__.py
+\ No newline at end of file
+diff --git a/Internship-core/apps/user/models.py b/Internship-core/apps/user/models.py
+index 4b55bb7..74dc8e3 100644
+--- a/Internship-core/apps/user/models.py
++++ b/Internship-core/apps/user/models.py
+@@ -94,14 +94,21 @@ class User(AbstractBaseUser):
+         """获取用户权限标识列表（通过角色-菜单关联获取）"""
+         if self.is_superuser:
+             return ["*:*:*"]
+-        relations = self.userrolerelation_set.select_related(
+-            "role__rolemenurelation__menu__menupermissionrelation__permission"
+-        ).all()
+-        perms = set()
+-        for ur in relations:
+-            for rm in ur.role.rolemenurelation_set.all():
+-                for mp in rm.menu.menupermissionrelation_set.all():
+-                    perms.add(mp.permission.permission_key)
++        # 通过 prefetch_related 优化查询
++        role_ids = self.userrolerelation_set.values_list("role_id", flat=True)
++        from apps.role.models import RoleMenuRelation
++        from apps.permission.models import MenuPermissionRelation
++        from apps.menu.models import Menu
++        menu_ids = RoleMenuRelation.objects.filter(
++            role_id__in=role_ids, role__status=1
++        ).values_list("menu_id", flat=True)
++        perm_ids = MenuPermissionRelation.objects.filter(
++            menu_id__in=menu_ids
++        ).values_list("permission_id", flat=True)
++        from apps.permission.models import Permission
++        perms = Permission.objects.filter(id__in=perm_ids, status=1).values_list(
++            "permission_key", flat=True
++        )
+         return list(perms)
+ 
+     def has_perm(self, perm, obj=None):
+@@ -119,4 +126,4 @@ class UserRoleRelation(models.Model):
+ 
+     class Meta:
+         db_table = "sys_user_role_relation"
+-        unique_together = ("user", "role")
++        unique_together = ("user", "role")
+\ No newline at end of file
+diff --git a/Internship-core/apps/user/serializers.py b/Internship-core/apps/user/serializers.py
+index d8f4bb2..cae6c2a 100644
+--- a/Internship-core/apps/user/serializers.py
++++ b/Internship-core/apps/user/serializers.py
+@@ -32,3 +32,40 @@ class ChangePasswordSerializer(serializers.Serializer):
+ 
+ class ResetPasswordSerializer(serializers.Serializer):
+     user_id = serializers.IntegerField(required=True)
++
++
++class RefreshTokenSerializer(serializers.Serializer):
++    """刷新 Token — 校验 refresh_token 是否存在"""
++    refresh = serializers.CharField(required=True)
++
++
++class UserCreateSerializer(serializers.ModelSerializer):
++    """创建用户（注册用）"""
++    password = serializers.CharField(write_only=True, required=False, default="123456")
++
++    class Meta:
++        model = User
++        fields = [
++            "id", "username", "password", "nickname", "real_name",
++            "email", "telephone", "gender", "status",
++        ]
++        read_only_fields = ["id"]
++
++    def create(self, validated_data):
++        password = validated_data.pop("password", "123456")
++        user = User(**validated_data)
++        user.set_password(password)
++        user.save()
++        return user
++
++
++class UserProfileSerializer(serializers.ModelSerializer):
++    """个人资料 — GET 返回详情，PUT 部分更新"""
++
++    class Meta:
++        model = User
++        fields = [
++            "id", "username", "nickname", "real_name", "email",
++            "telephone", "gender", "avatar", "department_id",
++        ]
++        read_only_fields = ["id", "username"]
+\ No newline at end of file
+diff --git a/Internship-core/apps/user/urls.py b/Internship-core/apps/user/urls.py
+index a58c545..9048424 100644
+--- a/Internship-core/apps/user/urls.py
++++ b/Internship-core/apps/user/urls.py
+@@ -4,4 +4,4 @@ from .views import UserViewSet
+ 
+ router = DefaultRouter()
+ router.register("", UserViewSet, basename="user")
+-urlpatterns = router.urls
++urlpatterns = router.urls
+\ No newline at end of file
+diff --git a/Internship-core/apps/user/views.py b/Internship-core/apps/user/views.py
+index 74291eb..1d3684c 100644
+--- a/Internship-core/apps/user/views.py
++++ b/Internship-core/apps/user/views.py
+@@ -1,9 +1,11 @@
+ """用户模块视图 — 参考《组织架构模块设计方案.md》第 5.2 节"""
++import os
++from django.conf import settings
+ from django.utils import timezone
+ from rest_framework import viewsets, status
+ from rest_framework.decorators import action
+-from rest_framework.permissions import AllowAny
+-from rest_framework_simplejwt.tokens import RefreshToken
++from rest_framework.permissions import AllowAny, IsAuthenticated
++from rest_framework_simplejwt.tokens import RefreshToken, TokenError
+ from utils import APIResponse, HasPermission
+ from .models import User
+ from .serializers import (
+@@ -12,6 +14,9 @@ from .serializers import (
+     UserListSerializer,
+     ChangePasswordSerializer,
+     ResetPasswordSerializer,
++    RefreshTokenSerializer,
++    UserCreateSerializer,
++    UserProfileSerializer,
+ )
+ 
+ 
+@@ -82,13 +87,70 @@ class UserViewSet(viewsets.ModelViewSet):
+ 
+     @action(detail=False, methods=["post"], permission_classes=[AllowAny])
+     def register(self, request):
+-        """用户注册 — POST /api/user/register"""
+-        return APIResponse.success(data={"message": "待实现"})
++        """
++        用户注册 — POST /api/user/register
+ 
+-    @action(detail=False, methods=["post"])
++        Request:  { "username": "admin", "password": "admin123", "nickname": "管理员" }
++        Response: { "code": 200, "data": { id, username, nickname, ... } }
++        """
++        serializer = UserCreateSerializer(data=request.data)
++        if not serializer.is_valid():
++            return APIResponse.error(
++                message="参数错误", code=2000, http_status=400,
++            )
++
++        # 检查用户名是否已存在
++        username = serializer.validated_data["username"]
++        if User.objects.filter(username=username).exists():
++            return APIResponse.conflict(message="用户名已存在")
++
++        # 创建用户（UserCreateSerializer.create 中已处理 bcrypt 加密）
++        user = serializer.save()
++
++        # 注册后自动登录，返回 token
++        refresh = RefreshToken.for_user(user)
++        return APIResponse.success(
++            message="注册成功",
++            data={
++                "access_token": str(refresh.access_token),
++                "refresh_token": str(refresh),
++                "user": {
++                    "id": user.id,
++                    "username": user.username,
++                    "nickname": user.nickname,
++                    "avatar": user.avatar,
++                    "roles": user.role_list,
++                    "permissions": user.permission_list,
++                },
++            },
++        )
++
++    @action(detail=False, methods=["post"], permission_classes=[AllowAny], url_path="refresh-token")
+     def refresh_token(self, request):
+-        """刷新 Token — POST /api/user/refresh-token"""
+-        return APIResponse.success(data={"message": "待实现"})
++        """
++        刷新 Token — POST /api/user/refresh-token
++
++        Request:  { "refresh": "eyJ..." }
++        Response: { "code": 200, "data": { "access_token": "eyJ...", "refresh_token": "eyJ..." } }
++        """
++        serializer = RefreshTokenSerializer(data=request.data)
++        if not serializer.is_valid():
++            return APIResponse.error(
++                message="refresh_token 不能为空", code=2000, http_status=400,
++            )
++
++        try:
++            refresh = RefreshToken(serializer.validated_data["refresh"])
++            data = {
++                "access_token": str(refresh.access_token),
++                "refresh_token": str(refresh),
++            }
++            return APIResponse.success(data=data, message="Token 刷新成功")
++        except TokenError:
++            return APIResponse.error(
++                message="refresh_token 无效或已过期，请重新登录",
++                code=3002, http_status=401,
++            )
+ 
+     @action(detail=True, methods=["put"])
+     def status(self, request, pk=None):
+@@ -100,10 +162,36 @@ class UserViewSet(viewsets.ModelViewSet):
+         """重置密码 — PUT /api/user/reset-password"""
+         return APIResponse.success()
+ 
+-    @action(detail=False, methods=["put"])
++    @action(detail=False, methods=["put"], url_path="update-password")
+     def update_password(self, request):
+-        """修改自己的密码 — PUT /api/user/update-password"""
+-        return APIResponse.success()
++        """
++        修改自己的密码 — PUT /api/user/update-password
++
++        Request:  { "old_password": "old123", "new_password": "new123" }
++        Response: { "code": 200, "message": "密码修改成功" }
++        """
++        serializer = ChangePasswordSerializer(data=request.data)
++        if not serializer.is_valid():
++            return APIResponse.error(
++                message="参数错误", code=2000, http_status=400,
++            )
++
++        user = request.user
++        if not user or not user.is_authenticated:
++            return APIResponse.error(
++                message="未登录", code=3000, http_status=401,
++            )
++
++        # 校验旧密码
++        if not user.check_password(serializer.validated_data["old_password"]):
++            return APIResponse.error(
++                message="旧密码不正确", code=2000, http_status=400,
++            )
++
++        # 设置新密码
++        user.set_password(serializer.validated_data["new_password"])
++        user.save(update_fields=["password"])
++        return APIResponse.success(message="密码修改成功")
+ 
+     @action(detail=False, methods=["get"])
+     def export(self, request):
+@@ -117,10 +205,76 @@ class UserViewSet(viewsets.ModelViewS
+
+[… truncated 10206 chars …]
