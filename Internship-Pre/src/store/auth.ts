@@ -59,6 +59,14 @@ export const useAuthStore = defineStore("auth", () => {
     return permissions.value.includes(perm) || permissions.value.includes("*:*:*");
   }
 
+  /** 设置 Token（用于 refresh 后更新） */
+  function setTokens(access: string, refresh: string) {
+    token.value = access;
+    refreshToken.value = refresh;
+    localStorage.setItem("access_token", access);
+    localStorage.setItem("refresh_token", refresh);
+  }
+
   return {
     token,
     refreshToken,
@@ -69,6 +77,7 @@ export const useAuthStore = defineStore("auth", () => {
     register,
     login,
     logout,
+    setTokens,
     generateDynamicRoutes,
     hasPermission,
   };

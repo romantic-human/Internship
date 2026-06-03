@@ -76,7 +76,7 @@ async function fetchList() {
 }
 async function handleDetail(row: any) {
   const res = await getLogDetail(row.id) as any;
-  detailData.value = JSON.stringify(res, null, 2);
+  detailData.value = JSON.stringify({ 用户名: res.username, 模块: res.module, 操作: res.operation, 方法: res.method, URL: res.request_url, IP: res.ip, 请求参数: res.request_params, 响应结果: res.response_result, 状态: res.status ? "成功" : "失败", 耗时: `${res.execution_time}ms`, 时间: res.create_time }, null, 2);
   detailVisible.value = true;
 }
 async function handleClear() {

@@ -72,6 +72,11 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
         data = request.data
         if not isinstance(data, list):
             return APIResponse.error(message="请传入数组")
-        instances = [SystemConfig(id=item["id"], sort_order=item.get("sortOrder", 0)) for item in data]
+        instances = []
+        for item in data:
+            item_id = item.get("id")
+            if not item_id:
+                return APIResponse.error(message="每项需要 id 字段")
+            instances.append(SystemConfig(id=item_id, sort_order=item.get("sortOrder", 0)))
         SystemConfig.objects.bulk_update(instances, ["sort_order"])
         return APIResponse.success(message="排序更新成功")

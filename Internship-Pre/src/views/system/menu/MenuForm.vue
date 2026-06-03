@@ -104,9 +104,18 @@ const form = ref<any>({
   is_frame: 0,
 });
 
-const rules = {
-  menu_name: [{ required: true, message: "请输入菜单名称", trigger: "blur" }],
-};
+const rules = computed(() => {
+  const r: Record<string, any> = {
+    menu_name: [{ required: true, message: "请输入菜单名称", trigger: "blur" }],
+  };
+  if (form.value.menu_type === 1) {
+    r.path = [{ required: true, message: "请输入路由路径", trigger: "blur" }];
+    r.component = [{ required: true, message: "请输入组件路径", trigger: "blur" }];
+  } else if (form.value.menu_type === 2) {
+    r.permission = [{ required: true, message: "请输入权限标识", trigger: "blur" }];
+  }
+  return r;
+});
 
 const isEdit = computed(() => !!props.formData?.id);
 

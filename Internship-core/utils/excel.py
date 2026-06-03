@@ -1,11 +1,23 @@
+import os
 import openpyxl
 from openpyxl.styles import Font, Alignment, Border, Side
+
+
+ALLOWED_EXPORT_DIR = os.path.abspath("exports")
+
+
+def _safe_path(file_path):
+    abspath = os.path.abspath(file_path)
+    if not abspath.startswith(os.path.abspath(".")):
+        raise PermissionError("路径越权")
+    return abspath
 
 
 class ExcelHandler:
 
     @staticmethod
     def export(headers, rows, file_path):
+        file_path = _safe_path(file_path)
         wb = openpyxl.Workbook()
         ws = wb.active
         font = Font(name="微软雅黑", size=11)
@@ -30,6 +42,7 @@ class ExcelHandler:
 
     @staticmethod
     def import_excel(file_path):
+        file_path = _safe_path(file_path)
         wb = openpyxl.load_workbook(file_path)
         ws = wb.active
         rows = []

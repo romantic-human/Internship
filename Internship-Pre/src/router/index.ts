@@ -1,17 +1,18 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
+import { useAuthStore } from "@/store/auth";
 
 const staticRoutes: RouteRecordRaw[] = [
   {
     path: "/login",
     name: "Login",
     component: () => import("@/views/login/Login.vue"),
-    meta: { title: "登录" },
+    meta: { title: "登录", layout: false },
   },
   {
     path: "/dashboard",
     name: "Dashboard",
     component: () => import("@/views/dashboard/Dashboard.vue"),
-    meta: { title: "首页" },
+    meta: { title: "首页", layout: true },
   },
   {
     path: "/profile",
@@ -64,6 +65,15 @@ const staticRoutes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(),
   routes: staticRoutes,
+});
+
+const whiteList = ["/login"];
+
+router.beforeEach((to) => {
+  document.title = to.meta.title ? `${to.meta.title} - 管理系统` : "管理系统";
+  if (whiteList.includes(to.path)) return true;
+  const authStore = useAuthStore();
+  if (!authStore.token) return "/login";
 });
 
 export default router;

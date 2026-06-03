@@ -62,6 +62,8 @@ async function fetchList() {
 }
 function handleAdd() { currentFormData.value = null; formVisible.value = true; }
 function handleEdit(row: any) { currentFormData.value = { ...row }; formVisible.value = true; }
-async function handleDelete(row: any) { await deleteConfig(row.id); ElMessage.success("删除成功"); await fetchList(); }
+async function handleDelete(row: any) {
+  try { await deleteConfig(row.id); ElMessage.success("删除成功"); await fetchList(); } catch { ElMessage.error("删除失败"); }
+}
 onMounted(fetchList);
 </script>

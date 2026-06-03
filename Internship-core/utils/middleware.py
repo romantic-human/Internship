@@ -14,14 +14,14 @@ SKIP_PATHS = (
 
 SKIP_METHODS = ("GET",)
 
-SENSITIVE_FIELDS = ("password", "token", "oldPassword", "newPassword")
+SENSITIVE_PATTERNS = re.compile(r"password|token|secret|key|authorization", re.IGNORECASE)
 
 
 def sanitize_params(params):
     if isinstance(params, dict):
         result = {}
         for k, v in params.items():
-            if any(s in k.lower() for s in SENSITIVE_FIELDS):
+            if SENSITIVE_PATTERNS.search(k):
                 result[k] = "******"
             else:
                 result[k] = sanitize_params(v)
@@ -54,7 +54,8 @@ class OperationLogMiddleware(MiddlewareMixin):
         user_id = user.id if user and user.is_authenticated else None
         username = user.username if user and user.is_authenticated else ""
 
-        module = path.split("/")[2] if len(path.split("/")) > 2 else ""
+        parts = [p for p in path.split("/") if p]
+        module = parts[1] if len(parts) > 1 else ""
 
         operation_map = {
             "POST": "新增",

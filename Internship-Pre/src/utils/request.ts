@@ -7,7 +7,14 @@ const request = axios.create({
   timeout: 15000,
 });
 
-// ── 请求拦截器 ──────────────────────────────────────────────
+let isRefreshing = false;
+let pendingQueue: Array<{ resolve: (token: string) => void; reject: (err: any) => void }> = [];
+
+function processQueue(err: any, token = "") {
+  pendingQueue.forEach((p) => (err ? p.reject(err) : p.resolve(token)));
+  pendingQueue = [];
+}
+
 request.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const authStore = useAuthStore();
@@ -19,40 +26,70 @@ request.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// ── 响应拦截器 ──────────────────────────────────────────────
 request.interceptors.response.use(
   (response: AxiosResponse) => {
     const res = response.data;
-    // 业务成功
     if (res.code === 200 || res.code === 1000) {
       return res.data;
     }
-    // 业务错误
     ElMessage.error(res.message || "请求失败");
     return Promise.reject(res);
   },
-  (error) => {
-    if (error.response) {
-      const { status, data } = error.response;
-      switch (data?.code) {
-        case 3000: // Token 缺失
-        case 3002: // Token 无效
-          ElMessage.error("登录已失效，请重新登录");
-          useAuthStore().logout();
-          window.location.href = "/login";
-          break;
-        case 3001: // Token 过期 → 自动刷新
-          // TODO: 调用 refresh-token 接口
-          ElMessage.error("Token 已过期");
-          break;
-        case 3003: // 无权限
-          ElMessage.error("无操作权限");
-          break;
-        default:
-          ElMessage.error(data?.message || `请求错误 ${status}`);
-      }
-    } else {
+  async (error) => {
+    if (!error.response) {
       ElMessage.error("网络错误，请检查后端服务");
+      return Promise.reject(error);
+    }
+    const { status, data } = error.response;
+    const authStore = useAuthStore();
+
+    if (data?.code === 3002) {
+      authStore.logout();
+      window.location.href = "/login";
+      return Promise.reject(error);
+    }
+
+    if (data?.code === 3001 && authStore.refreshToken) {
+      if (!isRefreshing) {
+        isRefreshing = true;
+        try {
+          const res = await axios.post("/api/user/refresh-token", { refresh: authStore.refreshToken });
+          const newToken = res.data.data.access_token;
+          authStore.setTokens(newToken, res.data.data.refresh_token);
+          processQueue(null, newToken);
+          error.config.headers.Authorization = `Bearer ${newToken}`;
+          return request(error.config);
+        } catch (refreshErr) {
+          processQueue(refreshErr);
+          authStore.logout();
+          window.location.href = "/login";
+          return Promise.reject(refreshErr);
+        } finally {
+          isRefreshing = false;
+        }
+      }
+      return new Promise((resolve, reject) => {
+        pendingQueue.push({
+          resolve: (token: string) => {
+            error.config.headers.Authorization = `Bearer ${token}`;
+            resolve(request(error.config));
+          },
+          reject,
+        });
+      });
+    }
+
+    switch (data?.code) {
+      case 3000:
+        ElMessage.error("登录已失效，请重新登录");
+        authStore.logout();
+        window.location.href = "/login";
+        break;
+      case 3003:
+        ElMessage.error("无操作权限");
+        break;
+      default:
+        ElMessage.error(data?.message || `请求错误 ${status}`);
     }
     return Promise.reject(error);
   },
