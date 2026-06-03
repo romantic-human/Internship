@@ -2,6 +2,6 @@
 from rest_framework.routers import DefaultRouter
 from .views import RoleViewSet
 
-router = DefaultRouter()
+router = DefaultRouter(trailing_slash=False)
 router.register("", RoleViewSet, basename="role")
 urlpatterns = router.urls
