@@ -31,7 +31,7 @@ export function getMenuDetail(id: number): Promise<MenuItem> {
 }
 
 export function createMenu(data: Partial<MenuItem>) {
-  return request.post("/menu", data);
+  return request.post("/menu/", data);
 }
 
 export function updateMenu(id: number, data: Partial<MenuItem>) {

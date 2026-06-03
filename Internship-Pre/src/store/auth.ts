@@ -12,7 +12,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   /** 注册 */
   async function register(username: string, password: string, nickname?: string) {
-    const res = await registerApi({ username, password, nickname });
+    const res: any = await registerApi({ username, password, nickname });
     token.value = res.access_token;
     refreshToken.value = res.refresh_token;
     userInfo.value = res.user;
@@ -25,7 +25,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   /** 登录 */
   async function login(username: string, password: string) {
-    const res = await loginApi({ username, password });
+    const res: any = await loginApi({ username, password });
     token.value = res.access_token;
     refreshToken.value = res.refresh_token;
     userInfo.value = res.user;
