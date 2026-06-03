@@ -70,4 +70,3 @@ async function handleDelete(row: any) {
 }
 onMounted(fetchList);
 </script>
-</script>
