@@ -163,7 +163,7 @@ class UserViewSet(viewsets.ModelViewSet):
         except Exception:
             return APIResponse.error(message="用户不存在", code=2004, http_status=404)
 
-    @action(detail=False, methods=["put"])
+    @action(detail=False, methods=["put"], url_path="reset-password")
     def reset_password(self, request):
         """重置密码 — PUT /api/user/reset-password"""
         user_id = request.data.get("userId")
@@ -213,7 +213,7 @@ class UserViewSet(viewsets.ModelViewSet):
         """导出用户 — GET /api/user/export"""
         return APIResponse.success(data={"message": "待实现"})
 
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post"], url_path="import")
     def import_(self, request):
         """导入用户 — POST /api/user/import"""
         return APIResponse.success(data={"message": "待实现"})
