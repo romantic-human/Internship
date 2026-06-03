@@ -1,7 +1,7 @@
 import request from "@/utils/request";
 
 export function getLogList(params: any) {
-  return request.get("/log/list", { params });
+  return request.get("/log", { params });
 }
 
 export function getLogDetail(id: number) {
