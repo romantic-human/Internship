@@ -1,5 +1,166 @@
 <template>
-  <div class="placeholder-page">
-    <el-empty description="用户管理 — 待开发" />
+  <div class="user-page">
+    <el-card>
+      <template #header>
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <span>用户管理</span>
+          <el-button type="primary" @click="handleAdd">新增用户</el-button>
+        </div>
+      </template>
+
+      <el-form :model="filters" inline class="mb-2">
+        <el-form-item label="用户名">
+          <el-input v-model="filters.username" placeholder="用户名" clearable style="width:140px" />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="filters.status" placeholder="全部" clearable style="width:100px">
+            <el-option label="启用" :value="1" />
+            <el-option label="禁用" :value="0" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="page=1;fetchList()">查询</el-button>
+          <el-button @click="filters={};page=1;fetchList()">重置</el-button>
+        </el-form-item>
+      </el-form>
+
+      <el-table :data="list" v-loading="loading" stripe>
+        <el-table-column prop="username" label="用户名" width="120" />
+        <el-table-column prop="nickname" label="昵称" width="120" />
+        <el-table-column prop="email" label="邮箱" min-width="180" />
+        <el-table-column prop="telephone" label="手机号" width="130" />
+        <el-table-column label="状态" width="80" align="center">
+          <template #default="{ row }">
+            <el-switch
+              :model-value="row.status"
+              :active-value="1"
+              :inactive-value="0"
+              @change="(val:number) => handleStatusChange(row, val)"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column prop="create_time" label="创建时间" width="170" />
+        <el-table-column label="操作" width="180" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+            <el-button link type="primary" @click="handleResetPwd(row)">重置密码</el-button>
+            <el-popconfirm title="确定删除该用户？" @confirm="handleDelete(row)">
+              <template #reference><el-button link type="danger">删除</el-button></template>
+            </el-popconfirm>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-pagination
+        v-if="total > pageSize"
+        v-model:current-page="page"
+        :page-size="pageSize"
+        :total="total"
+        layout="total, prev, pager, next"
+        @current-change="fetchList"
+        class="mt-3"
+      />
+    </el-card>
+
+    <UserForm
+      v-if="formVisible"
+      :visible="formVisible"
+      :form-data="currentFormData"
+      @close="formVisible = false"
+      @success="fetchList"
+    />
   </div>
 </template>
+
+<script setup lang="ts">
+import { ref, onMounted, reactive } from "vue";
+import {
+  getUserList,
+  deleteUser,
+  updateUserStatus,
+  resetPassword,
+} from "@/api/user";
+import { ElMessage, ElMessageBox } from "element-plus";
+import UserForm from "./UserForm.vue";
+
+interface UserRecord {
+  id: number;
+  username: string;
+  nickname: string;
+  email: string;
+  telephone: string;
+  status: number;
+  create_time: string;
+}
+
+const loading = ref(false);
+const list = ref<UserRecord[]>([]);
+const total = ref(0);
+const page = ref(1);
+const pageSize = 10;
+const formVisible = ref(false);
+const currentFormData = ref<Partial<UserRecord> | null>(null);
+const filters = reactive({
+  username: "",
+  status: null as number | null,
+});
+
+async function fetchList() {
+  loading.value = true;
+  try {
+    const params: Record<string, any> = { page: page.value, pageSize };
+    if (filters.username) params.username = filters.username;
+    if (filters.status !== null) params.status = filters.status;
+    const res = await getUserList(params);
+    list.value = res.records || res;
+    total.value = res.total || 0;
+  } finally {
+    loading.value = false;
+  }
+}
+
+function handleAdd() {
+  currentFormData.value = null;
+  formVisible.value = true;
+}
+
+function handleEdit(row: UserRecord) {
+  currentFormData.value = { ...row };
+  formVisible.value = true;
+}
+
+async function handleDelete(row: UserRecord) {
+  try {
+    await deleteUser(row.id);
+    ElMessage.success("删除成功");
+    await fetchList();
+  } catch (err: any) {
+    ElMessage.error(err?.message || "删除失败");
+  }
+}
+
+async function handleStatusChange(row: UserRecord, val: number) {
+  try {
+    await updateUserStatus(row.id, val);
+    row.status = val;
+    ElMessage.success("状态更新成功");
+  } catch {
+    ElMessage.error("状态更新失败");
+  }
+}
+
+function handleResetPwd(row: UserRecord) {
+  ElMessageBox.prompt("请输入新密码", `重置用户「${row.username}」的密码`, {
+    inputType: "password",
+    inputPlaceholder: "请输入新密码（至少6位）",
+    inputPattern: /^.{6,}$/,
+    inputErrorMessage: "密码至少6位",
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+  }).then(async ({ value }) => {
+    await resetPassword({ userId: row.id });
+    ElMessage.success("密码已重置");
+  }).catch(() => {});
+}
+
+onMounted(fetchList);
+</script>
