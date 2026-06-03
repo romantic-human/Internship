@@ -11,6 +11,7 @@ class SystemConfig(models.Model):
     config_type = models.SmallIntegerField(default=0, verbose_name="配置类型")
     remark = models.CharField(max_length=255, blank=True, default="", verbose_name="备注")
     sort_order = models.IntegerField(default=0, verbose_name="排序号")
+    status = models.SmallIntegerField(default=1, verbose_name="状态")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
