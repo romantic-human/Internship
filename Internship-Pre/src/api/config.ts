@@ -1,7 +1,7 @@
 import request from "@/utils/request";
 
 export function getConfigList(params: any) {
-  return request.get("/config/list", { params });
+  return request.get("/config", { params });
 }
 
 export function getConfigDetail(id: number) {
@@ -9,7 +9,7 @@ export function getConfigDetail(id: number) {
 }
 
 export function getConfigByKey(key: string) {
-  return request.get(`/config/by-key/${key}`);
+  return request.get("/config/by-key/", { params: { key } });
 }
 
 export function createConfig(data: any) {
@@ -18,4 +18,16 @@ export function createConfig(data: any) {
 
 export function updateConfig(id: number, data: any) {
   return request.put(`/config/${id}`, data);
+}
+
+export function deleteConfig(id: number) {
+  return request.delete(`/config/${id}`);
+}
+
+export function updateConfigSort(id: number, sortOrder: number) {
+  return request.put(`/config/${id}/sort`, { sortOrder });
+}
+
+export function batchSortConfig(data: { id: number; sortOrder: number }[]) {
+  return request.post("/config/batch-sort", data);
 }

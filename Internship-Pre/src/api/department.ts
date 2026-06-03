@@ -23,3 +23,11 @@ export function deleteDepartment(id: number) {
 export function updateDepartmentStatus(id: number, status: number) {
   return request.put(`/department/${id}/status`, { status });
 }
+
+export function updateDepartmentSort(id: number, sortOrder: number) {
+  return request.put(`/department/${id}/sort`, { sortOrder });
+}
+
+export function batchSortDepartment(data: { id: number; sortOrder: number }[]) {
+  return request.post("/department/batch-sort", data);
+}

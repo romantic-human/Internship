@@ -29,7 +29,7 @@
               :type="typeTagType(row.menu_type)"
               size="small"
             >
-              {{ typeLabel(row.menu_type) }}
+              {{ TYPE_MAP[row.menu_type] ?? "未知" }}
             </el-tag>
           </template>
         </el-table-column>
@@ -79,15 +79,12 @@ import * as ElementPlusIcons from "@element-plus/icons-vue";
 import MenuForm from "./MenuForm.vue";
 
 const iconMap: Record<string, any> = ElementPlusIcons;
+const TYPE_MAP: Record<number, string> = { 0: "目录", 1: "菜单", 2: "按钮" };
 
 const loading = ref(false);
 const treeData = ref<any[]>([]);
 const formVisible = ref(false);
 const currentFormData = ref<any>(null);
-
-function typeLabel(t: number): string {
-  return { 0: "目录", 1: "菜单", 2: "按钮" }[t] ?? "未知";
-}
 
 function typeTagType(t: number): string {
   return t === 0 ? "" : t === 1 ? "primary" : "warning";

@@ -1,7 +1,7 @@
 import request from "@/utils/request";
 
 export function getPermissionList(params: any) {
-  return request.get("/permission/list", { params });
+  return request.get("/permission", { params });
 }
 
 export function getPermissionDetail(id: number) {
@@ -26,4 +26,12 @@ export function getPermissionMenus(id: number) {
 
 export function bindPermissionMenus(id: number, menuIds: number[]) {
   return request.put(`/permission/${id}/menus`, { menuIds });
+}
+
+export function updatePermissionSort(id: number, sortOrder: number) {
+  return request.put(`/permission/${id}/sort`, { sortOrder });
+}
+
+export function batchSortPermission(data: { id: number; sortOrder: number }[]) {
+  return request.post("/permission/batch-sort", data);
 }
