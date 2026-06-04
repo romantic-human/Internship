@@ -70,6 +70,6 @@ export function updateUserStatus(id: number, status: number) {
   return request.put(`/user/${id}/status`, { status });
 }
 
-export function resetPassword(data: { userId: number }) {
+export function resetPassword(data: { userId: number; password?: string }) {
   return request.put("/user/reset-password", data);
 }

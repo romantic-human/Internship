@@ -6,7 +6,7 @@ __pycache__/
 # Django
 db.sqlite3
 media/
-migrations/
+*/migrations/__pycache__/
 
 # Environment
 .env
@@ -27,3 +27,6 @@ package-lock.json
 yarn.lock
 # Skills
 .reasonix/
+
+# Codegraph
+.codegraph/

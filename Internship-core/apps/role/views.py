@@ -50,6 +50,15 @@ class RoleViewSet(viewsets.ModelViewSet):
         instance.delete()
         return APIResponse.success(message="删除成功")
 
+    @action(detail=False, methods=["delete"], url_path="batch")
+    def batch(self, request):
+        """批量删除 — DELETE /api/role/batch"""
+        ids = request.data.get("ids", [])
+        if not ids:
+            return APIResponse.error(message="ids 不能为空")
+        Role.objects.filter(id__in=ids).delete()
+        return APIResponse.success(message="批量删除成功")
+
     @action(detail=False, methods=["get"])
     def all(self, request):
         """获取全部角色（下拉框用）"""

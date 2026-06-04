@@ -100,7 +100,7 @@
       <el-table
         :data="userList"
         ref="userTableRef"
-        @selection-change="selectedUserIds = $event.map((r:any)=>r.id)"
+        @selection-change="onUserSelectionChange"
         row-key="id"
       >
         <el-table-column type="selection" width="50" />
@@ -244,6 +244,13 @@ async function handleAssignUser(row: RoleRecord) {
   nextTick(async () => {
     const userIds: number[] = await getRoleUsers(row.id);
     selectedUserIds.value = userIds;
+    // 同步表格选中状态
+    const table = userTableRef.value as any;
+    if (table) {
+      userList.value.forEach((u: any) => {
+        table.toggleRowSelection(u, userIds.includes(u.id));
+      });
+    }
   });
 }
 
@@ -258,6 +265,10 @@ async function handleSaveUser() {
   } finally {
     userSaving.value = false;
   }
+}
+
+function onUserSelectionChange(rows: any[]) {
+  selectedUserIds.value = rows.map((r: any) => r.id);
 }
 
 onMounted(fetchList);
