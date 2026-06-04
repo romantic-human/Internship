@@ -20,7 +20,7 @@
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="page=1;fetchList()">查询</el-button>
-          <el-button @click="filters={};page=1;fetchList()">重置</el-button>
+          <el-button @click="filters.role_name='';filters.status=null;page=1;fetchList()">重置</el-button>
         </el-form-item>
       </el-form>
 
@@ -125,21 +125,13 @@ import {
   assignRoleMenus,
   getRoleUsers,
   assignRoleUsers,
+  type RoleRecord,
 } from "@/api/role";
-import { getMenuTree } from "@/api/menu";
-import { getUserList } from "@/api/user";
+import { getMenuTree, type MenuItem } from "@/api/menu";
+import { getUserList, type UserRecord } from "@/api/user";
 import { ElMessage } from "element-plus";
 import type { ElTree } from "element-plus";
 import RoleForm from "./RoleForm.vue";
-
-interface RoleRecord {
-  id: number;
-  role_name: string;
-  role_key: string;
-  role_sort: number;
-  status: number;
-  create_time: string;
-}
 
 const loading = ref(false);
 const list = ref<RoleRecord[]>([]);
@@ -155,14 +147,14 @@ const filters = reactive({
 
 // 菜单分配
 const menuDialogVisible = ref(false);
-const menuTreeData = ref<any[]>([]);
+const menuTreeData = ref<MenuItem[]>([]);
 const menuTreeRef = ref<InstanceType<typeof ElTree>>();
 const currentRoleId = ref(0);
 const menuSaving = ref(false);
 
 // 用户分配
 const userDialogVisible = ref(false);
-const userList = ref<any[]>([]);
+const userList = ref<UserRecord[]>([]);
 const selectedUserIds = ref<number[]>([]);
 const userSaving = ref(false);
 
@@ -173,8 +165,8 @@ async function fetchList() {
     if (filters.role_name) params.role_name = filters.role_name;
     if (filters.status !== null) params.status = filters.status;
     const res = await getRoleList(params);
-    list.value = res.records || res;
-    total.value = res.total || 0;
+    list.value = res.records;
+    total.value = res.total;
   } finally {
     loading.value = false;
   }
@@ -191,23 +183,15 @@ function handleEdit(row: RoleRecord) {
 }
 
 async function handleDelete(row: RoleRecord) {
-  try {
-    await deleteRole(row.id);
-    ElMessage.success("删除成功");
-    await fetchList();
-  } catch (err: any) {
-    ElMessage.error(err?.message || "删除失败");
-  }
+  await deleteRole(row.id);
+  ElMessage.success("删除成功");
+  await fetchList();
 }
 
 async function handleStatusChange(row: RoleRecord, val: number) {
-  try {
-    await updateRoleStatus(row.id, val);
-    row.status = val;
-    ElMessage.success("状态更新成功");
-  } catch {
-    ElMessage.error("状态更新失败");
-  }
+  await updateRoleStatus(row.id, val);
+  row.status = val;
+  ElMessage.success("状态更新成功");
 }
 
 // ── 菜单分配 ─────────────────────────────────────────────
@@ -216,7 +200,7 @@ async function handleAssignMenu(row: RoleRecord) {
   menuDialogVisible.value = true;
   menuTreeData.value = await getMenuTree();
   nextTick(async () => {
-    const menuIds: number[] = await getRoleMenus(row.id);
+    const menuIds = await getRoleMenus(row.id);
     menuTreeRef.value?.setCheckedKeys(menuIds);
   });
 }
@@ -228,8 +212,6 @@ async function handleSaveMenu() {
     await assignRoleMenus(currentRoleId.value, checkedKeys);
     ElMessage.success("菜单权限分配成功");
     menuDialogVisible.value = false;
-  } catch {
-    ElMessage.error("分配失败");
   } finally {
     menuSaving.value = false;
   }
@@ -240,9 +222,9 @@ async function handleAssignUser(row: RoleRecord) {
   currentRoleId.value = row.id;
   userDialogVisible.value = true;
   const res = await getUserList({ page: 1, pageSize: 999 });
-  userList.value = res.records || [];
+  userList.value = res.records;
   nextTick(async () => {
-    const userIds: number[] = await getRoleUsers(row.id);
+    const userIds = await getRoleUsers(row.id);
     selectedUserIds.value = userIds;
     // 同步表格选中状态
     const table = userTableRef.value as any;
@@ -260,8 +242,6 @@ async function handleSaveUser() {
     await assignRoleUsers(currentRoleId.value, selectedUserIds.value);
     ElMessage.success("用户分配成功");
     userDialogVisible.value = false;
-  } catch {
-    ElMessage.error("分配失败");
   } finally {
     userSaving.value = false;
   }

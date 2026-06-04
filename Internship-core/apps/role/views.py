@@ -11,6 +11,8 @@ from .serializers import (
 )
 from apps.menu.models import Menu
 from apps.user.models import User, UserRoleRelation
+import csv
+from django.http import HttpResponse
 
 
 class RoleViewSet(viewsets.ModelViewSet):
@@ -75,6 +77,38 @@ class RoleViewSet(viewsets.ModelViewSet):
         instance.status = status_val
         instance.save()
         return APIResponse.success(message="状态更新成功")
+
+    @action(detail=True, methods=["put"], url_path="sort")
+    def sort(self, request, pk=None):
+        instance = self.get_object()
+        instance.role_sort = request.data.get("sortOrder", 0)
+        instance.save()
+        return APIResponse.success(message="排序更新成功")
+
+    @action(detail=False, methods=["post"], url_path="batch-sort")
+    def batch_sort(self, request):
+        data = request.data
+        if not isinstance(data, list):
+            return APIResponse.error(message="请传入列表")
+        instances = []
+        for item in data:
+            item_id = item.get("id")
+            if not item_id:
+                return APIResponse.error(message="每项需要 id 字段")
+            instances.append(Role(id=item_id, role_sort=item.get("sortOrder", 0)))
+        Role.objects.bulk_update(instances, ["role_sort"])
+        return APIResponse.success(message="批量排序成功")
+
+    @action(detail=False, methods=["get"], url_path="export")
+    def export(self, request):
+        response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
+        response["Content-Disposition"] = 'attachment; filename="roles.csv"'
+        writer = csv.writer(response)
+        writer.writerow(["ID", "角色名称", "角色标识", "排序", "状态", "创建时间"])
+        roles = Role.objects.all().order_by("role_sort")
+        for r in roles:
+            writer.writerow([r.id, r.role_name, r.role_key, r.role_sort, "启用" if r.status else "禁用", r.create_time])
+        return response
 
     @action(detail=True, methods=["get", "put"], url_path="menus")
     def menus(self, request, pk=None):

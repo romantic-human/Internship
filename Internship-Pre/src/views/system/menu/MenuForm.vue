@@ -72,14 +72,14 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { createMenu, updateMenu } from "@/api/menu";
+import { createMenu, updateMenu, type MenuItem } from "@/api/menu";
 import { ElMessage } from "element-plus";
 import type { FormInstance } from "element-plus";
 
 const props = defineProps<{
   visible: boolean;
-  formData: any;
-  treeOptions: any[];
+  formData: Partial<MenuItem> | null;
+  treeOptions: Partial<MenuItem>[];
 }>();
 
 const emit = defineEmits<{
@@ -90,7 +90,7 @@ const emit = defineEmits<{
 const formRef = ref<FormInstance>();
 const submitting = ref(false);
 
-const form = ref<any>({
+const form = ref<Partial<MenuItem> & { parent_id: number | null; is_frame: number }>({
   parent_id: null,
   menu_type: 0,
   menu_name: "",
@@ -105,7 +105,7 @@ const form = ref<any>({
 });
 
 const rules = computed(() => {
-  const r: Record<string, any> = {
+  const r: Record<string, unknown> = {
     menu_name: [{ required: true, message: "请输入菜单名称", trigger: "blur" }],
   };
   if (form.value.menu_type === 1) {
@@ -166,7 +166,7 @@ async function handleSubmit() {
   try {
     const payload = { ...form.value, parent_id: form.value.parent_id || 0 };
     if (isEdit.value) {
-      await updateMenu(props.formData.id, payload);
+      await updateMenu(props.formData!.id!, payload);
       ElMessage.success("更新成功");
     } else {
       await createMenu(payload);

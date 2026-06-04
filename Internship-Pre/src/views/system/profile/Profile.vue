@@ -133,7 +133,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
-import type { UploadInstance, UploadRawFile } from "element-plus";
+import type { UploadInstance, UploadFile } from "element-plus";
 import { useAuthStore } from "@/store/auth";
 import {
   getUserProfile,
@@ -171,7 +171,7 @@ const infoRules: FormRules = {
 
 async function loadProfile() {
   try {
-    const data: any = await getUserProfile();
+    const data = await getUserProfile();
     profileForm.nickname = data.nickname || "";
     profileForm.real_name = data.real_name || "";
     profileForm.email = data.email || "";
@@ -219,7 +219,7 @@ const passwordForm = reactive({
   confirmPassword: "",
 });
 
-const validateConfirm = (_rule: any, value: string, callback: any) => {
+const validateConfirm = (_rule: unknown, value: string, callback: (error?: Error) => void) => {
   if (value !== passwordForm.newPassword) {
     callback(new Error("两次输入的密码不一致"));
   } else {
@@ -252,8 +252,8 @@ async function handleChangePassword() {
   pwdSaving.value = true;
   try {
     await updatePassword({
-      oldPassword: passwordForm.oldPassword,
-      newPassword: passwordForm.newPassword,
+      old_password: passwordForm.oldPassword,
+      new_password: passwordForm.newPassword,
     });
     ElMessage.success("密码修改成功，请重新登录");
     resetPasswordForm();
@@ -272,9 +272,10 @@ const previewUrl = ref("");
 const avatarUploading = ref(false);
 const avatarUrl = ref("");
 
-function handleFileChange(_file: UploadRawFile) {
-  selectedFile.value = _file;
-  previewUrl.value = URL.createObjectURL(_file);
+function handleFileChange(_file: UploadFile) {
+  if (!_file.raw) return;
+  selectedFile.value = _file.raw;
+  previewUrl.value = URL.createObjectURL(_file.raw);
 }
 
 function cancelAvatar() {
@@ -287,7 +288,7 @@ async function handleUploadAvatar() {
 
   avatarUploading.value = true;
   try {
-    const res: any = await uploadAvatar(selectedFile.value);
+    const res = await uploadAvatar(selectedFile.value);
     avatarUrl.value = res.url;
     if (authStore.userInfo) {
       authStore.userInfo.avatar = res.url;

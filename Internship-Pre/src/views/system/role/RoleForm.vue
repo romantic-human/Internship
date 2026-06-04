@@ -31,13 +31,13 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { createRole, updateRole } from "@/api/role";
+import { createRole, updateRole, type RoleRecord } from "@/api/role";
 import { ElMessage } from "element-plus";
 import type { FormInstance } from "element-plus";
 
 const props = defineProps<{
   visible: boolean;
-  formData: any;
+  formData: Partial<RoleRecord> | null;
 }>();
 
 const emit = defineEmits<{ close: []; success: [] }>();
@@ -45,7 +45,7 @@ const emit = defineEmits<{ close: []; success: [] }>();
 const formRef = ref<FormInstance>();
 const submitting = ref(false);
 
-const form = ref({
+const form = ref<Partial<RoleRecord>>({
   role_name: "",
   role_key: "",
   role_sort: 0,
@@ -88,7 +88,7 @@ async function handleSubmit() {
   submitting.value = true;
   try {
     if (isEdit.value) {
-      await updateRole(props.formData.id, form.value);
+      await updateRole(props.formData!.id!, form.value);
       ElMessage.success("更新成功");
     } else {
       await createRole(form.value);

@@ -8,7 +8,9 @@ export interface ConfigItem {
   config_type: number;
   sort_order: number;
   status: number;
+  remark: string;
   create_time: string;
+  update_time: string;
 }
 
 export function getConfigList(params: Record<string, any>): Promise<{ records: ConfigItem[]; total: number }> {
@@ -17,10 +19,6 @@ export function getConfigList(params: Record<string, any>): Promise<{ records: C
 
 export function getConfigDetail(id: number): Promise<ConfigItem> {
   return request.get(`/config/${id}`);
-}
-
-export function getConfigByKey(key: string) {
-  return request.get("/config/by-key", { params: { key } });
 }
 
 export function createConfig(data: Partial<ConfigItem>) {

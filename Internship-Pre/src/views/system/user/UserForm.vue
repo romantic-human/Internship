@@ -12,6 +12,27 @@
       <el-form-item label="昵称" prop="nickname">
         <el-input v-model="form.nickname" placeholder="请输入昵称" />
       </el-form-item>
+      <el-form-item label="真实姓名" prop="real_name">
+        <el-input v-model="form.real_name" placeholder="请输入真实姓名" />
+      </el-form-item>
+      <el-form-item label="性别" prop="gender">
+        <el-select v-model="form.gender" style="width:100%">
+          <el-option :value="0" label="保密" />
+          <el-option :value="1" label="男" />
+          <el-option :value="2" label="女" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="所属部门" prop="department_id">
+        <el-tree-select
+          v-model="form.department_id"
+          :data="deptOptions"
+          :props="{ label: 'dept_name', children: 'children', value: 'id' }"
+          placeholder="请选择部门"
+          check-strictly
+          clearable
+          filterable
+        />
+      </el-form-item>
       <el-form-item label="邮箱" prop="email">
         <el-input v-model="form.email" placeholder="请输入邮箱" />
       </el-form-item>
@@ -30,24 +51,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
-import { createUser, updateUser } from "@/api/user";
+import { ref, computed, watch, onMounted } from "vue";
+import { createUser, updateUser, type UserRecord } from "@/api/user";
+import { getDepartmentTree, type DeptItem } from "@/api/department";
 import { ElMessage } from "element-plus";
 import type { FormInstance } from "element-plus";
 
 const props = defineProps<{
   visible: boolean;
-  formData: any;
+  formData: Partial<UserRecord> | null;
 }>();
 
 const emit = defineEmits<{ close: []; success: [] }>();
 
 const formRef = ref<FormInstance>();
 const submitting = ref(false);
+const deptOptions = ref<DeptItem[]>([]);
 
 const form = ref({
   username: "",
   nickname: "",
+  real_name: "",
+  gender: 0,
+  department_id: null as number | null,
   email: "",
   telephone: "",
   status: 1,
@@ -67,16 +93,26 @@ watch(
       form.value = {
         username: val.username || "",
         nickname: val.nickname || "",
+        real_name: val.real_name || "",
+        gender: val.gender ?? 0,
+        department_id: val.department_id ?? null,
         email: val.email || "",
         telephone: val.telephone || "",
         status: val.status ?? 1,
       };
     } else {
-      form.value = { username: "", nickname: "", email: "", telephone: "", status: 1 };
+      form.value = {
+        username: "", nickname: "", real_name: "", gender: 0,
+        department_id: null, email: "", telephone: "", status: 1,
+      };
     }
   },
   { immediate: true },
 );
+
+onMounted(async () => {
+  deptOptions.value = await getDepartmentTree();
+});
 
 function handleClose() {
   emit("close");
@@ -88,7 +124,7 @@ async function handleSubmit() {
   submitting.value = true;
   try {
     if (isEdit.value) {
-      await updateUser(props.formData.id, form.value);
+      await updateUser(props.formData!.id!, form.value);
       ElMessage.success("更新成功");
     } else {
       await createUser(form.value);

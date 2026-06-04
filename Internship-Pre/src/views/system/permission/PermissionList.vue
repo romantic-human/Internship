@@ -37,31 +37,31 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { getPermissionList, deletePermission } from "@/api/permission";
+import { getPermissionList, deletePermission, type PermissionItem } from "@/api/permission";
 import { ElMessage } from "element-plus";
 import PermissionForm from "./PermissionForm.vue";
 
 const loading = ref(false);
-const list = ref<any[]>([]);
+const list = ref<PermissionItem[]>([]);
 const total = ref(0);
 const page = ref(1);
 const pageSize = 10;
 const formVisible = ref(false);
-const currentFormData = ref<any>(null);
+const currentFormData = ref<Partial<PermissionItem> | null>(null);
 
 async function fetchList() {
   loading.value = true;
   try {
-    const res = await getPermissionList({ page: page.value, pageSize }) as any;
-    if (res.records) { list.value = res.records; total.value = res.total; }
-    else list.value = res;
+    const res = await getPermissionList({ page: page.value, pageSize });
+    list.value = res.records;
+    total.value = res.total;
   } finally { loading.value = false; }
 }
 function handleAdd() { currentFormData.value = null; formVisible.value = true; }
-function handleEdit(row: any) { currentFormData.value = { ...row }; formVisible.value = true; }
-function handleBindMenu(row: any) { ElMessage.info("请在角色管理中关联菜单"); }
-async function handleDelete(row: any) {
-  try { await deletePermission(row.id); ElMessage.success("删除成功"); await fetchList(); } catch { ElMessage.error("删除失败"); }
+function handleEdit(row: PermissionItem) { currentFormData.value = { ...row }; formVisible.value = true; }
+function handleBindMenu(row: PermissionItem) { ElMessage.info("请在角色管理中关联菜单"); }
+async function handleDelete(row: PermissionItem) {
+  try { await deletePermission(row.id); ElMessage.success("删除成功"); await fetchList(); } catch { /* handled by interceptor */ }
 }
 onMounted(fetchList);
 </script>

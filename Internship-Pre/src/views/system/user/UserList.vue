@@ -20,7 +20,7 @@
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="page=1;fetchList()">查询</el-button>
-          <el-button @click="filters={};page=1;fetchList()">重置</el-button>
+          <el-button @click="filters.username='';filters.status=null;page=1;fetchList()">重置</el-button>
         </el-form-item>
       </el-form>
 
@@ -78,19 +78,10 @@ import {
   deleteUser,
   updateUserStatus,
   resetPassword,
+  type UserRecord,
 } from "@/api/user";
 import { ElMessage, ElMessageBox } from "element-plus";
 import UserForm from "./UserForm.vue";
-
-interface UserRecord {
-  id: number;
-  username: string;
-  nickname: string;
-  email: string;
-  telephone: string;
-  status: number;
-  create_time: string;
-}
 
 const loading = ref(false);
 const list = ref<UserRecord[]>([]);
@@ -111,8 +102,8 @@ async function fetchList() {
     if (filters.username) params.username = filters.username;
     if (filters.status !== null) params.status = filters.status;
     const res = await getUserList(params);
-    list.value = res.records || res;
-    total.value = res.total || 0;
+    list.value = res.records;
+    total.value = res.total;
   } finally {
     loading.value = false;
   }
@@ -129,36 +120,25 @@ function handleEdit(row: UserRecord) {
 }
 
 async function handleDelete(row: UserRecord) {
-  try {
-    await deleteUser(row.id);
-    ElMessage.success("删除成功");
-    await fetchList();
-  } catch (err: any) {
-    ElMessage.error(err?.message || "删除失败");
-  }
+  await deleteUser(row.id);
+  ElMessage.success("删除成功");
+  await fetchList();
 }
 
 async function handleStatusChange(row: UserRecord, val: number) {
-  try {
-    await updateUserStatus(row.id, val);
-    row.status = val;
-    ElMessage.success("状态更新成功");
-  } catch {
-    ElMessage.error("状态更新失败");
-  }
+  await updateUserStatus(row.id, val);
+  row.status = val;
+  ElMessage.success("状态更新成功");
 }
 
 function handleResetPwd(row: UserRecord) {
-  ElMessageBox.prompt("请输入新密码", `重置用户「${row.username}」的密码`, {
-    inputType: "password",
-    inputPlaceholder: "请输入新密码（至少6位）",
-    inputPattern: /^.{6,}$/,
-    inputErrorMessage: "密码至少6位",
+  ElMessageBox.confirm(`确定将用户「${row.username}」的密码重置为 123456？`, "重置密码", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
-  }).then(async ({ value }) => {
-    await resetPassword({ userId: row.id, password: value });
-    ElMessage.success("密码已重置");
+    type: "warning",
+  }).then(async () => {
+    await resetPassword({ userId: row.id });
+    ElMessage.success("密码已重置为 123456");
   }).catch(() => {});
 }
 

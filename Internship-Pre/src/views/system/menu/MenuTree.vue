@@ -73,26 +73,30 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { getMenuTree, deleteMenu, updateMenuStatus } from "@/api/menu";
+import { getMenuTree, deleteMenu, updateMenuStatus, type MenuItem } from "@/api/menu";
 import { ElMessage } from "element-plus";
+import { markRaw, type Component } from "vue";
 import * as ElementPlusIcons from "@element-plus/icons-vue";
 import MenuForm from "./MenuForm.vue";
 
-const iconMap: Record<string, any> = ElementPlusIcons;
+const iconMap: Record<string, Component> = {};
+for (const [key, comp] of Object.entries(ElementPlusIcons)) {
+  iconMap[key] = markRaw(comp);
+}
 const TYPE_MAP: Record<number, string> = { 0: "目录", 1: "菜单", 2: "按钮" };
 
 const loading = ref(false);
-const treeData = ref<any[]>([]);
+const treeData = ref<MenuItem[]>([]);
 const formVisible = ref(false);
-const currentFormData = ref<any>(null);
+const currentFormData = ref<Partial<MenuItem> | null>(null);
 
 function typeTagType(t: number): string {
   return t === 0 ? "" : t === 1 ? "primary" : "warning";
 }
 
-function flattenForOptions(items: any[]): any[] {
-  const result: any[] = [];
-  function walk(list: any[], level: number) {
+function flattenForOptions(items: MenuItem[]): (Partial<MenuItem> & { _level: number })[] {
+  const result: (Partial<MenuItem> & { _level: number })[] = [];
+  function walk(list: MenuItem[], level: number) {
     for (const item of list) {
       result.push({ ...item, _level: level });
       if (item.children?.length) walk(item.children, level + 1);
@@ -105,7 +109,7 @@ function flattenForOptions(items: any[]): any[] {
 async function fetchTree() {
   loading.value = true;
   try {
-    treeData.value = (await getMenuTree()) as unknown as any[];
+    treeData.value = await getMenuTree();
   } finally {
     loading.value = false;
   }
@@ -116,34 +120,30 @@ function handleAdd() {
   formVisible.value = true;
 }
 
-function handleAddChild(row: any) {
+function handleAddChild(row: MenuItem) {
   currentFormData.value = { parent_id: row.id };
   formVisible.value = true;
 }
 
-function handleEdit(row: any) {
+function handleEdit(row: MenuItem) {
   currentFormData.value = { ...row };
   formVisible.value = true;
 }
 
-async function handleDelete(row: any) {
+async function handleDelete(row: MenuItem) {
   try {
     await deleteMenu(row.id);
     ElMessage.success("删除成功");
     await fetchTree();
-  } catch {
-    ElMessage.error("删除失败");
-  }
+  } catch { /* handled by interceptor */ }
 }
 
-async function handleStatusChange(row: any, val: number) {
+async function handleStatusChange(row: MenuItem, val: number) {
   try {
     await updateMenuStatus(row.id, val);
     row.status = val;
     ElMessage.success("状态更新成功");
-  } catch {
-    ElMessage.error("状态更新失败");
-  }
+  } catch { /* handled by interceptor */ }
 }
 
 onMounted(fetchTree);

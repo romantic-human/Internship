@@ -43,7 +43,6 @@
           <el-icon size="18"><Fold v-if="!sidebarCollapsed" /><Expand v-else /></el-icon>
         </el-button>
         <div class="header-right">
-          <!-- 主题切换 -->
           <el-tooltip :content="isDark ? '切换亮色模式' : '切换暗色模式'" placement="bottom">
             <el-icon class="theme-btn" @click="handleToggleTheme">
               <Moon v-if="!isDark" />
@@ -70,7 +69,11 @@
         </div>
       </el-header>
       <el-main class="layout-content">
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <transition name="fade-slide" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
       </el-main>
     </el-container>
   </el-container>
@@ -78,7 +81,7 @@
 
 <script setup lang="ts">
 import { useRouter, useRoute } from "vue-router";
-import { computed, ref } from "vue";
+import { computed, markRaw, type Component } from "vue";
 import {
   Fold, Expand, ArrowDown, User, SwitchButton,
   House, Setting, Document, Tools, Key, OfficeBuilding,
@@ -86,26 +89,24 @@ import {
 } from "@element-plus/icons-vue";
 import { useAppStore } from "@/store/app";
 import { useAuthStore } from "@/store/auth";
-import { getTheme, toggleTheme } from "@/utils/theme";
 import type { MenuItem } from "@/api/menu";
-
 const router = useRouter();
 const route = useRoute();
 const appStore = useAppStore();
 const authStore = useAuthStore();
 const sidebarCollapsed = computed(() => appStore.sidebarCollapsed);
-const isDark = ref(getTheme() === "dark");
+const isDark = computed(() => appStore.theme === "dark");
 
 function handleToggleTheme() {
-  toggleTheme();
-  isDark.value = getTheme() === "dark";
+  appStore.setTheme(appStore.theme === "dark" ? "light" : "dark");
 }
 
-/** 图标名 → 图标组件映射 */
-const iconMap: Record<string, any> = {
-  House, Setting, User, UserFilled, Document, Tools, Key,
-  Office: OfficeBuilding, OfficeBuilding,
-  Menu: MenuIcon, Moon, Sunny,
+const iconMap: Record<string, Component> = {
+  House: markRaw(House), Setting: markRaw(Setting), User: markRaw(User),
+  UserFilled: markRaw(UserFilled), Document: markRaw(Document),
+  Tools: markRaw(Tools), Key: markRaw(Key),
+  Office: markRaw(OfficeBuilding), OfficeBuilding: markRaw(OfficeBuilding),
+  Menu: markRaw(MenuIcon), Moon: markRaw(Moon), Sunny: markRaw(Sunny),
 };
 
 function resolveIcon(iconName: string) {
