@@ -73,16 +73,20 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { getMenuTree, deleteMenu, updateMenuStatus } from "@/api/menu";
+import { getMenuTree, deleteMenu, updateMenuStatus, type MenuItem } from "@/api/menu";
 import { ElMessage } from "element-plus";
+import { markRaw, type Component } from "vue";
 import * as ElementPlusIcons from "@element-plus/icons-vue";
 import MenuForm from "./MenuForm.vue";
 
-const iconMap: Record<string, any> = ElementPlusIcons;
+const iconMap: Record<string, Component> = {};
+for (const [key, comp] of Object.entries(ElementPlusIcons)) {
+  iconMap[key] = markRaw(comp);
+}
 const TYPE_MAP: Record<number, string> = { 0: "目录", 1: "菜单", 2: "按钮" };
 
 const loading = ref(false);
-const treeData = ref<any[]>([]);
+const treeData = ref<MenuItem[]>([]);
 const formVisible = ref(false);
 const currentFormData = ref<any>(null);
 
@@ -105,7 +109,7 @@ function flattenForOptions(items: any[]): any[] {
 async function fetchTree() {
   loading.value = true;
   try {
-    treeData.value = (await getMenuTree()) as unknown as any[];
+    treeData.value = await getMenuTree();
   } finally {
     loading.value = false;
   }
@@ -131,18 +135,14 @@ async function handleDelete(row: any) {
     await deleteMenu(row.id);
     ElMessage.success("删除成功");
     await fetchTree();
-  } catch {
-    ElMessage.error("删除失败");
-  }
+  } catch { /* handled by interceptor */ }
 }
 
 async function handleStatusChange(row: any, val: number) {
   try {
     await updateMenuStatus(row.id, val);
     ElMessage.success("状态更新成功");
-  } catch {
-    ElMessage.error("状态更新失败");
-  }
+  } catch { /* handled by interceptor */ }
 }
 
 onMounted(fetchTree);

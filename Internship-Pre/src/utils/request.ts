@@ -2,6 +2,7 @@ import axios, { type AxiosResponse, type InternalAxiosRequestConfig } from "axio
 import { ElMessage } from "element-plus";
 import { useAuthStore } from "@/store/auth";
 
+
 const request = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
   timeout: 15000,
@@ -13,6 +14,36 @@ let pendingQueue: Array<{ resolve: (token: string) => void; reject: (err: any) =
 function processQueue(err: any, token = "") {
   pendingQueue.forEach((p) => (err ? p.reject(err) : p.resolve(token)));
   pendingQueue = [];
+}
+
+async function handleTokenRefresh(error: any, authStore: ReturnType<typeof useAuthStore>) {
+  if (!isRefreshing) {
+    isRefreshing = true;
+    try {
+      const res = await axios.post("/api/user/refresh-token", { refresh: authStore.refreshToken });
+      const newToken = res.data.data.access_token;
+      authStore.setTokens(newToken, res.data.data.refresh_token);
+      processQueue(null, newToken);
+      error.config.headers.Authorization = `Bearer ${newToken}`;
+      return request(error.config);
+    } catch (refreshErr) {
+      processQueue(refreshErr);
+      authStore.logout();
+      window.location.href = "/login";
+      return Promise.reject(refreshErr);
+    } finally {
+      isRefreshing = false;
+    }
+  }
+  return new Promise((resolve, reject) => {
+    pendingQueue.push({
+      resolve: (token: string) => {
+        error.config.headers.Authorization = `Bearer ${token}`;
+        resolve(request(error.config));
+      },
+      reject,
+    });
+  });
 }
 
 request.interceptors.request.use(
@@ -43,53 +74,22 @@ request.interceptors.response.use(
     const { status, data } = error.response;
     const authStore = useAuthStore();
 
-    if (data?.code === 3002) {
+    const needRefresh = (status === 401 && data?.code === "token_not_valid") || data?.code === 3001;
+    if (needRefresh && authStore.refreshToken) {
+      return handleTokenRefresh(error, authStore);
+    }
+
+    if (data?.code === 3002 || data?.code === 3000) {
+      ElMessage.error("登录已失效，请重新登录");
       authStore.logout();
       window.location.href = "/login";
       return Promise.reject(error);
     }
 
-    if (data?.code === 3001 && authStore.refreshToken) {
-      if (!isRefreshing) {
-        isRefreshing = true;
-        try {
-          const res = await axios.post("/api/user/refresh-token", { refresh: authStore.refreshToken });
-          const newToken = res.data.data.access_token;
-          authStore.setTokens(newToken, res.data.data.refresh_token);
-          processQueue(null, newToken);
-          error.config.headers.Authorization = `Bearer ${newToken}`;
-          return request(error.config);
-        } catch (refreshErr) {
-          processQueue(refreshErr);
-          authStore.logout();
-          window.location.href = "/login";
-          return Promise.reject(refreshErr);
-        } finally {
-          isRefreshing = false;
-        }
-      }
-      return new Promise((resolve, reject) => {
-        pendingQueue.push({
-          resolve: (token: string) => {
-            error.config.headers.Authorization = `Bearer ${token}`;
-            resolve(request(error.config));
-          },
-          reject,
-        });
-      });
-    }
-
-    switch (data?.code) {
-      case 3000:
-        ElMessage.error("登录已失效，请重新登录");
-        authStore.logout();
-        window.location.href = "/login";
-        break;
-      case 3003:
-        ElMessage.error("无操作权限");
-        break;
-      default:
-        ElMessage.error(data?.message || `请求错误 ${status}`);
+    if (data?.code === 3003) {
+      ElMessage.error("无操作权限");
+    } else if (status !== 401) {
+      ElMessage.error(data?.message || `请求错误 ${status}`);
     }
     return Promise.reject(error);
   },

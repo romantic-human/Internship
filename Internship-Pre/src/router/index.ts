@@ -65,10 +65,10 @@ const whiteList = ["/login"];
 
 router.beforeEach((to) => {
   document.title = to.meta.title ? `${to.meta.title} - 管理系统` : "管理系统";
-  if (whiteList.includes(to.path)) return true;
   const authStore = useAuthStore();
+  if (to.path === "/login" && authStore.token) return "/dashboard";
+  if (whiteList.includes(to.path)) return true;
   if (!authStore.token) return "/login";
-  if (to.path === "/login") return "/dashboard";
 });
 
 export default router;
