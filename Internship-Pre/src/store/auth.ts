@@ -54,18 +54,24 @@ export const useAuthStore = defineStore("auth", () => {
 
   /** 动态生成路由（根据菜单树） */
   async function generateDynamicRoutes() {
+    if (dynamicRoutesLoaded.value) return;
     try {
       const menus = await getMenuTree();
       menuTree.value = menus;
 
-      // 将菜单树转换为 vue-router 路由
+      // 清除旧的动态路由，重新注册
+      const { default: router } = await import("@/router");
       const routes = buildRoutesFromMenu(menus);
 
-      // 动态注册到 router
-      const { default: router } = await import("@/router");
-      routes.forEach((r) => router.addRoute(r));
+      // 移除已存在的同名路由后重新添加
+      routes.forEach((r) => {
+        if (r.name) {
+          const existing = router.getRoutes().find((rr) => rr.name === r.name);
+          if (existing) router.removeRoute(r.name as string);
+        }
+        router.addRoute(r);
+      });
     } catch {
-      // 获取菜单失败时，使用空菜单，依赖静态路由
       menuTree.value = [];
     } finally {
       dynamicRoutesLoaded.value = true;
