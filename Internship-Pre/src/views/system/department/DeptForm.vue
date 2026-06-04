@@ -46,7 +46,7 @@ const form = ref<any>({ parent_id: null, dept_name: "", leader: "", phone: "", e
 const rules = { dept_name: [{ required: true, message: "请输入部门名称", trigger: "blur" }] };
 const isEdit = computed(() => !!props.formData?.id);
 
-watch(() => props.visible, async (v) => { if (v) treeOptions.value = await getDepartmentTree(); });
+watch(() => props.visible, async (v) => { if (v) treeOptions.value = await getDepartmentTree(); }, { immediate: true });
 watch(() => props.formData, (val) => {
   if (val) { Object.assign(form.value, { parent_id: val.parent_id || null, dept_name: val.dept_name || "", leader: val.leader || "", phone: val.phone || "", email: val.email || "", sort_order: val.sort_order ?? 0, status: val.status ?? 1 }); }
   else { form.value = { parent_id: null, dept_name: "", leader: "", phone: "", email: "", sort_order: 0, status: 1 }; }
