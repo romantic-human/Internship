@@ -36,6 +36,24 @@
           <el-icon size="18"><Fold v-if="!sidebarCollapsed" /><Expand v-else /></el-icon>
         </el-button>
         <div class="header-right">
+          <el-dropdown trigger="click" @command="appStore.setTheme">
+            <el-button link class="theme-btn">
+              <el-icon size="16"><component :is="themeIcon" /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="light" :class="{ active: appStore.theme === 'light' }">
+                  <el-icon><Sunny /></el-icon> 明亮
+                </el-dropdown-item>
+                <el-dropdown-item command="dark" :class="{ active: appStore.theme === 'dark' }">
+                  <el-icon><Moon /></el-icon> 暗黑
+                </el-dropdown-item>
+                <el-dropdown-item command="blue" :class="{ active: appStore.theme === 'blue' }">
+                  <el-icon><MagicStick /></el-icon> 蓝色
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           <el-dropdown trigger="click">
             <span class="user-dropdown">
               <el-avatar :size="28">{{ authStore.userInfo?.nickname?.charAt(0) || "U" }}</el-avatar>
@@ -56,7 +74,11 @@
         </div>
       </el-header>
       <el-main class="layout-content">
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <transition name="fade-slide" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
       </el-main>
     </el-container>
   </el-container>
@@ -65,8 +87,8 @@
 <script setup lang="ts">
 import { useRouter, useRoute } from "vue-router";
 import { computed, type Component } from "vue";
-import { Fold, Expand, ArrowDown, User, SwitchButton, House, Setting, Document, Tools, Key, OfficeBuilding, Menu as MenuIcon } from "@element-plus/icons-vue";
-import { useAppStore } from "@/store/app";
+import { Fold, Expand, ArrowDown, User, SwitchButton, Sunny, Moon, MagicStick, House, Setting, Document, Tools, Key, OfficeBuilding, Menu as MenuIcon } from "@element-plus/icons-vue";
+import { useAppStore, type ThemeName } from "@/store/app";
 import { useAuthStore } from "@/store/auth";
 
 const router = useRouter();
@@ -74,6 +96,9 @@ const route = useRoute();
 const appStore = useAppStore();
 const authStore = useAuthStore();
 const sidebarCollapsed = computed(() => appStore.sidebarCollapsed);
+
+const themeIconMap: Record<ThemeName, Component> = { light: Sunny, dark: Moon, blue: MagicStick };
+const themeIcon = computed(() => themeIconMap[appStore.theme]);
 
 const iconMap: Record<string, Component> = { House, Setting, User, Document, Tools, Key, OfficeBuilding, Menu: MenuIcon };
 
@@ -100,17 +125,20 @@ function handleLogout() {
 
 <style scoped>
 .layout-container { height: 100vh; }
-.layout-aside { background: #304156; transition: width 0.28s; overflow: hidden; }
-.logo { height: 56px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; font-weight: 700; background: #2b3a4a; white-space: nowrap; overflow: hidden; }
+.layout-aside { background: var(--sidebar-bg); transition: width 0.28s; overflow: hidden; }
+.logo { height: 56px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; font-weight: 700; background: var(--sidebar-logo-bg); white-space: nowrap; overflow: hidden; }
 .layout-menu { border-right: none; }
 .layout-main { display: flex; flex-direction: column; }
-.layout-header { display: flex; align-items: center; justify-content: space-between; height: 50px; background: #fff; border-bottom: 1px solid #e4e7ed; padding: 0 16px; }
-.header-right { display: flex; align-items: center; }
+.layout-header { display: flex; align-items: center; justify-content: space-between; height: 50px; background: var(--header-bg); border-bottom: 1px solid var(--header-border); padding: 0 16px; }
+.header-right { display: flex; align-items: center; gap: 8px; }
 .user-dropdown { display: flex; align-items: center; gap: 6px; cursor: pointer; }
-.username { font-size: 14px; color: #606266; }
-.layout-content { background: #f5f7fa; padding: 16px; overflow-y: auto; height: calc(100vh - 50px); }
-:deep(.el-menu) { background: #304156; }
-:deep(.el-menu-item), :deep(.el-sub-menu__title) { color: #bfcbd9; }
-:deep(.el-menu-item:hover), :deep(.el-sub-menu__title:hover) { background: #263445; }
-:deep(.el-menu-item.is-active) { color: #409eff; background: #263445; }
+.username { font-size: 14px; color: var(--text-regular); }
+.theme-btn { color: var(--text-regular); }
+:deep(.theme-btn:hover) { color: var(--text-primary); }
+.layout-content { background: var(--main-bg); padding: 16px; overflow-y: auto; height: calc(100vh - 50px); }
+:deep(.el-menu) { background: var(--sidebar-bg); }
+:deep(.el-menu-item), :deep(.el-sub-menu__title) { color: var(--sidebar-text); }
+:deep(.el-menu-item:hover), :deep(.el-sub-menu__title:hover) { background: var(--sidebar-hover-bg); }
+:deep(.el-menu-item.is-active) { color: var(--sidebar-active-text); background: var(--sidebar-hover-bg); }
+:deep(.el-dropdown-menu__item.active) { color: #409eff; font-weight: 600; }
 </style>

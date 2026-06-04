@@ -123,18 +123,18 @@ onUnmounted(() => {
 <style scoped>
 .dashboard { padding: 16px; }
 .welcome-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.welcome-header h2 { font-size: 20px; color: #303133; margin: 0 0 2px; }
-.time-text { font-size: 13px; color: #909399; margin: 0; font-family: monospace; }
+.welcome-header h2 { font-size: 20px; color: var(--text-primary); margin: 0 0 2px; }
+.time-text { font-size: 13px; color: var(--text-secondary); margin: 0; font-family: monospace; }
 .stats-row { margin-bottom: 16px; }
 .stat-card { cursor: default; transition: transform 0.2s, box-shadow 0.2s; border-top: 3px solid var(--card-color); }
-.stat-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+.stat-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px var(--shadow-color); }
 .stat-inner { display: flex; align-items: center; gap: 12px; }
 .stat-icon { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; background: var(--card-color); }
 .stat-info { display: flex; flex-direction: column; }
-.stat-value { font-size: 24px; font-weight: 700; color: #303133; line-height: 1.2; }
-.stat-label { font-size: 13px; color: #909399; margin-top: 2px; }
+.stat-value { font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
+.stat-label { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
 .card-header { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 15px; }
 .log-stats { display: flex; flex-direction: column; gap: 16px; }
 .log-stat-item { display: flex; flex-direction: column; gap: 4px; }
-.log-stat-label { font-size: 14px; color: #606266; }
+.log-stat-label { font-size: 14px; color: var(--text-regular); }
 </style>
