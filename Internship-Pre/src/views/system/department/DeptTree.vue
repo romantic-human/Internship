@@ -57,7 +57,7 @@ async function handleDelete(row: any) {
   try { await deleteDepartment(row.id); ElMessage.success("删除成功"); await fetchTree(); } catch { ElMessage.error("删除失败"); }
 }
 async function handleStatusChange(row: any, val: number) {
-  try { await updateDepartmentStatus(row.id, val); ElMessage.success("状态更新成功"); } catch { ElMessage.error("状态更新失败"); }
+  try { await updateDepartmentStatus(row.id, val); row.status = val; ElMessage.success("状态更新成功"); } catch { ElMessage.error("状态更新失败"); }
 }
 onMounted(fetchTree);
 </script>

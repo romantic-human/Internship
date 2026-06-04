@@ -139,6 +139,7 @@ async function handleDelete(row: any) {
 async function handleStatusChange(row: any, val: number) {
   try {
     await updateMenuStatus(row.id, val);
+    row.status = val;
     ElMessage.success("状态更新成功");
   } catch {
     ElMessage.error("状态更新失败");

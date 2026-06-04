@@ -21,6 +21,18 @@ const staticRoutes: RouteRecordRaw[] = [
     meta: { title: "个人中心" },
   },
   {
+    path: "/system/user",
+    name: "UserList",
+    component: () => import("@/views/system/user/UserList.vue"),
+    meta: { title: "用户管理" },
+  },
+  {
+    path: "/system/role",
+    name: "RoleList",
+    component: () => import("@/views/system/role/RoleList.vue"),
+    meta: { title: "角色管理" },
+  },
+  {
     path: "/system/menu",
     name: "Menu",
     component: () => import("@/views/system/menu/MenuTree.vue"),
