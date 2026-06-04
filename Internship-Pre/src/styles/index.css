@@ -1,0 +1,75 @@
+/* ========== Theme Variables ========== */
+:root,
+[data-theme="light"] {
+  --sidebar-bg: #304156;
+  --sidebar-logo-bg: #2b3a4a;
+  --sidebar-text: #bfcbd9;
+  --sidebar-hover-bg: #263445;
+  --sidebar-active-text: #409eff;
+  --header-bg: #fff;
+  --header-border: #e4e7ed;
+  --main-bg: #f5f7fa;
+  --card-bg: #fff;
+  --text-primary: #303133;
+  --text-regular: #606266;
+  --text-secondary: #909399;
+  --border-color: #e4e7ed;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] {
+  --sidebar-bg: #1a1a2e;
+  --sidebar-logo-bg: #14142a;
+  --sidebar-text: #a0aec0;
+  --sidebar-hover-bg: #23234a;
+  --sidebar-active-text: #63b3ed;
+  --header-bg: #1e1e38;
+  --header-border: #2d2d4a;
+  --main-bg: #14142a;
+  --card-bg: #1e1e38;
+  --text-primary: #e2e8f0;
+  --text-regular: #a0aec0;
+  --text-secondary: #718096;
+  --border-color: #2d2d4a;
+  --shadow-color: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="blue"] {
+  --sidebar-bg: #1a365d;
+  --sidebar-logo-bg: #153056;
+  --sidebar-text: #bee3f8;
+  --sidebar-hover-bg: #1e4d8c;
+  --sidebar-active-text: #63b3ed;
+  --header-bg: #ebf8ff;
+  --header-border: #bee3f8;
+  --main-bg: #f0f9ff;
+  --card-bg: #fff;
+  --text-primary: #1a365d;
+  --text-regular: #2c5282;
+  --text-secondary: #718096;
+  --border-color: #bee3f8;
+  --shadow-color: rgba(26, 54, 93, 0.12);
+}
+
+/* ========== Page Transition ========== */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.25s ease;
+}
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateX(16px);
+}
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-16px);
+}
+
+/* ========== Scrollbar ========== */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c0c4cc; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #909399; }
+
+/* ========== Element Plus Overrides ========== */
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
