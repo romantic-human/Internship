@@ -157,7 +157,7 @@ function handleResetPwd(row: UserRecord) {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
   }).then(async ({ value }) => {
-    await resetPassword({ userId: row.id });
+    await resetPassword({ userId: row.id, password: value });
     ElMessage.success("密码已重置");
   }).catch(() => {});
 }

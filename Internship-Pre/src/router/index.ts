@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 import { useAuthStore } from "@/store/auth";
 
+/** 静态路由 — 不依赖菜单树的页面 */
 const staticRoutes: RouteRecordRaw[] = [
   {
     path: "/login",
@@ -21,49 +22,12 @@ const staticRoutes: RouteRecordRaw[] = [
     meta: { title: "个人中心" },
   },
   {
-    path: "/system/user",
-    name: "UserList",
-    component: () => import("@/views/system/user/UserList.vue"),
-    meta: { title: "用户管理" },
-  },
-  {
-    path: "/system/role",
-    name: "RoleList",
-    component: () => import("@/views/system/role/RoleList.vue"),
-    meta: { title: "角色管理" },
-  },
-  {
-    path: "/system/menu",
-    name: "Menu",
-    component: () => import("@/views/system/menu/MenuTree.vue"),
-    meta: { title: "菜单管理" },
-  },
-  {
-    path: "/system/department",
-    name: "DeptTree",
-    component: () => import("@/views/system/department/DeptTree.vue"),
-    meta: { title: "部门管理" },
-  },
-  {
-    path: "/system/permission",
-    name: "Permission",
-    component: () => import("@/views/system/permission/PermissionList.vue"),
-    meta: { title: "权限管理" },
-  },
-  {
-    path: "/system/log",
-    name: "Log",
-    component: () => import("@/views/system/log/LogList.vue"),
-    meta: { title: "操作日志" },
-  },
-  {
-    path: "/system/config",
-    name: "Config",
-    component: () => import("@/views/system/config/ConfigList.vue"),
-    meta: { title: "系统配置" },
-  },
-  {
     path: "/",
+    redirect: "/dashboard",
+  },
+  // 捕获所有未匹配路由
+  {
+    path: "/:pathMatch(.*)*",
     redirect: "/dashboard",
   },
 ];
@@ -75,12 +39,28 @@ const router = createRouter({
 
 const whiteList = ["/login"];
 
-router.beforeEach((to) => {
+let dynamicRoutesLoading: Promise<void> | null = null;
+
+router.beforeEach(async (to) => {
   document.title = to.meta.title ? `${to.meta.title} - 管理系统` : "管理系统";
+
   if (whiteList.includes(to.path)) return true;
+
   const authStore = useAuthStore();
   if (!authStore.token) return "/login";
   if (to.path === "/login") return "/dashboard";
+
+  // 刷新后动态路由丢失 → 重新加载
+  if (!authStore.dynamicRoutesLoaded) {
+    if (!dynamicRoutesLoading) {
+      dynamicRoutesLoading = authStore.generateDynamicRoutes().finally(() => {
+        dynamicRoutesLoading = null;
+      });
+    }
+    await dynamicRoutesLoading;
+    // 路由加载完毕后，用实际路径重新导航
+    return to.path === "/dashboard" ? true : to.path;
+  }
 });
 
 export default router;

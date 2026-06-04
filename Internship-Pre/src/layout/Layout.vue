@@ -12,19 +12,26 @@
         :collapse-transition="false"
         class="layout-menu"
       >
-        <template v-for="item in menuItems" :key="item.path">
-          <el-menu-item v-if="!item.children" :index="item.path">
-            <el-icon><component :is="iconMap[item.icon]" /></el-icon>
-            <template #title>{{ item.title }}</template>
+        <template v-for="item in sidebarMenus" :key="item.id">
+          <!-- 单页菜单 -->
+          <el-menu-item v-if="item.menu_type === 1" :index="item.path!">
+            <el-icon><component :is="resolveIcon(item.icon)" /></el-icon>
+            <template #title>{{ item.menu_name }}</template>
           </el-menu-item>
-          <el-sub-menu v-else :index="item.path">
+
+          <!-- 目录菜单 -->
+          <el-sub-menu v-else-if="item.children && item.children.length > 0" :index="String(item.id)">
             <template #title>
-              <el-icon><component :is="iconMap[item.icon]" /></el-icon>
-              <span>{{ item.title }}</span>
+              <el-icon><component :is="resolveIcon(item.icon)" /></el-icon>
+              <span>{{ item.menu_name }}</span>
             </template>
-            <el-menu-item v-for="child in item.children" :key="child.path" :index="child.path">
-              <el-icon><component :is="iconMap[child.icon]" /></el-icon>
-              <template #title>{{ child.title }}</template>
+            <el-menu-item
+              v-for="child in flattenMenuChildren(item.children)"
+              :key="child.id"
+              :index="child.path!"
+            >
+              <el-icon><component :is="resolveIcon(child.icon)" /></el-icon>
+              <template #title>{{ child.menu_name }}</template>
             </el-menu-item>
           </el-sub-menu>
         </template>
@@ -72,17 +79,21 @@
 <script setup lang="ts">
 import { useRouter, useRoute } from "vue-router";
 import { computed, ref } from "vue";
-import { Fold, Expand, ArrowDown, User, SwitchButton, House, Setting, Document, Tools, Key, OfficeBuilding, Menu as MenuIcon, Moon, Sunny } from "@element-plus/icons-vue";
+import {
+  Fold, Expand, ArrowDown, User, SwitchButton,
+  House, Setting, Document, Tools, Key, OfficeBuilding,
+  Menu as MenuIcon, Moon, Sunny, UserFilled,
+} from "@element-plus/icons-vue";
 import { useAppStore } from "@/store/app";
 import { useAuthStore } from "@/store/auth";
 import { getTheme, toggleTheme } from "@/utils/theme";
+import type { MenuItem } from "@/api/menu";
 
 const router = useRouter();
 const route = useRoute();
 const appStore = useAppStore();
 const authStore = useAuthStore();
 const sidebarCollapsed = computed(() => appStore.sidebarCollapsed);
-
 const isDark = ref(getTheme() === "dark");
 
 function handleToggleTheme() {
@@ -90,24 +101,35 @@ function handleToggleTheme() {
   isDark.value = getTheme() === "dark";
 }
 
-const iconMap: Record<string, any> = { House, Setting, User, Document: Document as any, Tools: Tools as any, Key: Key as any, OfficeBuilding, Menu: MenuIcon as any };
+/** 图标名 → 图标组件映射 */
+const iconMap: Record<string, any> = {
+  House, Setting, User, UserFilled, Document, Tools, Key,
+  Office: OfficeBuilding, OfficeBuilding,
+  Menu: MenuIcon, Moon, Sunny,
+};
 
-const menuItems = [
-  { path: "/dashboard", icon: "House", title: "首页" },
-  {
-    path: "/system", icon: "Setting", title: "系统管理",
-    children: [
-      { path: "/system/user", icon: "User", title: "用户管理" },
-      { path: "/system/role", icon: "Setting", title: "角色管理" },
-      { path: "/system/menu", icon: "Menu", title: "菜单管理" },
-      { path: "/system/department", icon: "OfficeBuilding", title: "部门管理" },
-      { path: "/system/permission", icon: "Key", title: "权限管理" },
-      { path: "/system/log", icon: "Document", title: "操作日志" },
-      { path: "/system/config", icon: "Tools", title: "系统配置" },
-    ],
-  },
-  { path: "/profile", icon: "User", title: "个人中心" },
-];
+function resolveIcon(iconName: string) {
+  return iconMap[iconName] || MenuIcon;
+}
+
+/** 从菜单树构建侧边栏数据结构 — 只展示目录(0)和菜单(1)，过滤隐藏/禁用的 */
+const sidebarMenus = computed(() => {
+  const tree = authStore.menuTree;
+  if (!tree || tree.length === 0) {
+    // fallback：静态菜单（动态路由加载前显示）
+    return [
+      { id: 0, menu_type: 1, menu_name: "首页", path: "/dashboard", icon: "House" },
+    ] as MenuItem[];
+  }
+  return tree;
+});
+
+/** 扁平的子菜单（去除不可见的按钮类型） */
+function flattenMenuChildren(children: MenuItem[]): MenuItem[] {
+  return children.filter(
+    (c) => c.visible === 1 && c.status === 1 && c.menu_type === 1 && c.path
+  );
+}
 
 function handleLogout() {
   authStore.logout();
@@ -123,7 +145,6 @@ function handleLogout() {
 .layout-main { display: flex; flex-direction: column; }
 .layout-header { display: flex; align-items: center; justify-content: space-between; height: 50px; background: var(--el-bg-color, #fff); border-bottom: 1px solid var(--el-border-color-light, #e4e7ed); padding: 0 16px; }
 .header-right { display: flex; align-items: center; gap: 12px; }
-
 .theme-btn { font-size: 18px; cursor: pointer; color: #909399; transition: color 0.3s, transform 0.3s; }
 .theme-btn:hover { color: #409EFF; transform: rotate(15deg); }
 .user-dropdown { display: flex; align-items: center; gap: 6px; cursor: pointer; }
