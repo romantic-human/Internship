@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { login as loginApi, register as registerApi } from "@/api/user";
+import { login as loginApi } from "@/api/user";
 import { getMenuTree, type MenuItem } from "@/api/menu";
 import type { RouteRecordRaw } from "vue-router";
 
@@ -30,12 +30,6 @@ export const useAuthStore = defineStore("auth", () => {
     roles.value = res.user.roles || [];
     localStorage.setItem("access_token", res.access_token);
     localStorage.setItem("refresh_token", res.refresh_token);
-  }
-
-  async function register(username: string, password: string, nickname?: string) {
-    const res = await registerApi({ username, password, nickname });
-    setAuthData(res);
-    await generateDynamicRoutes();
   }
 
   async function login(username: string, password: string) {
@@ -105,7 +99,6 @@ export const useAuthStore = defineStore("auth", () => {
     roles,
     menuTree,
     dynamicRoutesLoaded,
-    register,
     login,
     logout,
     setTokens,

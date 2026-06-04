@@ -81,7 +81,7 @@
 
 <script setup lang="ts">
 import { useRouter, useRoute } from "vue-router";
-import { computed } from "vue";
+import { computed, markRaw, type Component } from "vue";
 import {
   Fold, Expand, ArrowDown, User, SwitchButton,
   House, Setting, Document, Tools, Key, OfficeBuilding,
@@ -101,10 +101,12 @@ function handleToggleTheme() {
   appStore.setTheme(appStore.theme === "dark" ? "light" : "dark");
 }
 
-const iconMap: Record<string, any> = {
-  House, Setting, User, UserFilled, Document, Tools, Key,
-  Office: OfficeBuilding, OfficeBuilding,
-  Menu: MenuIcon, Moon, Sunny,
+const iconMap: Record<string, Component> = {
+  House: markRaw(House), Setting: markRaw(Setting), User: markRaw(User),
+  UserFilled: markRaw(UserFilled), Document: markRaw(Document),
+  Tools: markRaw(Tools), Key: markRaw(Key),
+  Office: markRaw(OfficeBuilding), OfficeBuilding: markRaw(OfficeBuilding),
+  Menu: markRaw(MenuIcon), Moon: markRaw(Moon), Sunny: markRaw(Sunny),
 };
 
 function resolveIcon(iconName: string) {
