@@ -36,7 +36,6 @@
           <el-icon size="18"><Fold v-if="!sidebarCollapsed" /><Expand v-else /></el-icon>
         </el-button>
         <div class="header-right">
-          <!-- 主题切换 -->
           <el-tooltip :content="isDark ? '切换亮色模式' : '切换暗色模式'" placement="bottom">
             <el-icon class="theme-btn" @click="handleToggleTheme">
               <Moon v-if="!isDark" />
@@ -63,7 +62,11 @@
         </div>
       </el-header>
       <el-main class="layout-content">
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <transition name="fade-slide" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
       </el-main>
     </el-container>
   </el-container>
@@ -75,8 +78,6 @@ import { computed, type Component } from "vue";
 import { Fold, Expand, ArrowDown, User, SwitchButton, House, Setting, Document, Tools, Key, OfficeBuilding, Menu as MenuIcon, Moon, Sunny } from "@element-plus/icons-vue";
 import { useAppStore } from "@/store/app";
 import { useAuthStore } from "@/store/auth";
-import { getTheme, toggleTheme } from "@/utils/theme";
-
 const router = useRouter();
 const route = useRoute();
 const appStore = useAppStore();
@@ -122,7 +123,6 @@ function handleLogout() {
 .layout-main { display: flex; flex-direction: column; }
 .layout-header { display: flex; align-items: center; justify-content: space-between; height: 50px; background: var(--el-bg-color, #fff); border-bottom: 1px solid var(--el-border-color-light, #e4e7ed); padding: 0 16px; }
 .header-right { display: flex; align-items: center; gap: 12px; }
-
 .theme-btn { font-size: 18px; cursor: pointer; color: #909399; transition: color 0.3s, transform 0.3s; }
 .theme-btn:hover { color: #409EFF; transform: rotate(15deg); }
 .user-dropdown { display: flex; align-items: center; gap: 6px; cursor: pointer; }
