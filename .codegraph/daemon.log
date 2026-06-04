@@ -1,0 +1,45 @@
+[CodeGraph daemon] Listening on \\.\pipe\codegraph-2bf8b30c50764d12 (pid 19460, v0.9.7). Idle timeout 300000ms.
+[CodeGraph MCP] File watcher active — graph will auto-sync on changes
+[CodeGraph MCP] Caught up 85 file(s) changed since last run
+[CodeGraph daemon] Another daemon (pid 19460) already holds the lock; exiting.
+[CodeGraph daemon] socket error: write EPIPE
+[CodeGraph daemon] socket error: write EPIPE
+[CodeGraph daemon] socket error: write EPIPE
+[CodeGraph MCP] Auto-synced 1 file(s) in 680ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 655ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 253ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 270ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 522ms
+[CodeGraph MCP] Auto-synced 33 file(s) in 1677ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 698ms
+[CodeGraph MCP] Auto-synced 3 file(s) in 583ms
+[CodeGraph MCP] Auto-synced 20 file(s) in 1365ms
+[CodeGraph MCP] Auto-synced 22 file(s) in 572ms
+[CodeGraph MCP] Auto-synced 20 file(s) in 664ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 784ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 363ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 404ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 263ms
+[CodeGraph daemon] Listening on \\.\pipe\codegraph-2bf8b30c50764d12 (pid 13120, v0.9.7). Idle timeout 300000ms.
+[CodeGraph MCP] File watcher active — graph will auto-sync on changes
+[CodeGraph MCP] Auto-synced 1 file(s) in 1640ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 577ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 578ms
+[CodeGraph MCP] Auto-synced 5 file(s) in 1366ms
+[CodeGraph MCP] Auto-synced 5 file(s) in 699ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 587ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 552ms
+[CodeGraph MCP] Auto-synced 44 file(s) in 2971ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 588ms
+[CodeGraph MCP] Auto-synced 43 file(s) in 1552ms
+[CodeGraph MCP] Auto-synced 44 file(s) in 1515ms
+[CodeGraph MCP] Auto-synced 43 file(s) in 1249ms
+[CodeGraph MCP] Auto-synced 43 file(s) in 1240ms
+[CodeGraph MCP] Auto-synced 12 file(s) in 990ms
+[CodeGraph MCP] Auto-synced 12 file(s) in 1059ms
+[CodeGraph MCP] Auto-synced 12 file(s) in 971ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 791ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 552ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 541ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 557ms
+[CodeGraph MCP] Auto-synced 1 file(s) in 546ms
