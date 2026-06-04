@@ -125,7 +125,7 @@ const remember = ref(localStorage.getItem("remember") === "true");
 
 const form = reactive({
   username: localStorage.getItem("remember_username") || "",
-  password: localStorage.getItem("remember_password") || "",
+  password: "",
 });
 
 const rules: FormRules = {
@@ -143,7 +143,6 @@ async function handleLogin() {
     if (remember.value) {
       localStorage.setItem("remember", "true");
       localStorage.setItem("remember_username", form.username);
-      localStorage.setItem("remember_password", form.password);
     } else {
       localStorage.setItem("remember", "false");
     }

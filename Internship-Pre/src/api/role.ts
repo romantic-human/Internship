@@ -36,14 +36,14 @@ export function getRoleMenus(id: number) {
   return request.get(`/role/${id}/menus`);
 }
 
-export function assignRoleMenus(id: number, menuIds: number[]) {
-  return request.put(`/role/${id}/menus`, { menuIds });
+export function assignRoleMenus(id: number, menu_ids: number[]) {
+  return request.put(`/role/${id}/menus`, { menu_ids });
 }
 
 export function getRoleUsers(id: number) {
   return request.get(`/role/${id}/users`);
 }
 
-export function assignRoleUsers(id: number, userIds: number[]) {
-  return request.put(`/role/${id}/users`, { userIds });
+export function assignRoleUsers(id: number, user_ids: number[]) {
+  return request.put(`/role/${id}/users`, { user_ids });
 }
