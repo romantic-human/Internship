@@ -131,6 +131,9 @@ onUnmounted(() => {
 .card-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-weight: 600; font-size: 15px; }
 .log-stats-badge { display: flex; gap: 6px; }
 .logs-row { margin-top: 0; }
+.log-stats { display: flex; flex-direction: column; gap: 16px; }
+.log-stat-item { display: flex; flex-direction: column; gap: 4px; }
+.log-stat-label { font-size: 14px; color: #606266; }
 
 .dark .welcome-header h2 { color: #e0e2e8; }
 .dark .stat-value { color: #e0e2e8; }

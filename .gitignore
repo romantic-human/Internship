@@ -25,15 +25,15 @@ Thumbs.db
 node_modules/
 package-lock.json
 yarn.lock
+pnpm-lock.yaml
+pnpm.err
+pnpm.log
+
 # Skills
 .reasonix/
 
 # Codegraph
 .codegraph/
-
-pnpm-lock.yaml
-pnpm.err
-pnpm.log
 
 # Build artifacts
 dist/
