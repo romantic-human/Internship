@@ -42,7 +42,17 @@ export function uploadAvatar(file: File) {
 }
 
 // ── 用户管理 ───────────────────────────────────────────────
-export function getUserList(params: any) {
+export interface UserRecord {
+  id: number;
+  username: string;
+  nickname: string;
+  email: string;
+  telephone: string;
+  status: number;
+  create_time: string;
+}
+
+export function getUserList(params: any): Promise<{ records: UserRecord[]; total: number }> {
   return request.get("/user/", { params });
 }
 

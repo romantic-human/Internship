@@ -20,7 +20,7 @@
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="page=1;fetchList()">查询</el-button>
-          <el-button @click="filters={};page=1;fetchList()">重置</el-button>
+          <el-button @click="filters.role_name='';filters.status=null;page=1;fetchList()">重置</el-button>
         </el-form-item>
       </el-form>
 
@@ -125,21 +125,13 @@ import {
   assignRoleMenus,
   getRoleUsers,
   assignRoleUsers,
+  type RoleRecord,
 } from "@/api/role";
 import { getMenuTree } from "@/api/menu";
-import { getUserList } from "@/api/user";
+import { getUserList, type UserRecord } from "@/api/user";
 import { ElMessage } from "element-plus";
 import type { ElTree } from "element-plus";
 import RoleForm from "./RoleForm.vue";
-
-interface RoleRecord {
-  id: number;
-  role_name: string;
-  role_key: string;
-  role_sort: number;
-  status: number;
-  create_time: string;
-}
 
 const loading = ref(false);
 const list = ref<RoleRecord[]>([]);
@@ -173,8 +165,8 @@ async function fetchList() {
     if (filters.role_name) params.role_name = filters.role_name;
     if (filters.status !== null) params.status = filters.status;
     const res = await getRoleList(params);
-    list.value = res.records || res;
-    total.value = res.total || 0;
+    list.value = res.records;
+    total.value = res.total;
   } finally {
     loading.value = false;
   }
@@ -216,7 +208,7 @@ async function handleAssignMenu(row: RoleRecord) {
   menuDialogVisible.value = true;
   menuTreeData.value = await getMenuTree();
   nextTick(async () => {
-    const menuIds: number[] = await getRoleMenus(row.id);
+    const menuIds = await getRoleMenus(row.id);
     menuTreeRef.value?.setCheckedKeys(menuIds);
   });
 }
@@ -240,9 +232,9 @@ async function handleAssignUser(row: RoleRecord) {
   currentRoleId.value = row.id;
   userDialogVisible.value = true;
   const res = await getUserList({ page: 1, pageSize: 999 });
-  userList.value = res.records || [];
+  userList.value = res.records;
   nextTick(async () => {
-    const userIds: number[] = await getRoleUsers(row.id);
+    const userIds = await getRoleUsers(row.id);
     selectedUserIds.value = userIds;
     // 同步表格选中状态
     const table = userTableRef.value as any;
