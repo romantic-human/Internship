@@ -27,3 +27,16 @@ package-lock.json
 yarn.lock
 # Skills
 .reasonix/
+pnpm-lock.yaml
+pnpm.err
+pnpm.log
+
+# Build artifacts
+dist/
+*.js.map
+Internship-Pre/src/**/*.js
+
+# Django server logs
+server_out*.txt
+server_err*.txt
+dump_urls.py

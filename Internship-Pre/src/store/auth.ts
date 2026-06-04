@@ -2,17 +2,24 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import { login as loginApi, register as registerApi } from "@/api/user";
 
+export interface UserInfo {
+  id?: number;
+  username?: string;
+  nickname?: string;
+  avatar?: string;
+  roles?: string[];
+  permissions?: string[];
+}
+
 export const useAuthStore = defineStore("auth", () => {
   const token = ref<string>(localStorage.getItem("access_token") || "");
   const refreshToken = ref<string>(localStorage.getItem("refresh_token") || "");
-  const userInfo = ref<any>(null);
+  const userInfo = ref<UserInfo | null>(null);
   const permissions = ref<string[]>([]);
   const roles = ref<string[]>([]);
   const dynamicRoutesLoaded = ref(false);
 
-  /** 注册 */
-  async function register(username: string, password: string, nickname?: string) {
-    const res: any = await registerApi({ username, password, nickname });
+  function setAuthData(res: any) {
     token.value = res.access_token;
     refreshToken.value = res.refresh_token;
     userInfo.value = res.user;
@@ -20,19 +27,17 @@ export const useAuthStore = defineStore("auth", () => {
     roles.value = res.user.roles || [];
     localStorage.setItem("access_token", res.access_token);
     localStorage.setItem("refresh_token", res.refresh_token);
+  }
+
+  async function register(username: string, password: string, nickname?: string) {
+    const res = await registerApi({ username, password, nickname });
+    setAuthData(res);
     await generateDynamicRoutes();
   }
 
-  /** 登录 */
   async function login(username: string, password: string) {
-    const res: any = await loginApi({ username, password });
-    token.value = res.access_token;
-    refreshToken.value = res.refresh_token;
-    userInfo.value = res.user;
-    permissions.value = res.user.permissions || [];
-    roles.value = res.user.roles || [];
-    localStorage.setItem("access_token", res.access_token);
-    localStorage.setItem("refresh_token", res.refresh_token);
+    const res = await loginApi({ username, password });
+    setAuthData(res);
     await generateDynamicRoutes();
   }
 
@@ -56,6 +61,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   /** 检查权限 */
   function hasPermission(perm: string): boolean {
+    if (!perm) return false;
     return permissions.value.includes(perm) || permissions.value.includes("*:*:*");
   }
 

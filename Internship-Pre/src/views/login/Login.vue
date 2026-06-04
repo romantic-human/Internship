@@ -111,7 +111,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { reactive, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
 import { User, Lock } from "@element-plus/icons-vue";
@@ -133,6 +133,12 @@ const rules: FormRules = {
   password: [{ required: true, message: "请输入密码", trigger: "blur" }],
 };
 
+onMounted(() => {
+  if (authStore.token) {
+    router.replace("/dashboard");
+  }
+});
+
 async function handleLogin() {
   const valid = await formRef.value?.validate().catch(() => false);
   if (!valid) return;
@@ -147,7 +153,7 @@ async function handleLogin() {
       localStorage.setItem("remember", "false");
     }
     ElMessage.success("登录成功");
-    router.push("/");
+    await router.replace("/dashboard");
   } catch {
     // 错误已由 axios 拦截器处理
   } finally {

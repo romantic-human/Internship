@@ -71,7 +71,7 @@
 
 <script setup lang="ts">
 import { useRouter, useRoute } from "vue-router";
-import { computed, ref } from "vue";
+import { computed, type Component } from "vue";
 import { Fold, Expand, ArrowDown, User, SwitchButton, House, Setting, Document, Tools, Key, OfficeBuilding, Menu as MenuIcon, Moon, Sunny } from "@element-plus/icons-vue";
 import { useAppStore } from "@/store/app";
 import { useAuthStore } from "@/store/auth";
@@ -83,14 +83,13 @@ const appStore = useAppStore();
 const authStore = useAuthStore();
 const sidebarCollapsed = computed(() => appStore.sidebarCollapsed);
 
-const isDark = ref(getTheme() === "dark");
+const isDark = computed(() => appStore.theme === "dark");
 
 function handleToggleTheme() {
-  toggleTheme();
-  isDark.value = getTheme() === "dark";
+  appStore.setTheme(appStore.theme === "dark" ? "light" : "dark");
 }
 
-const iconMap: Record<string, any> = { House, Setting, User, Document: Document as any, Tools: Tools as any, Key: Key as any, OfficeBuilding, Menu: MenuIcon as any };
+const iconMap: Record<string, Component> = { House, Setting, User, Document, Tools, Key, OfficeBuilding, Menu: MenuIcon };
 
 const menuItems = [
   { path: "/dashboard", icon: "House", title: "首页" },
