@@ -127,8 +127,8 @@ import {
   assignRoleUsers,
   type RoleRecord,
 } from "@/api/role";
-import { getMenuTree } from "@/api/menu";
-import { getUserList } from "@/api/user";
+import { getMenuTree, type MenuItem } from "@/api/menu";
+import { getUserList, type UserRecord } from "@/api/user";
 import { ElMessage } from "element-plus";
 import type { ElTree } from "element-plus";
 import RoleForm from "./RoleForm.vue";
@@ -147,14 +147,14 @@ const filters = reactive({
 
 // 菜单分配
 const menuDialogVisible = ref(false);
-const menuTreeData = ref<any[]>([]);
+const menuTreeData = ref<MenuItem[]>([]);
 const menuTreeRef = ref<InstanceType<typeof ElTree>>();
 const currentRoleId = ref(0);
 const menuSaving = ref(false);
 
 // 用户分配
 const userDialogVisible = ref(false);
-const userList = ref<any[]>([]);
+const userList = ref<UserRecord[]>([]);
 const selectedUserIds = ref<number[]>([]);
 const userSaving = ref(false);
 

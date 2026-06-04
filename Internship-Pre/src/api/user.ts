@@ -1,7 +1,20 @@
 import request from "@/utils/request";
 
+export interface LoginResult {
+  access_token: string;
+  refresh_token: string;
+  user: {
+    id: number;
+    username: string;
+    nickname: string;
+    avatar?: string;
+    permissions?: string[];
+    roles?: string[];
+  };
+}
+
 // ── 认证接口 ────────────────────────────────────────────────
-export function login(data: { username: string; password: string }) {
+export function login(data: { username: string; password: string }): Promise<LoginResult> {
   return request.post("/user/login", data);
 }
 
@@ -18,22 +31,25 @@ export function refreshTokenApi(data: { refresh: string }) {
 }
 
 // ── 个人中心 ───────────────────────────────────────────────
-export function getUserProfile() {
+export function getUserProfile(): Promise<{
+  nickname: string; real_name: string; email: string; telephone: string;
+  gender: number; avatar: string; department_id: number | null;
+}> {
   return request.get("/user/profile");
 }
 
-export function updateUserProfile(data: any) {
+export function updateUserProfile(data: Record<string, any>) {
   return request.put("/user/profile", data);
 }
 
 export function updatePassword(data: {
-  oldPassword: string;
-  newPassword: string;
+  old_password: string;
+  new_password: string;
 }) {
   return request.put("/user/update-password", data);
 }
 
-export function uploadAvatar(file: File) {
+export function uploadAvatar(file: File): Promise<{ url: string }> {
   const formData = new FormData();
   formData.append("file", file);
   return request.post("/user/avatar", formData, {
@@ -46,21 +62,25 @@ export interface UserRecord {
   id: number;
   username: string;
   nickname: string;
+  real_name: string;
   email: string;
   telephone: string;
+  gender: number;
   status: number;
+  department_id: number | null;
+  department_name?: string;
   create_time: string;
 }
 
-export function getUserList(params: any): Promise<{ records: UserRecord[]; total: number }> {
+export function getUserList(params: Record<string, any>): Promise<{ records: UserRecord[]; total: number }> {
   return request.get("/user/", { params });
 }
 
-export function createUser(data: any) {
+export function createUser(data: Partial<UserRecord> & { password?: string }) {
   return request.post("/user/", data);
 }
 
-export function updateUser(id: number, data: any) {
+export function updateUser(id: number, data: Partial<UserRecord>) {
   return request.put(`/user/${id}`, data);
 }
 

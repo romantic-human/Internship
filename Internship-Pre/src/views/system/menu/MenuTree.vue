@@ -88,15 +88,15 @@ const TYPE_MAP: Record<number, string> = { 0: "目录", 1: "菜单", 2: "按钮"
 const loading = ref(false);
 const treeData = ref<MenuItem[]>([]);
 const formVisible = ref(false);
-const currentFormData = ref<any>(null);
+const currentFormData = ref<Partial<MenuItem> | null>(null);
 
 function typeTagType(t: number): string {
   return t === 0 ? "" : t === 1 ? "primary" : "warning";
 }
 
-function flattenForOptions(items: any[]): any[] {
-  const result: any[] = [];
-  function walk(list: any[], level: number) {
+function flattenForOptions(items: MenuItem[]): (Partial<MenuItem> & { _level: number })[] {
+  const result: (Partial<MenuItem> & { _level: number })[] = [];
+  function walk(list: MenuItem[], level: number) {
     for (const item of list) {
       result.push({ ...item, _level: level });
       if (item.children?.length) walk(item.children, level + 1);
@@ -120,17 +120,17 @@ function handleAdd() {
   formVisible.value = true;
 }
 
-function handleAddChild(row: any) {
+function handleAddChild(row: MenuItem) {
   currentFormData.value = { parent_id: row.id };
   formVisible.value = true;
 }
 
-function handleEdit(row: any) {
+function handleEdit(row: MenuItem) {
   currentFormData.value = { ...row };
   formVisible.value = true;
 }
 
-async function handleDelete(row: any) {
+async function handleDelete(row: MenuItem) {
   try {
     await deleteMenu(row.id);
     ElMessage.success("删除成功");
@@ -138,7 +138,7 @@ async function handleDelete(row: any) {
   } catch { /* handled by interceptor */ }
 }
 
-async function handleStatusChange(row: any, val: number) {
+async function handleStatusChange(row: MenuItem, val: number) {
   try {
     await updateMenuStatus(row.id, val);
     row.status = val;

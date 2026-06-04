@@ -22,7 +22,11 @@ export const useAuthStore = defineStore("auth", () => {
   const dynamicRoutesLoaded = ref(false);
   const menuTree = ref<MenuItem[]>([]);
 
-  function setAuthData(res: any) {
+  function setAuthData(res: {
+    access_token: string;
+    refresh_token: string;
+    user: UserInfo & { permissions?: string[]; roles?: string[] };
+  }) {
     token.value = res.access_token;
     refreshToken.value = res.refresh_token;
     userInfo.value = res.user;

@@ -45,18 +45,18 @@ import DeptForm from "./DeptForm.vue";
 const loading = ref(false);
 const treeData = ref<DeptItem[]>([]);
 const formVisible = ref(false);
-const currentFormData = ref<any>(null);
+const currentFormData = ref<Partial<DeptItem> | null>(null);
 
 async function fetchTree() {
   loading.value = true;
   try { treeData.value = await getDepartmentTree(); } finally { loading.value = false; }
 }
 function handleAdd() { currentFormData.value = null; formVisible.value = true; }
-function handleEdit(row: any) { currentFormData.value = { ...row }; formVisible.value = true; }
-async function handleDelete(row: any) {
+function handleEdit(row: DeptItem) { currentFormData.value = { ...row }; formVisible.value = true; }
+async function handleDelete(row: DeptItem) {
   try { await deleteDepartment(row.id); ElMessage.success("删除成功"); await fetchTree(); } catch { /* handled by interceptor */ }
 }
-async function handleStatusChange(row: any, val: number) {
+async function handleStatusChange(row: DeptItem, val: number) {
   try { await updateDepartmentStatus(row.id, val); row.status = val; ElMessage.success("状态更新成功"); } catch { /* handled by interceptor */ }
 }
 onMounted(fetchTree);

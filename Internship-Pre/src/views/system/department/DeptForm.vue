@@ -37,12 +37,12 @@ import { createDepartment, updateDepartment, getDepartmentTree, type DeptItem } 
 import { ElMessage } from "element-plus";
 import type { FormInstance } from "element-plus";
 
-const props = defineProps<{ visible: boolean; formData: any }>();
+const props = defineProps<{ visible: boolean; formData: Partial<DeptItem> | null }>();
 const emit = defineEmits<{ close: []; success: [] }>();
 const formRef = ref<FormInstance>();
 const submitting = ref(false);
 const treeOptions = ref<DeptItem[]>([]);
-const form = ref<any>({ parent_id: null, dept_name: "", leader: "", phone: "", email: "", sort_order: 0, status: 1 });
+const form = ref<Partial<DeptItem> & { parent_id: number | null }>({ parent_id: null, dept_name: "", leader: "", phone: "", email: "", sort_order: 0, status: 1 });
 const rules = { dept_name: [{ required: true, message: "请输入部门名称", trigger: "blur" }] };
 const isEdit = computed(() => !!props.formData?.id);
 
@@ -58,7 +58,7 @@ async function handleSubmit() {
   if (!valid) return; submitting.value = true;
   try {
     const payload = { ...form.value, parent_id: form.value.parent_id || 0 };
-    if (isEdit.value) { await updateDepartment(props.formData.id, payload); ElMessage.success("更新成功"); }
+    if (isEdit.value) { await updateDepartment(props.formData!.id!, payload); ElMessage.success("更新成功"); }
     else { await createDepartment(payload); ElMessage.success("新增成功"); }
     emit("success"); emit("close");
   } finally { submitting.value = false; }

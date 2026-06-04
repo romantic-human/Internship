@@ -28,28 +28,22 @@
       <el-col :span="8">
         <el-card shadow="hover">
           <template #header>
-            <div class="card-header"><el-icon><Clock /></el-icon> 日志统计</div>
+            <div class="card-header"><el-icon><Monitor /></el-icon> 实时性能</div>
           </template>
-          <div class="log-stats">
-            <div class="log-stat-item">
-              <span class="log-stat-label">今日</span>
-              <el-progress :percentage="100" :stroke-width="16" :format="() => `${stats.log_today} 条`" color="#409eff" />
-            </div>
-            <div class="log-stat-item">
-              <span class="log-stat-label">本周</span>
-              <el-progress :percentage="100" :stroke-width="16" :format="() => `${stats.log_week} 条`" color="#67c23a" />
-            </div>
-            <div class="log-stat-item">
-              <span class="log-stat-label">本月</span>
-              <el-progress :percentage="100" :stroke-width="16" :format="() => `${stats.log_month} 条`" color="#e6a23c" />
-            </div>
-          </div>
+          <ClockWidget />
         </el-card>
       </el-col>
       <el-col :span="16">
         <el-card shadow="hover">
           <template #header>
-            <div class="card-header"><el-icon><Document /></el-icon> 近期操作日志</div>
+            <div class="card-header">
+              <span><el-icon><Document /></el-icon> 近期操作日志</span>
+              <span class="log-stats-badge">
+                <el-tag size="small" type="primary">今日 {{ stats.log_today }}</el-tag>
+                <el-tag size="small" type="success">本周 {{ stats.log_week }}</el-tag>
+                <el-tag size="small" type="warning">本月 {{ stats.log_month }}</el-tag>
+              </span>
+            </div>
           </template>
           <el-table :data="stats.recent_logs" v-loading="loading" stripe size="small" max-height="320">
             <el-table-column prop="username" label="用户" width="80" />
@@ -73,7 +67,8 @@
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useAuthStore } from "@/store/auth";
 import { getDashboardStats, type DashboardStats } from "@/api/dashboard";
-import { User, Menu as MenuIcon, Key, OfficeBuilding, Document, Setting, Clock, Refresh } from "@element-plus/icons-vue";
+import { User, Menu as MenuIcon, Key, OfficeBuilding, Document, Setting, Monitor, Refresh } from "@element-plus/icons-vue";
+import ClockWidget from "@/components/ClockWidget.vue";
 
 const authStore = useAuthStore();
 const loading = ref(false);
@@ -133,12 +128,11 @@ onUnmounted(() => {
 .stat-info { display: flex; flex-direction: column; }
 .stat-value { font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
 .stat-label { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
-.card-header { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 15px; }
+.card-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-weight: 600; font-size: 15px; }
+.log-stats-badge { display: flex; gap: 6px; }
 .logs-row { margin-top: 0; }
-.log-stats { display: flex; flex-direction: column; gap: 16px; }
-.log-stat-item { display: flex; flex-direction: column; gap: 4px; }
-.log-stat-label { font-size: 14px; color: #606266; }
 
 .dark .welcome-header h2 { color: #e0e2e8; }
 .dark .stat-value { color: #e0e2e8; }
+
 </style>

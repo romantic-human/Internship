@@ -35,15 +35,15 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { createConfig, updateConfig } from "@/api/config";
+import { createConfig, updateConfig, type ConfigItem } from "@/api/config";
 import { ElMessage } from "element-plus";
 import type { FormInstance } from "element-plus";
 
-const props = defineProps<{ visible: boolean; formData: any }>();
+const props = defineProps<{ visible: boolean; formData: Partial<ConfigItem> | null }>();
 const emit = defineEmits<{ close: []; success: [] }>();
 const formRef = ref<FormInstance>();
 const submitting = ref(false);
-const form = ref<any>({ config_name: "", config_key: "", config_value: "", config_type: 0, remark: "", sort_order: 0, status: 1 });
+const form = ref<Partial<ConfigItem>>({ config_name: "", config_key: "", config_value: "", config_type: 0, remark: "", sort_order: 0, status: 1 });
 const rules = { config_name: [{ required: true, message: "请输入配置名称", trigger: "blur" }], config_key: [{ required: true, message: "请输入配置键", trigger: "blur" }], config_value: [{ required: true, message: "请输入配置值", trigger: "blur" }] };
 const isEdit = computed(() => !!props.formData?.id);
 watch(() => props.formData, (val) => {
@@ -55,7 +55,7 @@ async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false);
   if (!valid) return; submitting.value = true;
   try {
-    if (isEdit.value) { await updateConfig(props.formData.id, form.value); ElMessage.success("更新成功"); }
+    if (isEdit.value) { await updateConfig(props.formData!.id!, form.value); ElMessage.success("更新成功"); }
     else { await createConfig(form.value); ElMessage.success("新增成功"); }
     emit("success"); emit("close");
   } finally { submitting.value = false; }

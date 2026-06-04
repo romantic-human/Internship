@@ -53,29 +53,30 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { getLogList, clearLogs, getLogDetail } from "@/api/log";
+import { getLogList, clearLogs, getLogDetail, type LogItem } from "@/api/log";
 import { ElMessage, ElMessageBox } from "element-plus";
 
 const loading = ref(false);
-const list = ref<any[]>([]);
+const list = ref<LogItem[]>([]);
 const total = ref(0);
 const page = ref(1);
 const pageSize = 10;
-const filters = ref<any>({});
+const filters = ref<Record<string, any>>({});
 const detailVisible = ref(false);
 const detailData = ref("");
 
 async function fetchList() {
   loading.value = true;
   try {
-    const params: any = { page: page.value, pageSize };
+    const params: Record<string, any> = { page: page.value, pageSize };
     Object.entries(filters.value).filter(([_, v]) => v !== "" && v !== undefined && v !== null).forEach(([k, v]) => params[k] = v);
-    const res = await getLogList(params) as any;
-    if (res.records) { list.value = res.records; total.value = res.total; } else list.value = res;
+    const res = await getLogList(params);
+    list.value = res.records;
+    total.value = res.total;
   } finally { loading.value = false; }
 }
-async function handleDetail(row: any) {
-  const res = await getLogDetail(row.id) as any;
+async function handleDetail(row: LogItem) {
+  const res = await getLogDetail(row.id);
   detailData.value = JSON.stringify({ 用户名: res.username, 模块: res.module, 操作: res.operation, 方法: res.method, URL: res.request_url, IP: res.ip, 请求参数: res.request_params, 响应结果: res.response_result, 状态: res.status ? "成功" : "失败", 耗时: `${res.execution_time}ms`, 时间: res.create_time }, null, 2);
   detailVisible.value = true;
 }

@@ -8,7 +8,9 @@ export interface ConfigItem {
   config_type: number;
   sort_order: number;
   status: number;
+  remark: string;
   create_time: string;
+  update_time: string;
 }
 
 export function getConfigList(params: Record<string, any>): Promise<{ records: ConfigItem[]; total: number }> {

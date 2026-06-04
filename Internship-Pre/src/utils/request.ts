@@ -81,7 +81,7 @@ request.interceptors.response.use(
     const { status, data } = error.response;
 
     const refreshToken = useAuthStore().refreshToken;
-    const needRefresh = (status === 401 && data?.code === "token_not_valid") || data?.code === 3001;
+    const needRefresh = status === 401 && data?.code === "token_not_valid";
     if (needRefresh && refreshToken) {
       return handleTokenRefresh(error, refreshToken);
     }

@@ -40,29 +40,30 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { getConfigList, deleteConfig } from "@/api/config";
+import { getConfigList, deleteConfig, type ConfigItem } from "@/api/config";
 import { ElMessage } from "element-plus";
 import ConfigForm from "./ConfigForm.vue";
 
 const TYPE_MAP: Record<number, string> = { 0: "字符串", 1: "数字", 2: "布尔", 3: "JSON" };
 const loading = ref(false);
-const list = ref<any[]>([]);
+const list = ref<ConfigItem[]>([]);
 const total = ref(0);
 const page = ref(1);
 const pageSize = 10;
 const formVisible = ref(false);
-const currentFormData = ref<any>(null);
+const currentFormData = ref<Partial<ConfigItem> | null>(null);
 
 async function fetchList() {
   loading.value = true;
   try {
-    const res = await getConfigList({ page: page.value, pageSize }) as any;
-    if (res.records) { list.value = res.records; total.value = res.total; } else list.value = res;
+    const res = await getConfigList({ page: page.value, pageSize });
+    list.value = res.records;
+    total.value = res.total;
   } finally { loading.value = false; }
 }
 function handleAdd() { currentFormData.value = null; formVisible.value = true; }
-function handleEdit(row: any) { currentFormData.value = { ...row }; formVisible.value = true; }
-async function handleDelete(row: any) {
+function handleEdit(row: ConfigItem) { currentFormData.value = { ...row }; formVisible.value = true; }
+async function handleDelete(row: ConfigItem) {
   await deleteConfig(row.id); ElMessage.success("删除成功"); await fetchList();
 }
 onMounted(fetchList);
