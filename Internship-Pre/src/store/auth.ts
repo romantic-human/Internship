@@ -1,6 +1,8 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import { login as loginApi, register as registerApi } from "@/api/user";
+import { getMenuTree, type MenuItem } from "@/api/menu";
+import type { RouteRecordRaw } from "vue-router";
 
 export const useAuthStore = defineStore("auth", () => {
   const token = ref<string>(localStorage.getItem("access_token") || "");
@@ -9,6 +11,7 @@ export const useAuthStore = defineStore("auth", () => {
   const permissions = ref<string[]>([]);
   const roles = ref<string[]>([]);
   const dynamicRoutesLoaded = ref(false);
+  const menuTree = ref<MenuItem[]>([]);
 
   /** 注册 */
   async function register(username: string, password: string, nickname?: string) {
@@ -43,6 +46,7 @@ export const useAuthStore = defineStore("auth", () => {
     userInfo.value = null;
     permissions.value = [];
     roles.value = [];
+    menuTree.value = [];
     dynamicRoutesLoaded.value = false;
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
@@ -50,8 +54,22 @@ export const useAuthStore = defineStore("auth", () => {
 
   /** 动态生成路由（根据菜单树） */
   async function generateDynamicRoutes() {
-    // TODO: 调用 /api/menu/tree 获取菜单树，动态生成路由
-    dynamicRoutesLoaded.value = true;
+    try {
+      const menus = await getMenuTree();
+      menuTree.value = menus;
+
+      // 将菜单树转换为 vue-router 路由
+      const routes = buildRoutesFromMenu(menus);
+
+      // 动态注册到 router
+      const { default: router } = await import("@/router");
+      routes.forEach((r) => router.addRoute(r));
+    } catch {
+      // 获取菜单失败时，使用空菜单，依赖静态路由
+      menuTree.value = [];
+    } finally {
+      dynamicRoutesLoaded.value = true;
+    }
   }
 
   /** 检查权限 */
@@ -73,6 +91,7 @@ export const useAuthStore = defineStore("auth", () => {
     userInfo,
     permissions,
     roles,
+    menuTree,
     dynamicRoutesLoaded,
     register,
     login,
@@ -82,3 +101,55 @@ export const useAuthStore = defineStore("auth", () => {
     hasPermission,
   };
 });
+
+/**
+ * 组件路径 → Vue 组件动态导入映射
+ * 菜单表中的 component 字段如 "system/user/UserList"
+ */
+const componentMap: Record<string, () => Promise<any>> = {
+  "system/user/UserList": () => import("@/views/system/user/UserList.vue"),
+  "system/role/RoleList": () => import("@/views/system/role/RoleList.vue"),
+  "system/menu/MenuTree": () => import("@/views/system/menu/MenuTree.vue"),
+  "system/department/DeptTree": () => import("@/views/system/department/DeptTree.vue"),
+  "system/permission/PermissionList": () => import("@/views/system/permission/PermissionList.vue"),
+  "system/log/LogList": () => import("@/views/system/log/LogList.vue"),
+  "system/config/ConfigList": () => import("@/views/system/config/ConfigList.vue"),
+};
+
+function getComponent(componentPath: string) {
+  if (componentMap[componentPath]) return componentMap[componentPath];
+  // fallback: 尝试动态拼接路径
+  return () => import(`@/views/${componentPath}.vue`);
+}
+
+/**
+ * 递归将菜单树转换为 vue-router 路由
+ * - menu_type=0(目录) → 递归处理 children
+ * - menu_type=1(菜单) → 生成 RouteRecordRaw
+ * - menu_type=2(按钮) → 跳过
+ */
+function buildRoutesFromMenu(menus: MenuItem[]): RouteRecordRaw[] {
+  const routes: RouteRecordRaw[] = [];
+
+  for (const menu of menus) {
+    // 只处理可见且启用的菜单
+    if (menu.visible !== 1 || menu.status !== 1) continue;
+
+    if (menu.menu_type === 1 && menu.path) {
+      // 菜单 → 注册路由
+      routes.push({
+        path: menu.path,
+        name: menu.menu_name,
+        component: getComponent(menu.component),
+        meta: { title: menu.menu_name, icon: menu.icon },
+      });
+    }
+
+    // 目录 → 递归
+    if (menu.children && menu.children.length > 0) {
+      routes.push(...buildRoutesFromMenu(menu.children));
+    }
+  }
+
+  return routes;
+}
