@@ -32,8 +32,6 @@
     </el-card>
     <PermissionForm v-if="formVisible" :visible="formVisible" :form-data="currentFormData"
       @close="formVisible = false" @success="fetchList" />
-    <BindMenuDialog v-if="bindVisible" :visible="bindVisible" :permission-id="bindPermissionId"
-      @close="bindVisible = false" @success="fetchList" />
   </div>
 </template>
 
@@ -42,7 +40,6 @@ import { ref, onMounted } from "vue";
 import { getPermissionList, deletePermission } from "@/api/permission";
 import { ElMessage } from "element-plus";
 import PermissionForm from "./PermissionForm.vue";
-import BindMenuDialog from "./BindMenuDialog.vue";
 
 const loading = ref(false);
 const list = ref<any[]>([]);
@@ -51,8 +48,6 @@ const page = ref(1);
 const pageSize = 10;
 const formVisible = ref(false);
 const currentFormData = ref<any>(null);
-const bindVisible = ref(false);
-const bindPermissionId = ref(0);
 
 async function fetchList() {
   loading.value = true;
@@ -64,7 +59,7 @@ async function fetchList() {
 }
 function handleAdd() { currentFormData.value = null; formVisible.value = true; }
 function handleEdit(row: any) { currentFormData.value = { ...row }; formVisible.value = true; }
-function handleBindMenu(row: any) { bindPermissionId.value = row.id; bindVisible.value = true; }
+function handleBindMenu(row: any) { ElMessage.info("请在角色管理中关联菜单"); }
 async function handleDelete(row: any) {
   try { await deletePermission(row.id); ElMessage.success("删除成功"); await fetchList(); } catch { ElMessage.error("删除失败"); }
 }
