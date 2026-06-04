@@ -38,26 +38,26 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { getDepartmentTree, deleteDepartment, updateDepartmentStatus } from "@/api/department";
+import { getDepartmentTree, deleteDepartment, updateDepartmentStatus, type DeptItem } from "@/api/department";
 import { ElMessage } from "element-plus";
 import DeptForm from "./DeptForm.vue";
 
 const loading = ref(false);
-const treeData = ref<any[]>([]);
+const treeData = ref<DeptItem[]>([]);
 const formVisible = ref(false);
 const currentFormData = ref<any>(null);
 
 async function fetchTree() {
   loading.value = true;
-  try { treeData.value = await getDepartmentTree() as unknown as any[]; } finally { loading.value = false; }
+  try { treeData.value = await getDepartmentTree(); } finally { loading.value = false; }
 }
 function handleAdd() { currentFormData.value = null; formVisible.value = true; }
 function handleEdit(row: any) { currentFormData.value = { ...row }; formVisible.value = true; }
 async function handleDelete(row: any) {
-  try { await deleteDepartment(row.id); ElMessage.success("删除成功"); await fetchTree(); } catch { ElMessage.error("删除失败"); }
+  try { await deleteDepartment(row.id); ElMessage.success("删除成功"); await fetchTree(); } catch { /* handled by interceptor */ }
 }
 async function handleStatusChange(row: any, val: number) {
-  try { await updateDepartmentStatus(row.id, val); row.status = val; ElMessage.success("状态更新成功"); } catch { ElMessage.error("状态更新失败"); }
+  try { await updateDepartmentStatus(row.id, val); row.status = val; ElMessage.success("状态更新成功"); } catch { /* handled by interceptor */ }
 }
 onMounted(fetchTree);
 </script>

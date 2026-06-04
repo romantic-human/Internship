@@ -61,7 +61,7 @@ function handleAdd() { currentFormData.value = null; formVisible.value = true; }
 function handleEdit(row: any) { currentFormData.value = { ...row }; formVisible.value = true; }
 function handleBindMenu(row: any) { ElMessage.info("请在角色管理中关联菜单"); }
 async function handleDelete(row: any) {
-  try { await deletePermission(row.id); ElMessage.success("删除成功"); await fetchList(); } catch { ElMessage.error("删除失败"); }
+  try { await deletePermission(row.id); ElMessage.success("删除成功"); await fetchList(); } catch { /* handled by interceptor */ }
 }
 onMounted(fetchList);
 </script>

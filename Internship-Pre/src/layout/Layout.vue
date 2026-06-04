@@ -78,7 +78,7 @@
 
 <script setup lang="ts">
 import { useRouter, useRoute } from "vue-router";
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import {
   Fold, Expand, ArrowDown, User, SwitchButton,
   House, Setting, Document, Tools, Key, OfficeBuilding,
@@ -86,7 +86,7 @@ import {
 } from "@element-plus/icons-vue";
 import { useAppStore } from "@/store/app";
 import { useAuthStore } from "@/store/auth";
-import { getTheme, toggleTheme } from "@/utils/theme";
+import { getTheme } from "@/utils/theme";
 import type { MenuItem } from "@/api/menu";
 
 const router = useRouter();
@@ -94,14 +94,12 @@ const route = useRoute();
 const appStore = useAppStore();
 const authStore = useAuthStore();
 const sidebarCollapsed = computed(() => appStore.sidebarCollapsed);
-const isDark = ref(getTheme() === "dark");
+const isDark = computed(() => appStore.theme === "dark");
 
 function handleToggleTheme() {
-  toggleTheme();
-  isDark.value = getTheme() === "dark";
+  appStore.setTheme(appStore.theme === "dark" ? "light" : "dark");
 }
 
-/** 图标名 → 图标组件映射 */
 const iconMap: Record<string, any> = {
   House, Setting, User, UserFilled, Document, Tools, Key,
   Office: OfficeBuilding, OfficeBuilding,
