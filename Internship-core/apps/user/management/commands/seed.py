@@ -22,12 +22,12 @@ class Command(BaseCommand):
         root, _ = Department.objects.get_or_create(
             dept_name="总公司", defaults={"sort_order": 0, "status": 1},
         )
-        self.stdout.write(f"  [OK] 总公司")
+        self.stdout.write(f"  ✅ 总公司")
 
         tech, _ = Department.objects.get_or_create(
             dept_name="技术部", defaults={"parent": root, "sort_order": 10, "status": 1},
         )
-        self.stdout.write(f"  [OK] 技术部")
+        self.stdout.write(f"  ✅ 技术部")
 
         # ── 2. 菜单树 ──────────────────────────────────────
         sys_m = self._m(None, "系统管理", 0, "Setting", 0)
@@ -60,7 +60,7 @@ class Command(BaseCommand):
         log_m = self._m(sys_m, "操作日志", 1, "Document", 6, "/system/log", "system/log/LogList")
         config_m = self._m(sys_m, "系统配置", 1, "Tools", 7, "/system/config", "system/config/ConfigList")
 
-        self.stdout.write(f"  [OK] 菜单树: 7 个一级菜单 + 12 个按钮")
+        self.stdout.write(f"  ✅ 菜单树: 7 个一级菜单 + 12 个按钮")
 
         # ── 3. 权限 ────────────────────────────────────────
         perm_map = {
@@ -87,7 +87,7 @@ class Command(BaseCommand):
             )
             MenuPermissionRelation.objects.get_or_create(menu=menu, permission=perm)
 
-        self.stdout.write(f"  [OK] {len(perm_map)} 个权限")
+        self.stdout.write(f"  ✅ {len(perm_map)} 个权限")
 
         # ── 4. 角色 ────────────────────────────────────────
         admin_role, _ = Role.objects.get_or_create(
@@ -96,12 +96,12 @@ class Command(BaseCommand):
         user_role, _ = Role.objects.get_or_create(
             role_key="user", defaults={"role_name": "普通用户", "role_sort": 10, "status": 1},
         )
-        self.stdout.write(f"  [OK] 管理员 + 普通用户")
+        self.stdout.write(f"  ✅ 管理员 + 普通用户")
 
         # 管理员拥有所有菜单
         for mid in Menu.objects.values_list("id", flat=True):
             RoleMenuRelation.objects.get_or_create(role=admin_role, menu_id=mid)
-        self.stdout.write(f"  [OK] 管理员拥有全部菜单权限")
+        self.stdout.write(f"  ✅ 管理员拥有全部菜单权限")
 
         # ── 5. 用户 ────────────────────────────────────────
         admin = User.objects.filter(username="admin").first()
@@ -109,16 +109,16 @@ class Command(BaseCommand):
             admin = User(username="admin", nickname="系统管理员", is_superuser=True, status=1)
             admin.set_password("admin123")
             admin.save()
-        self.stdout.write(f"  [OK] admin / admin123")
+        self.stdout.write(f"  ✅ admin / admin123")
 
         test = User.objects.filter(username="test").first()
         if not test:
             test = User(username="test", nickname="测试用户", is_superuser=False, status=1, department=tech)
             test.set_password("test123")
             test.save()
-        self.stdout.write(f"  [OK] test / test123")
+        self.stdout.write(f"  ✅ test / test123")
 
-        self.stdout.write(self.style.SUCCESS("\n种子数据创建完成!"))
+        self.stdout.write(self.style.SUCCESS("\n种子数据创建完成！"))
         self.stdout.write("  管理员: admin / admin123  (全部权限)")
         self.stdout.write("  普通用户: test / test123  (暂无权限)")
 

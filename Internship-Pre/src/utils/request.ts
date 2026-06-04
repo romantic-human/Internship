@@ -2,13 +2,6 @@ import axios, { type AxiosResponse, type InternalAxiosRequestConfig } from "axio
 import { ElMessage } from "element-plus";
 import { useAuthStore } from "@/store/auth";
 
-function getToken(): string {
-  return localStorage.getItem("access_token") || "";
-}
-function getRefreshToken(): string {
-  return localStorage.getItem("refresh_token") || "";
-}
-
 const request = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
   timeout: 15000,
@@ -24,9 +17,9 @@ function processQueue(err: any, token = "") {
 
 request.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = getToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const authStore = useAuthStore();
+    if (authStore.token) {
+      config.headers.Authorization = `Bearer ${authStore.token}`;
     }
     return config;
   },
@@ -56,11 +49,11 @@ request.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    if (data?.code === 3001 && getRefreshToken()) {
+    if (data?.code === 3001 && authStore.refreshToken) {
       if (!isRefreshing) {
         isRefreshing = true;
         try {
-          const res = await axios.post("/api/user/refresh-token", { refresh: getRefreshToken() });
+          const res = await axios.post("/api/user/refresh-token", { refresh: authStore.refreshToken });
           const newToken = res.data.data.access_token;
           authStore.setTokens(newToken, res.data.data.refresh_token);
           processQueue(null, newToken);

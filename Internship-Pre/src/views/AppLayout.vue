@@ -46,6 +46,14 @@
           </el-icon>
         </div>
         <div class="header-right">
+          <!-- 主题切换 -->
+          <el-tooltip :content="isDark ? '切换亮色模式' : '切换暗色模式'" placement="bottom">
+            <el-icon class="theme-btn" @click="handleToggleTheme">
+              <Moon v-if="!isDark" />
+              <Sunny v-else />
+            </el-icon>
+          </el-tooltip>
+
           <el-dropdown trigger="click">
             <span class="user-dropdown">
               <el-avatar :size="28">{{ authStore.userInfo?.nickname?.charAt(0) || "U" }}</el-avatar>
@@ -73,15 +81,22 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { HomeFilled, Setting, Fold, Expand, ArrowDown } from "@element-plus/icons-vue";
+import { HomeFilled, Setting, Fold, Expand, ArrowDown, Moon, Sunny } from "@element-plus/icons-vue";
 import { useAuthStore } from "@/store/auth";
+import { getTheme, toggleTheme } from "@/utils/theme";
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const collapsed = ref(false);
+const isDark = ref(getTheme() === "dark");
 
 const currentRoute = computed(() => route.path);
+
+function handleToggleTheme() {
+  toggleTheme();
+  isDark.value = getTheme() === "dark";
+}
 
 function handleLogout() {
   authStore.logout();
@@ -129,6 +144,19 @@ function handleLogout() {
 .header-right {
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+.theme-btn {
+  font-size: 18px;
+  cursor: pointer;
+  color: #909399;
+  transition: color 0.3s, transform 0.3s;
+}
+
+.theme-btn:hover {
+  color: #409EFF;
+  transform: rotate(15deg);
 }
 
 .user-dropdown {

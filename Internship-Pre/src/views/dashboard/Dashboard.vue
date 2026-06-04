@@ -74,7 +74,7 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
+<style>
 .dashboard { padding: 16px; }
 .welcome-header { margin-bottom: 20px; }
 .welcome-header h2 { font-size: 20px; color: #303133; margin: 0 0 4px; }
@@ -87,4 +87,8 @@ onMounted(async () => {
 .stat-label { font-size: 13px; color: #909399; margin-top: 2px; }
 .card-header { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 15px; }
 .logs-row { margin-top: 0; }
+
+/* ── 暗色模式 ──────────────────────────────── */
+.dark .welcome-header h2 { color: #e0e2e8; }
+.dark .stat-value { color: #e0e2e8; }
 </style>
