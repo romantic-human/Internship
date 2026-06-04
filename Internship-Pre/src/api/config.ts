@@ -19,10 +19,6 @@ export function getConfigDetail(id: number): Promise<ConfigItem> {
   return request.get(`/config/${id}`);
 }
 
-export function getConfigByKey(key: string) {
-  return request.get("/config/by-key", { params: { key } });
-}
-
 export function createConfig(data: Partial<ConfigItem>) {
   return request.post("/config/", data);
 }

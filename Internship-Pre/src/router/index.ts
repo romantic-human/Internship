@@ -66,6 +66,10 @@ const staticRoutes: RouteRecordRaw[] = [
     path: "/",
     redirect: "/dashboard",
   },
+  {
+    path: "/:pathMatch(.*)*",
+    redirect: "/dashboard",
+  },
 ];
 
 const router = createRouter({

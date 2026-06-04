@@ -9,10 +9,11 @@ import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import App from "./App.vue";
 import router from "./router";
 import { setupPermissionDirective } from "./directives/permission";
-import { initTheme } from "@/utils/theme";
 
 // 初始化主题（在 app 挂载前）
-initTheme();
+if (localStorage.getItem("theme") === "dark") {
+  document.documentElement.classList.add("dark");
+}
 
 const app = createApp(App);
 

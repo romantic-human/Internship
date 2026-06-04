@@ -128,7 +128,7 @@ import {
   type RoleRecord,
 } from "@/api/role";
 import { getMenuTree } from "@/api/menu";
-import { getUserList, type UserRecord } from "@/api/user";
+import { getUserList } from "@/api/user";
 import { ElMessage } from "element-plus";
 import type { ElTree } from "element-plus";
 import RoleForm from "./RoleForm.vue";
@@ -183,23 +183,15 @@ function handleEdit(row: RoleRecord) {
 }
 
 async function handleDelete(row: RoleRecord) {
-  try {
-    await deleteRole(row.id);
-    ElMessage.success("删除成功");
-    await fetchList();
-  } catch (err: any) {
-    ElMessage.error(err?.message || "删除失败");
-  }
+  await deleteRole(row.id);
+  ElMessage.success("删除成功");
+  await fetchList();
 }
 
 async function handleStatusChange(row: RoleRecord, val: number) {
-  try {
-    await updateRoleStatus(row.id, val);
-    row.status = val;
-    ElMessage.success("状态更新成功");
-  } catch {
-    ElMessage.error("状态更新失败");
-  }
+  await updateRoleStatus(row.id, val);
+  row.status = val;
+  ElMessage.success("状态更新成功");
 }
 
 // ── 菜单分配 ─────────────────────────────────────────────
@@ -220,8 +212,6 @@ async function handleSaveMenu() {
     await assignRoleMenus(currentRoleId.value, checkedKeys);
     ElMessage.success("菜单权限分配成功");
     menuDialogVisible.value = false;
-  } catch {
-    ElMessage.error("分配失败");
   } finally {
     menuSaving.value = false;
   }
@@ -245,8 +235,6 @@ async function handleSaveUser() {
     await assignRoleUsers(currentRoleId.value, selectedUserIds.value);
     ElMessage.success("用户分配成功");
     userDialogVisible.value = false;
-  } catch {
-    ElMessage.error("分配失败");
   } finally {
     userSaving.value = false;
   }

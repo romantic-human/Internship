@@ -13,14 +13,6 @@ export function getRoleList(params: any): Promise<{ records: RoleRecord[]; total
   return request.get("/role/", { params });
 }
 
-export function getAllRoles() {
-  return request.get("/role/all");
-}
-
-export function getRoleDetail(id: number) {
-  return request.get(`/role/${id}`);
-}
-
 export function createRole(data: any) {
   return request.post("/role/", data);
 }
@@ -31,10 +23,6 @@ export function updateRole(id: number, data: any) {
 
 export function deleteRole(id: number) {
   return request.delete(`/role/${id}`);
-}
-
-export function batchDeleteRoles(ids: number[]) {
-  return request.delete("/role/batch", { data: { ids } });
 }
 
 export function updateRoleStatus(id: number, status: number) {

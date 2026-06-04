@@ -120,23 +120,15 @@ function handleEdit(row: UserRecord) {
 }
 
 async function handleDelete(row: UserRecord) {
-  try {
-    await deleteUser(row.id);
-    ElMessage.success("删除成功");
-    await fetchList();
-  } catch (err: any) {
-    ElMessage.error(err?.message || "删除失败");
-  }
+  await deleteUser(row.id);
+  ElMessage.success("删除成功");
+  await fetchList();
 }
 
 async function handleStatusChange(row: UserRecord, val: number) {
-  try {
-    await updateUserStatus(row.id, val);
-    row.status = val;
-    ElMessage.success("状态更新成功");
-  } catch {
-    ElMessage.error("状态更新失败");
-  }
+  await updateUserStatus(row.id, val);
+  row.status = val;
+  ElMessage.success("状态更新成功");
 }
 
 function handleResetPwd(row: UserRecord) {

@@ -56,10 +56,6 @@ export function getUserList(params: any): Promise<{ records: UserRecord[]; total
   return request.get("/user/", { params });
 }
 
-export function getUserDetail(id: number) {
-  return request.get(`/user/${id}`);
-}
-
 export function createUser(data: any) {
   return request.post("/user/", data);
 }
@@ -70,10 +66,6 @@ export function updateUser(id: number, data: any) {
 
 export function deleteUser(id: number) {
   return request.delete(`/user/${id}`);
-}
-
-export function batchDeleteUsers(ids: number[]) {
-  return request.delete("/user/batch", { data: { ids } });
 }
 
 export function updateUserStatus(id: number, status: number) {

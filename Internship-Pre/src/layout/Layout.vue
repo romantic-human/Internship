@@ -74,7 +74,7 @@
 
 <script setup lang="ts">
 import { useRouter, useRoute } from "vue-router";
-import { computed, type Component } from "vue";
+import { computed, markRaw, type Component } from "vue";
 import { Fold, Expand, ArrowDown, User, SwitchButton, House, Setting, Document, Tools, Key, OfficeBuilding, Menu as MenuIcon, Moon, Sunny } from "@element-plus/icons-vue";
 import { useAppStore } from "@/store/app";
 import { useAuthStore } from "@/store/auth";
@@ -90,7 +90,7 @@ function handleToggleTheme() {
   appStore.setTheme(appStore.theme === "dark" ? "light" : "dark");
 }
 
-const iconMap: Record<string, Component> = { House, Setting, User, Document, Tools, Key, OfficeBuilding, Menu: MenuIcon };
+const iconMap: Record<string, Component> = { House: markRaw(House), Setting: markRaw(Setting), User: markRaw(User), Document: markRaw(Document), Tools: markRaw(Tools), Key: markRaw(Key), OfficeBuilding: markRaw(OfficeBuilding), Menu: markRaw(MenuIcon) };
 
 const menuItems = [
   { path: "/dashboard", icon: "House", title: "首页" },

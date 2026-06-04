@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref, watch } from "vue";
+import { ref } from "vue";
 
 export type ThemeName = "light" | "dark";
 
@@ -7,14 +7,14 @@ export const useAppStore = defineStore("app", () => {
   const sidebarCollapsed = ref(false);
   const theme = ref<ThemeName>((localStorage.getItem("theme") as ThemeName) || "light");
 
-  watch(theme, (val) => {
-    localStorage.setItem("theme", val);
-    if (val === "dark") {
+  function applyTheme(t: ThemeName) {
+    localStorage.setItem("theme", t);
+    if (t === "dark") {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
-  }, { immediate: true });
+  }
 
   function toggleSidebar() {
     sidebarCollapsed.value = !sidebarCollapsed.value;
@@ -22,6 +22,7 @@ export const useAppStore = defineStore("app", () => {
 
   function setTheme(t: ThemeName) {
     theme.value = t;
+    applyTheme(t);
   }
 
   return { sidebarCollapsed, toggleSidebar, theme, setTheme };
