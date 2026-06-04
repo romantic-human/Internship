@@ -104,7 +104,8 @@ function handleToggleTheme() {
 /** 图标名 → 图标组件映射 */
 const iconMap: Record<string, any> = {
   House, Setting, User, UserFilled, Document, Tools, Key,
-  OfficeBuilding, Menu: MenuIcon, Moon, Sunny,
+  Office: OfficeBuilding, OfficeBuilding,
+  Menu: MenuIcon, Moon, Sunny,
 };
 
 function resolveIcon(iconName: string) {
