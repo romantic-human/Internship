@@ -1,54 +1,44 @@
 """用户模块视图 — 参考《组织架构模块设计方案.md》第 5.2 节"""
 
 import os
-
-from django.conf import settings
-
-from django.utils import timezone
-
-from rest_framework import viewsets, status
-
-from rest_framework.decorators import action
-
-from rest_framework.permissions import AllowAny, IsAuthenticated
-
-from rest_framework_simplejwt.tokens import RefreshToken, TokenError
-
-from utils import APIResponse, HasPermission
-
-from .models import User
-
-from .serializers import (
-
-    LoginSerializer,
-
-    UserSerializer,
-
-    UserListSerializer,
-
-    ChangePasswordSerializer,
-
-    ResetPasswordSerializer,
-
-    RefreshTokenSerializer,
-
-    UserCreateSerializer,
-
-    UserProfileSerializer,
-
-)
-
 import openpyxl
 from io import BytesIO
 from django.http import HttpResponse
+from django.conf import settings
+from django.utils import timezone
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
+from utils import APIResponse, HasPermission
+from .models import User, PasswordResetRequest
+from .serializers import (
+    LoginSerializer,
+    UserSerializer,
+    UserListSerializer,
+    ChangePasswordSerializer,
+    ResetPasswordSerializer,
+    RefreshTokenSerializer,
+    UserCreateSerializer,
+    UserUpdateSerializer,
+    UserProfileSerializer,
+    PasswordResetRequestSerializer,
+)
 
 class UserViewSet(viewsets.ModelViewSet):
 
     """用户管理 CRUD"""
+    permission_key = "user:list"
 
     queryset = User.objects.select_related("department").all()
 
     serializer_class = UserSerializer
+
+    def get_permissions(self):
+        if self.action in ("login", "register", "refresh_token"):
+            from rest_framework.permissions import AllowAny
+            return [AllowAny()]
+        return [IsAuthenticated(), HasPermission()]
 
     def get_serializer_class(self):
         if self.action == "create":
