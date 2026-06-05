@@ -4,7 +4,11 @@
       <template #header>
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <span>角色管理</span>
-          <el-button type="primary" @click="handleAdd">新增角色</el-button>
+          <div>
+            <el-button type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
+            <el-button type="success" @click="handleExport">导出</el-button>
+            <el-button v-permission="'role:add'" type="primary" @click="handleAdd">新增角色</el-button>
+          </div>
         </div>
       </template>
 
@@ -24,7 +28,8 @@
         </el-form-item>
       </el-form>
 
-      <el-table :data="list" v-loading="loading" stripe>
+      <el-table :data="list" v-loading="loading" stripe @selection-change="onSelectionChange">
+        <el-table-column type="selection" width="50" />
         <el-table-column prop="role_name" label="角色名称" min-width="150" />
         <el-table-column prop="role_key" label="角色标识" width="130" />
         <el-table-column prop="role_sort" label="排序" width="70" align="center" />
@@ -41,10 +46,10 @@
         <el-table-column prop="create_time" label="创建时间" width="170" />
         <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="primary" @click="handleAssignMenu(row)">分配菜单</el-button>
-            <el-button link type="primary" @click="handleAssignUser(row)">分配用户</el-button>
-            <el-popconfirm title="确定删除该角色？" @confirm="handleDelete(row)">
+            <el-button v-permission="'role:edit'" link type="primary" @click="handleEdit(row)">编辑</el-button>
+            <el-button v-permission="'role:assign'" link type="primary" @click="handleAssignMenu(row)">分配菜单</el-button>
+            <el-button v-permission="'role:assign'" link type="primary" @click="handleAssignUser(row)">分配用户</el-button>
+            <el-popconfirm v-permission="'role:delete'" title="确定删除该角色？" @confirm="handleDelete(row)">
               <template #reference><el-button link type="danger">删除</el-button></template>
             </el-popconfirm>
           </template>
@@ -120,11 +125,13 @@ import { ref, onMounted, reactive, nextTick } from "vue";
 import {
   getRoleList,
   deleteRole,
+  batchDeleteRoles,
   updateRoleStatus,
   getRoleMenus,
   assignRoleMenus,
   getRoleUsers,
   assignRoleUsers,
+  exportRoles,
   type RoleRecord,
 } from "@/api/role";
 import { getMenuTree, type MenuItem } from "@/api/menu";
@@ -149,6 +156,7 @@ const filters = reactive({
 const menuDialogVisible = ref(false);
 const menuTreeData = ref<MenuItem[]>([]);
 const menuTreeRef = ref<InstanceType<typeof ElTree>>();
+const userTableRef = ref();
 const currentRoleId = ref(0);
 const menuSaving = ref(false);
 
@@ -157,7 +165,8 @@ const userDialogVisible = ref(false);
 const userList = ref<UserRecord[]>([]);
 const selectedUserIds = ref<number[]>([]);
 const userSaving = ref(false);
-const userTableRef = ref();
+
+const selectedIds = ref<number[]>([]);
 
 async function fetchList() {
   loading.value = true;
@@ -250,6 +259,29 @@ async function handleSaveUser() {
 
 function onUserSelectionChange(rows: any[]) {
   selectedUserIds.value = rows.map((r: any) => r.id);
+}
+
+async function handleExport() {
+  const blob = await exportRoles() as unknown as Blob;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "roles.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+  ElMessage.success("导出成功");
+}
+
+function onSelectionChange(rows: RoleRecord[]) {
+  selectedIds.value = rows.map(r => r.id);
+}
+
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) return;
+  await batchDeleteRoles(selectedIds.value);
+  ElMessage.success("批量删除成功");
+  selectedIds.value = [];
+  await fetchList();
 }
 
 onMounted(fetchList);

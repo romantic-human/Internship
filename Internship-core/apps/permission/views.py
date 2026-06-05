@@ -16,6 +16,16 @@ class PermissionViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         return [IsAuthenticated(), HasPermission()]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        name = self.request.query_params.get("permission_name")
+        status_val = self.request.query_params.get("status")
+        if name:
+            qs = qs.filter(permission_name__icontains=name)
+        if status_val is not None and status_val != "":
+            qs = qs.filter(status=status_val)
+        return qs
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)

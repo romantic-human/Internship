@@ -4,15 +4,12 @@
       <template #header>
         <div class="card-header">
           <span>菜单管理</span>
-          <div>
-            <el-input v-model="keyword" placeholder="菜单名称" clearable style="width:200px;margin-right:8px" @input="onKeywordChange" />
-            <el-button type="primary" @click="handleAdd">新增菜单</el-button>
-          </div>
+          <el-button v-permission="'menu:add'" type="primary" @click="handleAdd">新增菜单</el-button>
         </div>
       </template>
 
       <el-table
-        :data="filteredTree"
+        :data="treeData"
         row-key="id"
         default-expand-all
         :tree-props="{ children: 'children' }"
@@ -51,9 +48,9 @@
         </el-table-column>
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="primary" @click="handleAddChild(row)">新增子菜单</el-button>
-            <el-popconfirm title="确定删除该菜单？" @confirm="handleDelete(row)">
+            <el-button v-permission="'menu:edit'" link type="primary" @click="handleEdit(row)">编辑</el-button>
+            <el-button v-permission="'menu:add'" link type="primary" @click="handleAddChild(row)">新增子菜单</el-button>
+            <el-popconfirm v-permission="'menu:delete'" title="确定删除该菜单？" @confirm="handleDelete(row)">
               <template #reference>
                 <el-button link type="danger">删除</el-button>
               </template>
@@ -75,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import { getMenuTree, deleteMenu, updateMenuStatus, type MenuItem } from "@/api/menu";
 import { ElMessage } from "element-plus";
 import { markRaw, type Component } from "vue";
@@ -92,21 +89,6 @@ const loading = ref(false);
 const treeData = ref<MenuItem[]>([]);
 const formVisible = ref(false);
 const currentFormData = ref<Partial<MenuItem> | null>(null);
-const keyword = ref("");
-
-function filterTree(items: MenuItem[], kw: string): MenuItem[] {
-  return items.reduce<MenuItem[]>((acc, item) => {
-    const match = !kw || item.menu_name?.includes(kw);
-    const children = item.children ? filterTree(item.children, kw) : [];
-    if (match || children.length > 0) {
-      acc.push({ ...item, children });
-    }
-    return acc;
-  }, []);
-}
-const filteredTree = computed(() => keyword.value ? filterTree(treeData.value, keyword.value) : treeData.value);
-
-function onKeywordChange() { /* reactivity handles it */ }
 
 function typeTagType(t: number): string {
   return t === 0 ? "" : t === 1 ? "primary" : "warning";

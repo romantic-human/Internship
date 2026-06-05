@@ -9,9 +9,6 @@
       <el-form-item label="用户名" prop="username">
         <el-input v-model="form.username" placeholder="请输入用户名" :disabled="isEdit" />
       </el-form-item>
-      <el-form-item v-if="!isEdit" label="密码" prop="password">
-        <el-input v-model="form.password" type="password" show-password placeholder="请输入密码（默认 123456）" />
-      </el-form-item>
       <el-form-item label="昵称" prop="nickname">
         <el-input v-model="form.nickname" placeholder="请输入昵称" />
       </el-form-item>
@@ -73,7 +70,6 @@ const deptOptions = ref<DeptItem[]>([]);
 
 const form = ref({
   username: "",
-  password: "123456",
   nickname: "",
   real_name: "",
   gender: 0,
@@ -85,10 +81,6 @@ const form = ref({
 
 const rules = {
   username: [{ required: true, message: "请输入用户名", trigger: "blur" }],
-  password: [
-    { required: true, message: "请输入密码", trigger: "blur" },
-    { min: 6, message: "密码至少 6 位", trigger: "blur" },
-  ],
   email: [{ type: "email", message: "请输入正确邮箱", trigger: "blur" }],
 };
 
@@ -100,7 +92,6 @@ watch(
     if (val) {
       form.value = {
         username: val.username || "",
-        password: "",
         nickname: val.nickname || "",
         real_name: val.real_name || "",
         gender: val.gender ?? 0,
@@ -111,7 +102,7 @@ watch(
       };
     } else {
       form.value = {
-        username: "", password: "123456", nickname: "", real_name: "", gender: 0,
+        username: "", nickname: "", real_name: "", gender: 0,
         department_id: null, email: "", telephone: "", status: 1,
       };
     }
@@ -141,10 +132,6 @@ async function handleSubmit() {
     }
     emit("success");
     emit("close");
-  } catch (err: unknown) {
-    const e = err as Record<string, unknown>;
-    const msg = (e?.message as string) || (e?.detail as string) || JSON.stringify(e) || "请求失败";
-    ElMessage.error(msg);
   } finally {
     submitting.value = false;
   }

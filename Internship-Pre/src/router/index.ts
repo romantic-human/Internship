@@ -28,9 +28,7 @@ const staticRoutes: RouteRecordRaw[] = [
   // 捕获所有未匹配路由
   {
     path: "/:pathMatch(.*)*",
-    name: "NotFound",
-    component: () => import("@/views/error/NotFound.vue"),
-    meta: { title: "404", layout: false },
+    redirect: "/dashboard",
   },
 ];
 

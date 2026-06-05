@@ -25,26 +25,15 @@
     </el-row>
 
     <el-row :gutter="16">
-      <el-col :span="12">
+      <el-col :span="8">
         <el-card shadow="hover">
           <template #header>
-            <div class="card-header"><el-icon><PieChart /></el-icon> 用户角色分布</div>
+            <div class="card-header"><el-icon><Monitor /></el-icon> 实时性能</div>
           </template>
-          <div ref="pieChartRef" style="height:300px;width:100%" />
+          <ClockWidget />
         </el-card>
       </el-col>
-      <el-col :span="12">
-        <el-card shadow="hover">
-          <template #header>
-            <div class="card-header"><el-icon><TrendCharts /></el-icon> 近 7 天日志趋势</div>
-          </template>
-          <div ref="lineChartRef" style="height:300px;width:100%" />
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <el-row :gutter="16" style="margin-top:16px">
-      <el-col :span="24">
+      <el-col :span="16">
         <el-card shadow="hover">
           <template #header>
             <div class="card-header">
@@ -75,12 +64,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, nextTick } from "vue";
+import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useAuthStore } from "@/store/auth";
-import { getDashboardStats, getDashboardTrend } from "@/api/dashboard";
-import type { DashboardStats } from "@/api/dashboard";
-import { User, Menu as MenuIcon, Key, OfficeBuilding, Document, Setting, Refresh, PieChart, TrendCharts } from "@element-plus/icons-vue";
-import * as echarts from "echarts";
+import { getDashboardStats, type DashboardStats } from "@/api/dashboard";
+import { User, Menu as MenuIcon, Key, OfficeBuilding, Document, Setting, Monitor, Refresh } from "@element-plus/icons-vue";
+import ClockWidget from "@/components/ClockWidget.vue";
 
 const authStore = useAuthStore();
 const loading = ref(false);
@@ -102,52 +90,6 @@ const statCards = computed(() => [
   { icon: Document, count: stats.value.log_today, label: "今日日志", color: "#b37feb" },
 ]);
 
-// ECharts refs
-const pieChartRef = ref<HTMLDivElement>();
-const lineChartRef = ref<HTMLDivElement>();
-let pieChart: echarts.ECharts | null = null;
-let lineChart: echarts.ECharts | null = null;
-
-function initCharts() {
-  if (pieChartRef.value) {
-    pieChart = echarts.init(pieChartRef.value);
-  }
-  if (lineChartRef.value) {
-    lineChart = echarts.init(lineChartRef.value);
-  }
-}
-
-function updateCharts() {
-  if (!pieChart || !lineChart) return;
-  getDashboardTrend().then((data) => {
-    pieChart?.setOption({
-      tooltip: { trigger: "item" as const },
-      series: [{
-        type: "pie",
-        radius: ["30%", "60%"],
-        center: ["50%", "50%"],
-        data: data.role_distribution.map((r) => ({ name: r.role_name || "无角色", value: r.user_count })),
-        label: { show: true, formatter: "{b}: {c}" },
-        emphasis: { label: { show: true, fontSize: 14, fontWeight: "bold" as const } },
-      }],
-    });
-    lineChart?.setOption({
-      tooltip: { trigger: "axis" as const },
-      xAxis: { type: "category" as const, data: data.log_trend.map((d) => d.date), axisLabel: { rotate: 30 } },
-      yAxis: { type: "value" as const, minInterval: 1 },
-      series: [{
-        type: "line",
-        data: data.log_trend.map((d) => d.count),
-        smooth: true,
-        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "rgba(64,158,255,0.3)" }, { offset: 1, color: "rgba(64,158,255,0.05)" }]) },
-        lineStyle: { color: "#409eff", width: 2 },
-        itemStyle: { color: "#409eff" },
-      }],
-      grid: { left: 50, right: 20, bottom: 40, top: 20 },
-    });
-  }).catch(() => {});
-}
-
 function updateTime() {
   const now = new Date();
   const pad = (n: number) => n.toString().padStart(2, "0");
@@ -166,24 +108,11 @@ onMounted(() => {
   updateTime();
   timer = setInterval(updateTime, 1000);
   fetchStats();
-  nextTick(() => {
-    initCharts();
-    updateCharts();
-  });
-  window.addEventListener("resize", handleResize);
 });
 
 onUnmounted(() => {
   if (timer) clearInterval(timer);
-  pieChart?.dispose();
-  lineChart?.dispose();
-  window.removeEventListener("resize", handleResize);
 });
-
-function handleResize() {
-  pieChart?.resize();
-  lineChart?.resize();
-}
 </script>
 
 <style>
