@@ -1,6 +1,6 @@
 """用户模块序列化器 — 参考《组织架构模块设计方案.md》第 5.2 节"""
 from rest_framework import serializers
-from .models import User
+from .models import User, PasswordResetRequest
 
 
 class LoginSerializer(serializers.Serializer):
@@ -12,6 +12,18 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = "__all__"
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    """更新用户 — 排除 password 字段"""
+
+    class Meta:
+        model = User
+        fields = [
+            "id", "username", "nickname", "real_name", "email",
+            "telephone", "gender", "department_id", "status",
+        ]
+        read_only_fields = ["id", "username"]
 
 
 class UserListSerializer(serializers.ModelSerializer):
@@ -75,3 +87,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "telephone", "gender", "avatar", "department_id",
         ]
         read_only_fields = ["id", "username"]
+
+
+class PasswordResetRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PasswordResetRequest
+        fields = "__all__"

@@ -9,10 +9,11 @@ from .models import OperationLog
 from .serializers import OperationLogSerializer, OperationLogListSerializer
 
 
-class OperationLogViewSet(viewsets.ReadOnlyModelViewSet):
+class OperationLogViewSet(viewsets.ModelViewSet):
     queryset = OperationLog.objects.all()
     serializer_class = OperationLogSerializer
     permission_key = "log:list"
+    http_method_names = ["get", "delete", "head", "options"]
 
     def get_permissions(self):
         return [IsAuthenticated(), HasPermission()]
@@ -28,8 +29,8 @@ class OperationLogViewSet(viewsets.ReadOnlyModelViewSet):
         module = request.query_params.get("module")
         operation = request.query_params.get("operation")
         log_status = request.query_params.get("status")
-        start_time = request.query_params.get("startTime")
-        end_time = request.query_params.get("endTime")
+        start_time = request.query_params.get("startTime") or request.query_params.get("start_date")
+        end_time = request.query_params.get("endTime") or request.query_params.get("end_date")
 
         if username:
             queryset = queryset.filter(username__icontains=username)
@@ -68,7 +69,26 @@ class OperationLogViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="export")
     def export(self, request):
-        queryset = self.filter_queryset(self.get_queryset())[:10000]
+        queryset = self.filter_queryset(self.get_queryset())
+        username = request.query_params.get("username")
+        module = request.query_params.get("module")
+        operation = request.query_params.get("operation")
+        log_status = request.query_params.get("status")
+        start_time = request.query_params.get("startTime") or request.query_params.get("start_date")
+        end_time = request.query_params.get("endTime") or request.query_params.get("end_date")
+        if username:
+            queryset = queryset.filter(username__icontains=username)
+        if module:
+            queryset = queryset.filter(module__icontains=module)
+        if operation:
+            queryset = queryset.filter(operation__icontains=operation)
+        if log_status is not None:
+            queryset = queryset.filter(status=log_status)
+        if start_time:
+            queryset = queryset.filter(create_time__gte=start_time)
+        if end_time:
+            queryset = queryset.filter(create_time__lte=end_time)
+        queryset = queryset[:10000]
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "操作日志"

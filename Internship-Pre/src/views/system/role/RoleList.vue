@@ -157,6 +157,7 @@ const userDialogVisible = ref(false);
 const userList = ref<UserRecord[]>([]);
 const selectedUserIds = ref<number[]>([]);
 const userSaving = ref(false);
+const userTableRef = ref();
 
 async function fetchList() {
   loading.value = true;

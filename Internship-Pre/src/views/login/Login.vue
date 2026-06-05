@@ -100,6 +100,12 @@
               {{ loading ? "登录中..." : "登 录" }}
             </el-button>
           </el-form-item>
+
+          <div class="login-actions">
+            <el-button link type="primary" @click="showForgotDialog = true">
+              忘记密码？
+            </el-button>
+          </div>
         </el-form>
 
         <div class="login-footer">
@@ -107,6 +113,20 @@
         </div>
       </div>
     </div>
+
+    <!-- 忘记密码对话框 -->
+    <el-dialog v-model="showForgotDialog" title="找回密码" width="380px" align-center>
+      <el-form :model="forgotForm" :rules="forgotRules" ref="forgotFormRef">
+        <el-form-item prop="username">
+          <el-input v-model="forgotForm.username" placeholder="请输入您的用户名" :prefix-icon="User" />
+        </el-form-item>
+      </el-form>
+      <p class="forgot-tip">提交后管理员将在用户管理中看到重置请求，审批后密码重置为 123456</p>
+      <template #footer>
+        <el-button @click="showForgotDialog = false">取消</el-button>
+        <el-button type="primary" :loading="forgotLoading" @click="handleForgotSubmit">提交申请</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -116,6 +136,7 @@ import { useRouter } from "vue-router";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
 import { User, Lock } from "@element-plus/icons-vue";
 import { useAuthStore } from "@/store/auth";
+import { createResetRequest } from "@/api/user";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -132,6 +153,31 @@ const rules: FormRules = {
   username: [{ required: true, message: "请输入用户名", trigger: "blur" }],
   password: [{ required: true, message: "请输入密码", trigger: "blur" }],
 };
+
+// 忘记密码
+const showForgotDialog = ref(false);
+const forgotLoading = ref(false);
+const forgotFormRef = ref<FormInstance>();
+const forgotForm = reactive({ username: "" });
+const forgotRules: FormRules = {
+  username: [{ required: true, message: "请输入用户名", trigger: "blur" }],
+};
+
+async function handleForgotSubmit() {
+  const valid = await forgotFormRef.value?.validate().catch(() => false);
+  if (!valid) return;
+  forgotLoading.value = true;
+  try {
+    await createResetRequest(forgotForm.username);
+    ElMessage.success("重置申请已提交，请联系管理员处理");
+    showForgotDialog.value = false;
+    forgotForm.username = "";
+  } catch {
+    // 错误由拦截器处理
+  } finally {
+    forgotLoading.value = false;
+  }
+}
 
 onMounted(() => {
   if (authStore.token) {
@@ -296,6 +342,12 @@ async function handleLogin() {
   color: #909399;
   margin: 0;
 }
+
+.login-actions { text-align: center; margin-top: -8px; }
+.login-actions .el-button { font-size: 13px; }
+.forgot-tip { font-size: 12px; color: #909399; text-align: center; margin: -8px 0 0; }
+
+ .dark .forgot-tip { color: #a0a2a8; }
 
 .login-form .el-input {
   --el-input-border-radius: 8px;

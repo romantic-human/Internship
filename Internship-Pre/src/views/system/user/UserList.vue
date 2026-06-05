@@ -15,6 +15,7 @@
             >
               <el-button type="warning" :loading="importing">导入 Excel</el-button>
             </el-upload>
+            <el-button @click="showResetRequests = true">重置请求</el-button>
             <el-button type="primary" @click="handleAdd" style="margin-left:8px">新增用户</el-button>
             <el-button
               v-if="selectedRows.length > 0"
@@ -87,6 +88,29 @@
       @close="formVisible = false"
       @success="fetchList"
     />
+
+    <!-- 密码重置请求管理 -->
+    <el-dialog v-model="showResetRequests" title="密码重置请求" width="600px" @open="fetchResetRequests">
+      <el-table :data="resetRequests" v-loading="resetLoading" stripe>
+        <el-table-column prop="username" label="用户名" width="120" />
+        <el-table-column prop="created_at" label="申请时间" width="170" />
+        <el-table-column label="状态" width="80" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'pending' ? 'warning' : 'success'">
+              {{ row.status === 'pending' ? '待处理' : '已重置' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="160">
+          <template #default="{ row }">
+            <el-button v-if="row.status === 'pending'" type="primary" size="small" @click="handleApproveReset(row)">
+              审批重置
+            </el-button>
+            <span v-else style="color:#909399">已处理</span>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
   </div>
 </template>
 
@@ -105,6 +129,7 @@ import {
 import { ElMessage, ElMessageBox } from "element-plus";
 import type { UploadFile } from "element-plus";
 import UserForm from "./UserForm.vue";
+import { getResetRequests, approveReset, type ResetRequestRecord } from "@/api/user";
 
 const loading = ref(false);
 const list = ref<UserRecord[]>([]);
@@ -171,7 +196,8 @@ function handleResetPwd(row: UserRecord) {
 async function handleExport() {
   exporting.value = true;
   try {
-    const blob = await exportUsers() as unknown as Blob;
+    const res = await exportUsers();
+    const blob = (res as any).data as Blob;
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -218,6 +244,30 @@ async function handleBatchDelete() {
     await fetchList();
   } catch {
     // 用户取消
+  }
+}
+
+// 密码重置请求
+const showResetRequests = ref(false);
+const resetLoading = ref(false);
+const resetRequests = ref<ResetRequestRecord[]>([]);
+
+async function fetchResetRequests() {
+  resetLoading.value = true;
+  try {
+    resetRequests.value = await getResetRequests({ status: "pending" });
+  } finally {
+    resetLoading.value = false;
+  }
+}
+
+async function handleApproveReset(row: ResetRequestRecord) {
+  try {
+    const res = await approveReset({ request_id: row.id });
+    ElMessage.success(`已审批，新密码为: ${res.new_password}`);
+    await fetchResetRequests();
+  } catch {
+    // 错误由拦截器处理
   }
 }
 

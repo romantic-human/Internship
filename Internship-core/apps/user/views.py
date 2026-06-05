@@ -1,6 +1,8 @@
 """用户模块视图 — 参考《组织架构模块设计方案.md》第 5.2 节"""
 
 import os
+import openpyxl
+from django.http import HttpResponse
 
 from django.conf import settings
 
@@ -16,7 +18,7 @@ from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
 from utils import APIResponse, HasPermission
 
-from .models import User
+from .models import User, PasswordResetRequest
 
 from .serializers import (
 
@@ -34,7 +36,11 @@ from .serializers import (
 
     UserCreateSerializer,
 
+    UserUpdateSerializer,
+
     UserProfileSerializer,
+
+    PasswordResetRequestSerializer,
 
 )
 
@@ -51,37 +57,29 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
 
     def get_serializer_class(self):
-        if self.action == "create":
-            return UserCreateSerializer
         if self.action == "list":
             return UserListSerializer
+        if self.action == "create":
+            return UserCreateSerializer
+        if self.action in ("update", "partial_update", "retrieve"):
+            return UserUpdateSerializer
         return UserSerializer
 
     def create(self, request, *args, **kwargs):
-        """新增用户 — 返回标准格式"""
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return APIResponse.success(data=serializer.data, message="新增成功")
-
-    def update(self, request, *args, **kwargs):
-        """编辑用户 — 返回标准格式"""
-        partial = kwargs.pop("partial", False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return APIResponse.success(data=serializer.data, message="更新成功")
-
-    def destroy(self, request, *args, **kwargs):
-        """删除用户 — 返回标准格式"""
-        instance = self.get_object()
-        instance.delete()
-        return APIResponse.success(message="删除成功")
+        if not serializer.is_valid():
+            return APIResponse.error(message="参数错误", code=2000, http_status=400)
+        user = serializer.save()
+        # 确保默认密码已设置
+        if not user.password:
+            user.set_password("123456")
+            user.save(update_fields=["password"])
+        # 用 UserUpdateSerializer 返回（不含 password 字段）
+        result_serializer = UserUpdateSerializer(user)
+        return APIResponse.success(message="新增成功", data=result_serializer.data)
 
     def list(self, request, *args, **kwargs):
-        """用户列表（分页 + 搜索过滤）"""
-        queryset = self.get_queryset()
+        queryset = self.filter_queryset(self.get_queryset())
 
         # 搜索过滤
         username = request.query_params.get("username", "").strip()
@@ -101,7 +99,26 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(queryset, many=True)
-        return APIResponse.success(data={"records": serializer.data, "total": queryset.count()})
+        return APIResponse.success(data=serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        user = self.get_object()
+        serializer = self.get_serializer(user)
+        return APIResponse.success(data=serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        user = self.get_object()
+        serializer = self.get_serializer(user, data=request.data, partial=partial)
+        if not serializer.is_valid():
+            return APIResponse.error(message="参数错误", code=2000, http_status=400)
+        serializer.save()
+        return APIResponse.success(message="更新成功", data=serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        user = self.get_object()
+        user.delete()
+        return APIResponse.success(message="删除成功")
 
     @action(detail=False, methods=["post"], permission_classes=[AllowAny])
 
@@ -323,25 +340,19 @@ class UserViewSet(viewsets.ModelViewSet):
 
         """修改状态 — PUT /api/user/:id/status"""
 
-        try:
+        user = self.get_object()
 
-            user = self.get_object()
+        status_val = request.data.get("status")
 
-            status_val = request.data.get("status")
+        if status_val not in (0, 1):
 
-            if status_val not in (0, 1):
+            return APIResponse.error(message="状态值无效", code=2000, http_status=400)
 
-                return APIResponse.error(message="状态值无效", code=2000, http_status=400)
+        user.status = status_val
 
-            user.status = status_val
+        user.save(update_fields=["status"])
 
-            user.save(update_fields=["status"])
-
-            return APIResponse.success(message="状态更新成功")
-
-        except Exception:
-
-            return APIResponse.error(message="用户不存在", code=2004, http_status=404)
+        return APIResponse.success(message="状态更新成功")
 
     @action(detail=False, methods=["put"], url_path="reset-password")
     def reset_password(self, request):
@@ -421,16 +432,13 @@ class UserViewSet(viewsets.ModelViewSet):
         return APIResponse.success(message="密码修改成功")
 
     @action(detail=False, methods=["get"])
-
     def export(self, request):
-
         """导出用户 Excel — GET /api/user/export"""
-
+        users = User.objects.select_related("department").all().order_by("-create_time")[:10000]
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "用户列表"
-
-        headers = ["用户名", "昵称", "真实姓名", "邮箱", "手机号", "性别", "状态", "创建时间"]
+        headers = ["用户名", "昵称", "真实姓名", "邮箱", "手机号", "性别", "部门", "状态", "创建时间"]
         ws.append(headers)
 
         # 表头样式
@@ -439,20 +447,20 @@ class UserViewSet(viewsets.ModelViewSet):
         align_center = Alignment(horizontal="center", vertical="center")
         thin = Side(style="thin")
         border = Border(left=thin, right=thin, top=thin, bottom=thin)
-
         for cell in ws[1]:
             cell.font = font_bold
             cell.alignment = align_center
             cell.border = border
 
         # 数据行
-        users = User.objects.select_related("department").all().order_by("-create_time")
+        gender_map = {0: "保密", 1: "男", 2: "女"}
         font_normal = Font(name="微软雅黑", size=11)
         for u in users:
             ws.append([
                 u.username, u.nickname, u.real_name, u.email, u.telephone,
-                "男" if u.gender == 1 else ("女" if u.gender == 2 else "未知"),
-                "启用" if u.status == 1 else "禁用",
+                gender_map.get(u.gender, "保密"),
+                u.department.dept_name if u.department else "",
+                "启用" if u.status else "禁用",
                 u.create_time.strftime("%Y-%m-%d %H:%M:%S") if u.create_time else "",
             ])
             for cell in ws[ws.max_row]:
@@ -461,14 +469,14 @@ class UserViewSet(viewsets.ModelViewSet):
                 cell.border = border
 
         # 列宽自适应
-        col_widths = [16, 14, 14, 24, 16, 8, 8, 22]
+        col_widths = [16, 14, 14, 24, 16, 8, 8, 8, 22]
         for i, w in enumerate(col_widths, 1):
             ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
 
+        from io import BytesIO
         buf = BytesIO()
         wb.save(buf)
         buf.seek(0)
-
         response = HttpResponse(
             buf.getvalue(),
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -674,3 +682,53 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.save()
 
         return APIResponse.success(message="更新成功", data=serializer.data)
+
+    @action(detail=False, methods=["post"], permission_classes=[AllowAny], url_path="reset-request")
+    def create_reset_request(self, request):
+        """创建密码重置请求 — POST /api/user/reset-request"""
+        username = request.data.get("username", "").strip()
+        if not username:
+            return APIResponse.error(message="用户名不能为空", code=2000, http_status=400)
+        if not User.objects.filter(username=username).exists():
+            return APIResponse.error(message="用户不存在，请确认用户名", code=2004, http_status=404)
+        if PasswordResetRequest.objects.filter(username=username, status="pending").exists():
+            return APIResponse.error(message="该用户已有待处理的重置请求", code=2000, http_status=400)
+        req = PasswordResetRequest.objects.create(username=username)
+        return APIResponse.success(message="重置请求已提交，请联系管理员处理", data={"id": req.id})
+
+    @action(detail=False, methods=["get"], url_path="reset-requests")
+    def list_reset_requests(self, request):
+        """获取密码重置请求列表 — GET /api/user/reset-requests"""
+        status_filter = request.query_params.get("status")
+        qs = PasswordResetRequest.objects.all()
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        serializer = PasswordResetRequestSerializer(qs, many=True)
+        return APIResponse.success(data=serializer.data)
+
+    @action(detail=False, methods=["put"], url_path="approve-reset")
+    def approve_reset(self, request):
+        """审批重置请求 — PUT /api/user/approve-reset"""
+        request_id = request.data.get("request_id")
+        if not request_id:
+            return APIResponse.error(message="request_id 不能为空", code=2000, http_status=400)
+        try:
+            req = PasswordResetRequest.objects.get(id=request_id, status="pending")
+        except PasswordResetRequest.DoesNotExist:
+            return APIResponse.error(message="请求不存在或已处理", code=2004, http_status=404)
+
+        try:
+            user = User.objects.get(username=req.username)
+        except User.DoesNotExist:
+            return APIResponse.error(message="用户已不存在", code=2004, http_status=404)
+
+        new_password = request.data.get("password", "123456")
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+
+        req.status = "approved"
+        req.handler = request.user
+        req.handled_at = timezone.now()
+        req.save(update_fields=["status", "handler", "handled_at"])
+
+        return APIResponse.success(message=f"密码已重置为 {new_password}", data={"new_password": new_password})

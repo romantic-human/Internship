@@ -112,3 +112,25 @@ export function importUsers(file: File): Promise<{ success: number; skipped: num
     headers: { "Content-Type": "multipart/form-data" },
   });
 }
+
+// ── 密码重置请求 ───────────────────────────────────────────
+export interface ResetRequestRecord {
+  id: number;
+  username: string;
+  status: "pending" | "approved";
+  created_at: string;
+  handled_at: string | null;
+  handler: number | null;
+}
+
+export function createResetRequest(username: string) {
+  return request.post("/user/reset-request", { username });
+}
+
+export function getResetRequests(params?: Record<string, any>): Promise<ResetRequestRecord[]> {
+  return request.get("/user/reset-requests", { params });
+}
+
+export function approveReset(data: { request_id: number; password?: string }): Promise<{ new_password: string }> {
+  return request.put("/user/approve-reset", data);
+}

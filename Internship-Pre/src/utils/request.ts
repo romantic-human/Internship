@@ -26,7 +26,7 @@ async function handleTokenRefresh(error: any, refreshToken: string) {
   if (!isRefreshing) {
     isRefreshing = true;
     try {
-      const res = await axios.post("/api/user/refresh-token", { refresh: refreshToken });
+      const res = await axios.post(`${request.defaults.baseURL}/user/refresh-token`, { refresh: refreshToken });
       const newToken = res.data.data.access_token;
       const authStore = useAuthStore();
       authStore.setTokens(newToken, res.data.data.refresh_token);
@@ -66,9 +66,8 @@ request.interceptors.request.use(
 
 request.interceptors.response.use(
   (response: AxiosResponse) => {
-    // blob 响应直接返回（导出文件）
     if (response.config.responseType === "blob") {
-      return response.data;
+      return response;
     }
     const res = response.data;
     if (res.code === 200 || res.code === 1000) {
@@ -85,7 +84,7 @@ request.interceptors.response.use(
     const { status, data } = error.response;
 
     const refreshToken = useAuthStore().refreshToken;
-    const needRefresh = (status === 401 && data?.code === "token_not_valid") || data?.code === 3001;
+    const needRefresh = (status === 401 && data?.code === "token_not_valid") || data?.code === 3001 || (status === 401 && typeof data?.detail === "string" && data.detail.includes("Token is invalid"));
     if (needRefresh && refreshToken) {
       return handleTokenRefresh(error, refreshToken);
     }
