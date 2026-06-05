@@ -20,8 +20,8 @@ class UserListSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            "id", "username", "nickname", "email", "telephone",
-            "department_name", "status", "create_time",
+            "id", "username", "nickname", "real_name", "email", "telephone",
+            "gender", "department_id", "department_name", "status", "create_time",
         ]
 
 
@@ -40,14 +40,20 @@ class RefreshTokenSerializer(serializers.Serializer):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    """创建用户（注册用）"""
+    """创建用户（注册 / 后台新增通用）"""
     password = serializers.CharField(write_only=True, required=False, default="123456")
+    department_id = serializers.PrimaryKeyRelatedField(
+        source="department",
+        queryset=User._meta.get_field("department").related_model.objects.all(),
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = User
         fields = [
             "id", "username", "password", "nickname", "real_name",
-            "email", "telephone", "gender", "status",
+            "email", "telephone", "gender", "department_id", "status",
         ]
         read_only_fields = ["id"]
 
