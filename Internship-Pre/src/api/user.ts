@@ -88,10 +88,27 @@ export function deleteUser(id: number) {
   return request.delete(`/user/${id}`);
 }
 
+export function batchDeleteUsers(ids: number[]) {
+  return request.delete("/user/batch", { data: { ids } });
+}
+
 export function updateUserStatus(id: number, status: number) {
   return request.put(`/user/${id}/status`, { status });
 }
 
 export function resetPassword(data: { userId: number; password?: string }) {
   return request.put("/user/reset-password", data);
+}
+
+// ── 导出 / 导入 ───────────────────────────────────────────────
+export function exportUsers() {
+  return request.get("/user/export", { responseType: "blob" });
+}
+
+export function importUsers(file: File): Promise<{ success: number; skipped: number; errors: string[] }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return request.post("/user/import", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 }

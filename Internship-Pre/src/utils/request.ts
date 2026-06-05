@@ -66,6 +66,10 @@ request.interceptors.request.use(
 
 request.interceptors.response.use(
   (response: AxiosResponse) => {
+    // blob 响应直接返回（导出文件）
+    if (response.config.responseType === "blob") {
+      return response.data;
+    }
     const res = response.data;
     if (res.code === 200 || res.code === 1000) {
       return res.data;
