@@ -11,7 +11,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from utils import APIResponse, HasPermission
-from .models import User, PasswordResetRequest
+from .models import User
 from .serializers import (
     LoginSerializer,
     UserSerializer,
@@ -20,9 +20,7 @@ from .serializers import (
     ResetPasswordSerializer,
     RefreshTokenSerializer,
     UserCreateSerializer,
-    UserUpdateSerializer,
     UserProfileSerializer,
-    PasswordResetRequestSerializer,
 )
 
 class UserViewSet(viewsets.ModelViewSet):
