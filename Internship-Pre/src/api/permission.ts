@@ -44,3 +44,15 @@ export function updatePermissionSort(id: number, sortOrder: number) {
 export function batchSortPermission(data: { id: number; sortOrder: number }[]) {
   return request.post("/permission/batch-sort", data);
 }
+
+export function batchDeletePermissions(ids: number[]) {
+  return request.delete("/permission/batch", { data: { ids } });
+}
+
+export function exportPermissions() {
+  return request.get("/permission/export", { responseType: "blob" });
+}
+
+export function updatePermissionStatus(id: number, status: number) {
+  return request.put(`/permission/${id}/status`, { status });
+}

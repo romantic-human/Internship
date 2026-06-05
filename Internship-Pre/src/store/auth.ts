@@ -17,8 +17,8 @@ export const useAuthStore = defineStore("auth", () => {
   const token = ref<string>(localStorage.getItem("access_token") || "");
   const refreshToken = ref<string>(localStorage.getItem("refresh_token") || "");
   const userInfo = ref<UserInfo | null>(null);
-  const permissions = ref<string[]>([]);
-  const roles = ref<string[]>([]);
+  const permissions = ref<string[]>(JSON.parse(localStorage.getItem("permissions") || "[]"));
+  const roles = ref<string[]>(JSON.parse(localStorage.getItem("roles") || "[]"));
   const dynamicRoutesLoaded = ref(false);
   const menuTree = ref<MenuItem[]>([]);
 
@@ -34,6 +34,8 @@ export const useAuthStore = defineStore("auth", () => {
     roles.value = res.user.roles || [];
     localStorage.setItem("access_token", res.access_token);
     localStorage.setItem("refresh_token", res.refresh_token);
+    localStorage.setItem("permissions", JSON.stringify(permissions.value));
+    localStorage.setItem("roles", JSON.stringify(roles.value));
   }
 
   async function login(username: string, password: string) {
@@ -53,6 +55,8 @@ export const useAuthStore = defineStore("auth", () => {
     dynamicRoutesLoaded.value = false;
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
+    localStorage.removeItem("permissions");
+    localStorage.removeItem("roles");
   }
 
   /** 动态生成路由（根据菜单树） */

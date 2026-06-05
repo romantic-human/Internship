@@ -47,6 +47,14 @@ export function exportRoles() {
   return request.get("/role/export", { responseType: "blob" });
 }
 
+export function importRoles(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return request.post("/role/import", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+}
+
 export function updateRoleStatus(id: number, status: number) {
   return request.put(`/role/${id}/status`, { status });
 }
