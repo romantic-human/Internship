@@ -13,7 +13,8 @@ import { useAppStore } from "@/store/app";
 import Layout from "@/layout/Layout.vue";
 
 const route = useRoute();
-useAppStore();
+const appStore = useAppStore();
+appStore.setTheme(appStore.theme);
 </script>
 
 <style>

@@ -117,12 +117,11 @@ function resolveIcon(iconName: string) {
 const sidebarMenus = computed(() => {
   const tree = authStore.menuTree;
   if (!tree || tree.length === 0) {
-    // fallback：静态菜单（动态路由加载前显示）
     return [
       { id: 0, menu_type: 1, menu_name: "首页", path: "/dashboard", icon: "House" },
     ] as MenuItem[];
   }
-  return tree;
+  return tree.filter((m) => m.visible === 1 && m.status === 1);
 });
 
 /** 扁平的子菜单（去除不可见的按钮类型） */

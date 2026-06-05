@@ -4,7 +4,13 @@
       <template #header>
         <div class="card-header">
           <span>系统配置</span>
-          <el-button type="primary" @click="handleAdd">新增配置</el-button>
+          <div>
+            <el-input v-model="filters.config_name" placeholder="配置名称" clearable style="width:160px;margin-right:8px" />
+            <el-input v-model="filters.config_key" placeholder="配置键" clearable style="width:160px;margin-right:8px" />
+            <el-button type="primary" @click="page=1;fetchList()">查询</el-button>
+            <el-button @click="filters={config_name:'',config_key:''};page=1;fetchList()">重置</el-button>
+            <el-button type="primary" @click="handleAdd">新增配置</el-button>
+          </div>
         </div>
       </template>
       <el-table :data="list" v-loading="loading" stripe>
@@ -52,11 +58,15 @@ const page = ref(1);
 const pageSize = 10;
 const formVisible = ref(false);
 const currentFormData = ref<Partial<ConfigItem> | null>(null);
+const filters = ref({ config_name: "", config_key: "" });
 
 async function fetchList() {
   loading.value = true;
   try {
-    const res = await getConfigList({ page: page.value, pageSize });
+    const params: Record<string, any> = { page: page.value, pageSize };
+    if (filters.value.config_name) params.config_name = filters.value.config_name;
+    if (filters.value.config_key) params.config_key = filters.value.config_key;
+    const res = await getConfigList(params);
     list.value = res.records;
     total.value = res.total;
   } finally { loading.value = false; }

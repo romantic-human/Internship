@@ -76,9 +76,10 @@ export const useAuthStore = defineStore("auth", () => {
       });
     } catch {
       menuTree.value = [];
-    } finally {
-      dynamicRoutesLoaded.value = true;
+      dynamicRoutesLoaded.value = false;
+      return;
     }
+    dynamicRoutesLoaded.value = true;
   }
 
   /** 检查权限 */

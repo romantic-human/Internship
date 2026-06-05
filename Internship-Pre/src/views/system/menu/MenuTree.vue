@@ -4,12 +4,15 @@
       <template #header>
         <div class="card-header">
           <span>菜单管理</span>
-          <el-button type="primary" @click="handleAdd">新增菜单</el-button>
+          <div>
+            <el-input v-model="keyword" placeholder="菜单名称" clearable style="width:200px;margin-right:8px" @input="onKeywordChange" />
+            <el-button type="primary" @click="handleAdd">新增菜单</el-button>
+          </div>
         </div>
       </template>
 
       <el-table
-        :data="treeData"
+        :data="filteredTree"
         row-key="id"
         default-expand-all
         :tree-props="{ children: 'children' }"
@@ -72,7 +75,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { getMenuTree, deleteMenu, updateMenuStatus, type MenuItem } from "@/api/menu";
 import { ElMessage } from "element-plus";
 import { markRaw, type Component } from "vue";
@@ -89,6 +92,21 @@ const loading = ref(false);
 const treeData = ref<MenuItem[]>([]);
 const formVisible = ref(false);
 const currentFormData = ref<Partial<MenuItem> | null>(null);
+const keyword = ref("");
+
+function filterTree(items: MenuItem[], kw: string): MenuItem[] {
+  return items.reduce<MenuItem[]>((acc, item) => {
+    const match = !kw || item.menu_name?.includes(kw);
+    const children = item.children ? filterTree(item.children, kw) : [];
+    if (match || children.length > 0) {
+      acc.push({ ...item, children });
+    }
+    return acc;
+  }, []);
+}
+const filteredTree = computed(() => keyword.value ? filterTree(treeData.value, keyword.value) : treeData.value);
+
+function onKeywordChange() { /* reactivity handles it */ }
 
 function typeTagType(t: number): string {
   return t === 0 ? "" : t === 1 ? "primary" : "warning";

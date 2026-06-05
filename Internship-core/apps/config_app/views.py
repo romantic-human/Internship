@@ -25,6 +25,14 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
+        config_name = request.query_params.get("config_name")
+        config_key = request.query_params.get("config_key")
+        if config_name:
+            queryset = queryset.filter(config_name__icontains=config_name)
+        if config_key:
+            queryset = queryset.filter(config_key__icontains=config_key)
+        # 排序：按 sort_order 升序，id 降序
+        queryset = queryset.order_by("sort_order", "-id")
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
