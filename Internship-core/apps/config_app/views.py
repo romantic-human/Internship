@@ -80,3 +80,36 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
             instances.append(SystemConfig(id=item_id, sort_order=item.get("sortOrder", 0)))
         SystemConfig.objects.bulk_update(instances, ["sort_order"])
         return APIResponse.success(message="排序更新成功")
+
+    @action(detail=False, methods=["delete"], url_path="batch")
+    def batch_delete(self, request):
+        ids = request.data.get("ids", [])
+        if not ids:
+            return APIResponse.error(message="请传入 id 列表")
+        deleted, _ = SystemConfig.objects.filter(id__in=ids).delete()
+        return APIResponse.success(message=f"成功删除 {deleted} 条")
+
+    @action(detail=False, methods=["get"], url_path="export")
+    def export(self, request):
+        import openpyxl
+        from django.http import HttpResponse
+        queryset = SystemConfig.objects.all().order_by("sort_order", "-id")[:10000]
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "系统配置"
+        headers = ["配置名称", "配置键", "配置值", "类型", "备注", "状态", "排序", "创建时间"]
+        ws.append(headers)
+        type_map = {0: "字符串", 1: "数字", 2: "布尔", 3: "JSON"}
+        for c in queryset:
+            ws.append([
+                c.config_name, c.config_key, c.config_value,
+                type_map.get(c.config_type, "未知"), c.remark,
+                "启用" if c.status else "禁用", c.sort_order,
+                c.create_time.strftime("%Y-%m-%d %H:%M:%S") if c.create_time else "",
+            ])
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = 'attachment; filename="configs.xlsx"'
+        wb.save(response)
+        return response
