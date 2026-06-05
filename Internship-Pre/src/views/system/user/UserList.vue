@@ -4,7 +4,25 @@
       <template #header>
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <span>用户管理</span>
-          <el-button v-permission="'user:add'" type="primary" @click="handleAdd">新增用户</el-button>
+          <div>
+            <el-button type="success" @click="handleExport" :loading="exporting">导出 Excel</el-button>
+            <el-upload
+              ref="uploadRef"
+              :auto-upload="false"
+              :show-file-list="false"
+              accept=".xlsx,.xls"
+              :on-change="handleImportChange"
+            >
+              <el-button type="warning" :loading="importing">导入 Excel</el-button>
+            </el-upload>
+            <el-button v-permission="'user:add'" type="primary" @click="handleAdd" style="margin-left:8px">新增用户</el-button>
+            <el-button
+              v-if="selectedRows.length > 0"
+              type="danger"
+              style="margin-left:8px"
+              @click="handleBatchDelete"
+            >批量删除 ({{ selectedRows.length }})</el-button>
+          </div>
         </div>
       </template>
 
@@ -24,7 +42,8 @@
         </el-form-item>
       </el-form>
 
-      <el-table :data="list" v-loading="loading" stripe>
+      <el-table :data="list" v-loading="loading" stripe @selection-change="handleSelectionChange">
+        <el-table-column type="selection" width="45" />
         <el-table-column prop="username" label="用户名" width="120" />
         <el-table-column prop="nickname" label="昵称" width="120" />
         <el-table-column prop="email" label="邮箱" min-width="180" />
@@ -78,9 +97,13 @@ import {
   deleteUser,
   updateUserStatus,
   resetPassword,
+  exportUsers,
+  importUsers,
+  batchDeleteUsers,
   type UserRecord,
 } from "@/api/user";
 import { ElMessage, ElMessageBox } from "element-plus";
+import type { UploadFile } from "element-plus";
 import UserForm from "./UserForm.vue";
 
 const loading = ref(false);
@@ -90,6 +113,9 @@ const page = ref(1);
 const pageSize = 10;
 const formVisible = ref(false);
 const currentFormData = ref<Partial<UserRecord> | null>(null);
+const exporting = ref(false);
+const importing = ref(false);
+const selectedRows = ref<UserRecord[]>([]);
 const filters = reactive({
   username: "",
   status: null as number | null,
@@ -140,6 +166,59 @@ function handleResetPwd(row: UserRecord) {
     await resetPassword({ userId: row.id });
     ElMessage.success("密码已重置为 123456");
   }).catch(() => {});
+}
+
+async function handleExport() {
+  exporting.value = true;
+  try {
+    const blob = await exportUsers() as unknown as Blob;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "users.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success("导出成功");
+  } catch {
+    ElMessage.error("导出失败");
+  } finally {
+    exporting.value = false;
+  }
+}
+
+async function handleImportChange(uploadFile: UploadFile) {
+  if (!uploadFile.raw) return;
+  importing.value = true;
+  try {
+    const res = await importUsers(uploadFile.raw);
+    ElMessage.success(`导入完成：成功 ${res.success} 条，跳过 ${res.skipped} 条`);
+    await fetchList();
+  } catch {
+    ElMessage.error("导入失败");
+  } finally {
+    importing.value = false;
+  }
+}
+
+function handleSelectionChange(rows: UserRecord[]) {
+  selectedRows.value = rows;
+}
+
+async function handleBatchDelete() {
+  try {
+    await ElMessageBox.confirm(`确定批量删除选中的 ${selectedRows.value.length} 个用户？`, "批量删除", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+    const ids = selectedRows.value.map((r) => r.id);
+    await batchDeleteUsers(ids);
+    ElMessage.success("批量删除成功");
+    selectedRows.value = [];
+    await fetchList();
+  } catch {
+    // 用户取消
+  }
 }
 
 onMounted(fetchList);
