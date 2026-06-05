@@ -27,6 +27,10 @@ export function deleteRole(id: number) {
   return request.delete(`/role/${id}`);
 }
 
+export function batchDeleteRoles(ids: number[]) {
+  return request.delete("/role/batch", { data: { ids } });
+}
+
 export function getAllRoles(): Promise<RoleRecord[]> {
   return request.get("/role/all");
 }

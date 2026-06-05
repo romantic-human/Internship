@@ -17,6 +17,13 @@ class MenuViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated()]
         return [IsAuthenticated(), HasPermission()]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        menu_name = self.request.query_params.get("menu_name")
+        if menu_name:
+            qs = qs.filter(menu_name__icontains=menu_name)
+        return qs
+
     def perform_create(self, serializer):
         parent_id = serializer.validated_data.pop("parent_id", 0)
         if parent_id:
@@ -67,7 +74,11 @@ class MenuViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="tree")
     def tree(self, request):
-        all_menus = list(Menu.objects.all().order_by("sort_order"))
+        menu_name = request.query_params.get("menu_name", "")
+        qs = Menu.objects.all()
+        if menu_name:
+            qs = qs.filter(menu_name__icontains=menu_name)
+        all_menus = list(qs.order_by("sort_order"))
         parent_map = {}
         for m in all_menus:
             m._children = []

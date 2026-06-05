@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 
-from django.db.models import Count
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -10,7 +9,7 @@ from apps.log.models import OperationLog
 from apps.menu.models import Menu
 from apps.permission.models import Permission
 from apps.role.models import Role
-from apps.user.models import User, UserRoleRelation
+from apps.user.models import User
 from utils.response import APIResponse
 
 
@@ -37,27 +36,3 @@ def dashboard_stats(request):
         ),
     }
     return APIResponse.success(data=data)
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def dashboard_trend(request):
-    today = timezone.now().date()
-    dates = [today - timedelta(days=i) for i in range(6, -1, -1)]
-    log_trend = []
-    for d in dates:
-        day_start = timezone.make_aware(datetime(d.year, d.month, d.day))
-        day_end = day_start + timedelta(days=1)
-        log_trend.append({
-            "date": d.strftime("%Y-%m-%d"),
-            "count": OperationLog.objects.filter(create_time__gte=day_start, create_time__lt=day_end).count(),
-        })
-
-    role_dist = list(
-        Role.objects.annotate(user_count=Count("userrolerelation")).values("role_name", "user_count")
-    )
-
-    return APIResponse.success(data={
-        "log_trend": log_trend,
-        "role_distribution": role_dist,
-    })

@@ -1,6 +1,6 @@
 """用户模块序列化器 — 参考《组织架构模块设计方案.md》第 5.2 节"""
 from rest_framework import serializers
-from .models import User, PasswordResetRequest
+from .models import User
 
 
 class LoginSerializer(serializers.Serializer):
@@ -14,26 +14,14 @@ class UserSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class UserUpdateSerializer(serializers.ModelSerializer):
-    """更新用户 — 排除 password 字段"""
-
-    class Meta:
-        model = User
-        fields = [
-            "id", "username", "nickname", "real_name", "email",
-            "telephone", "gender", "department_id", "status",
-        ]
-        read_only_fields = ["id", "username"]
-
-
 class UserListSerializer(serializers.ModelSerializer):
     department_name = serializers.CharField(source="department.dept_name", read_only=True)
 
     class Meta:
         model = User
         fields = [
-            "id", "username", "nickname", "real_name", "email", "telephone",
-            "gender", "department_id", "department_name", "status", "create_time",
+            "id", "username", "nickname", "email", "telephone",
+            "department_name", "status", "create_time",
         ]
 
 
@@ -52,20 +40,14 @@ class RefreshTokenSerializer(serializers.Serializer):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    """创建用户（注册 / 后台新增通用）"""
+    """创建用户（注册用）"""
     password = serializers.CharField(write_only=True, required=False, default="123456")
-    department_id = serializers.PrimaryKeyRelatedField(
-        source="department",
-        queryset=User._meta.get_field("department").related_model.objects.all(),
-        required=False,
-        allow_null=True,
-    )
 
     class Meta:
         model = User
         fields = [
             "id", "username", "password", "nickname", "real_name",
-            "email", "telephone", "gender", "department_id", "status",
+            "email", "telephone", "gender", "status",
         ]
         read_only_fields = ["id"]
 
@@ -87,9 +69,3 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "telephone", "gender", "avatar", "department_id",
         ]
         read_only_fields = ["id", "username"]
-
-
-class PasswordResetRequestSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PasswordResetRequest
-        fields = "__all__"

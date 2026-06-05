@@ -4,13 +4,7 @@
       <template #header>
         <div class="card-header">
           <span>系统配置</span>
-          <div>
-            <el-input v-model="filters.config_name" placeholder="配置名称" clearable style="width:160px;margin-right:8px" />
-            <el-input v-model="filters.config_key" placeholder="配置键" clearable style="width:160px;margin-right:8px" />
-            <el-button type="primary" @click="page=1;fetchList()">查询</el-button>
-            <el-button @click="filters={config_name:'',config_key:''};page=1;fetchList()">重置</el-button>
-            <el-button type="primary" @click="handleAdd">新增配置</el-button>
-          </div>
+          <el-button v-permission="'config:add'" type="primary" @click="handleAdd">新增配置</el-button>
         </div>
       </template>
       <el-table :data="list" v-loading="loading" stripe>
@@ -29,8 +23,8 @@
         <el-table-column prop="create_time" label="创建时间" width="170" />
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-popconfirm title="确定删除？" @confirm="handleDelete(row)">
+            <el-button v-permission="'config:edit'" link type="primary" @click="handleEdit(row)">编辑</el-button>
+            <el-popconfirm v-permission="'config:delete'" title="确定删除？" @confirm="handleDelete(row)">
               <template #reference><el-button link type="danger">删除</el-button></template>
             </el-popconfirm>
           </template>
@@ -58,15 +52,11 @@ const page = ref(1);
 const pageSize = 10;
 const formVisible = ref(false);
 const currentFormData = ref<Partial<ConfigItem> | null>(null);
-const filters = ref({ config_name: "", config_key: "" });
 
 async function fetchList() {
   loading.value = true;
   try {
-    const params: Record<string, any> = { page: page.value, pageSize };
-    if (filters.value.config_name) params.config_name = filters.value.config_name;
-    if (filters.value.config_key) params.config_key = filters.value.config_key;
-    const res = await getConfigList(params);
+    const res = await getConfigList({ page: page.value, pageSize });
     list.value = res.records;
     total.value = res.total;
   } finally { loading.value = false; }

@@ -6,8 +6,7 @@
           <span>操作日志</span>
           <div>
             <el-button @click="fetchList">刷新</el-button>
-            <el-button @click="handleExport">导出</el-button>
-            <el-button type="danger" @click="handleClear">清空日志</el-button>
+            <el-button v-permission="'log:delete'" type="danger" @click="handleClear">清空日志</el-button>
           </div>
         </div>
       </template>
@@ -20,12 +19,9 @@
             <el-option label="成功" :value="1" /><el-option label="失败" :value="0" />
           </el-select>
         </el-form-item>
-        <el-form-item label="时间范围">
-          <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" clearable style="width:240px" />
-        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="page=1;fetchList()">查询</el-button>
-          <el-button @click="resetFilters">重置</el-button>
+          <el-button @click="filters={};page=1;fetchList()">重置</el-button>
         </el-form-item>
       </el-form>
       <el-table :data="list" v-loading="loading" stripe>
@@ -57,7 +53,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { getLogList, clearLogs, getLogDetail, exportLogs, type LogItem } from "@/api/log";
+import { getLogList, clearLogs, getLogDetail, type LogItem } from "@/api/log";
 import { ElMessage, ElMessageBox } from "element-plus";
 
 const loading = ref(false);
@@ -66,7 +62,6 @@ const total = ref(0);
 const page = ref(1);
 const pageSize = 10;
 const filters = ref<Record<string, any>>({});
-const dateRange = ref<[string, string] | null>(null);
 const detailVisible = ref(false);
 const detailData = ref("");
 
@@ -75,20 +70,10 @@ async function fetchList() {
   try {
     const params: Record<string, any> = { page: page.value, pageSize };
     Object.entries(filters.value).filter(([_, v]) => v !== "" && v !== undefined && v !== null).forEach(([k, v]) => params[k] = v);
-    if (dateRange.value) {
-      params.start_date = dateRange.value[0];
-      params.end_date = dateRange.value[1];
-    }
     const res = await getLogList(params);
     list.value = res.records;
     total.value = res.total;
   } finally { loading.value = false; }
-}
-function resetFilters() {
-  filters.value = {};
-  dateRange.value = null;
-  page.value = 1;
-  fetchList();
 }
 async function handleDetail(row: LogItem) {
   const res = await getLogDetail(row.id);
@@ -100,23 +85,6 @@ async function handleClear() {
     await ElMessageBox.confirm("确定清空所有日志？", "提示");
     await clearLogs(); ElMessage.success("日志已清空"); await fetchList();
   } catch { /* cancel */ }
-}
-async function handleExport() {
-  const params: Record<string, any> = {};
-  Object.entries(filters.value).filter(([_, v]) => v !== "" && v !== undefined && v !== null).forEach(([k, v]) => params[k] = v);
-  if (dateRange.value) {
-    params.start_date = dateRange.value[0];
-    params.end_date = dateRange.value[1];
-  }
-  try {
-    const res = await exportLogs(params);
-    const url = window.URL.createObjectURL(res.data as Blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `操作日志_${new Date().toISOString().slice(0, 10)}.xlsx`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  } catch { ElMessage.error("导出失败"); }
 }
 onMounted(fetchList);
 </script>

@@ -127,19 +127,3 @@ class UserRoleRelation(models.Model):
     class Meta:
         db_table = "sys_user_role_relation"
         unique_together = ("user", "role")
-
-
-class PasswordResetRequest(models.Model):
-    """密码重置请求"""
-
-    username = models.CharField(max_length=64, verbose_name="用户名")
-    status = models.CharField(max_length=20, choices=[("pending", "待处理"), ("approved", "已重置")], default="pending", verbose_name="状态")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
-    handled_at = models.DateTimeField(null=True, blank=True, verbose_name="处理时间")
-    handler = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="处理人")
-
-    class Meta:
-        db_table = "sys_password_reset_request"
-        verbose_name = "密码重置请求"
-        verbose_name_plural = verbose_name
-        ordering = ["-created_at"]

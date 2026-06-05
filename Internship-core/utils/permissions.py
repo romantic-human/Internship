@@ -15,16 +15,4 @@ class HasPermission(BasePermission):
         if required_permission is None:
             return True
         user_permissions = request.user.permission_list if hasattr(request.user, "permission_list") else []
-        # 支持通配符 *:*:*
-        if "*:*:*" in user_permissions:
-            return True
-        # 支持模块级通配符 e.g. user:* 匹配 user:list
-        parts = required_permission.split(":")
-        for up in user_permissions:
-            uparts = up.split(":")
-            if len(uparts) == 2 and uparts[1] == "*":
-                if uparts[0] == parts[0]:
-                    return True
-            if up == required_permission:
-                return True
-        return False
+        return required_permission in user_permissions

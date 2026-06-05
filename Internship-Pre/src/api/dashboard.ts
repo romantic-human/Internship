@@ -22,12 +22,3 @@ export interface DashboardStats {
 export function getDashboardStats(): Promise<DashboardStats> {
   return request.get("/dashboard/stats/");
 }
-
-export interface TrendData {
-  log_trend: { date: string; count: number }[];
-  role_distribution: { role_name: string; user_count: number }[];
-}
-
-export function getDashboardTrend(): Promise<TrendData> {
-  return request.get("/dashboard/stats/trend");
-}

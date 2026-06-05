@@ -4,14 +4,11 @@
       <template #header>
         <div class="card-header">
           <span>部门管理</span>
-          <div>
-            <el-input v-model="keyword" placeholder="部门名称" clearable style="width:200px;margin-right:8px" @input="onKeywordChange" />
-            <el-button type="primary" @click="handleAdd">新增部门</el-button>
-          </div>
+          <el-button v-permission="'dept:add'" type="primary" @click="handleAdd">新增部门</el-button>
         </div>
       </template>
       <el-table
-        :data="filteredTree" row-key="id" default-expand-all
+        :data="treeData" row-key="id" default-expand-all
         :tree-props="{ children: 'children' }" v-loading="loading"
       >
         <el-table-column prop="dept_name" label="部门名称" min-width="200" />
@@ -26,8 +23,8 @@
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-popconfirm title="确定删除？" @confirm="handleDelete(row)">
+            <el-button v-permission="'dept:edit'" link type="primary" @click="handleEdit(row)">编辑</el-button>
+            <el-popconfirm v-permission="'dept:delete'" title="确定删除？" @confirm="handleDelete(row)">
               <template #reference><el-button link type="danger">删除</el-button></template>
             </el-popconfirm>
           </template>
@@ -40,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import { getDepartmentTree, deleteDepartment, updateDepartmentStatus, type DeptItem } from "@/api/department";
 import { ElMessage } from "element-plus";
 import DeptForm from "./DeptForm.vue";
@@ -49,21 +46,6 @@ const loading = ref(false);
 const treeData = ref<DeptItem[]>([]);
 const formVisible = ref(false);
 const currentFormData = ref<Partial<DeptItem> | null>(null);
-const keyword = ref("");
-
-function filterTree(items: DeptItem[], kw: string): DeptItem[] {
-  return items.reduce<DeptItem[]>((acc, item) => {
-    const match = !kw || item.dept_name?.includes(kw);
-    const children = item.children ? filterTree(item.children, kw) : [];
-    if (match || children.length > 0) {
-      acc.push({ ...item, children });
-    }
-    return acc;
-  }, []);
-}
-const filteredTree = computed(() => keyword.value ? filterTree(treeData.value, keyword.value) : treeData.value);
-
-function onKeywordChange() { /* reactivity handles it */ }
 
 async function fetchTree() {
   loading.value = true;

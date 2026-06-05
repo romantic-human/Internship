@@ -25,6 +25,16 @@ class RoleViewSet(viewsets.ModelViewSet):
         serializer.save()
         return APIResponse.success(data=serializer.data, message="新增成功")
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        role_name = self.request.query_params.get("role_name")
+        status_val = self.request.query_params.get("status")
+        if role_name:
+            qs = qs.filter(role_name__icontains=role_name)
+        if status_val is not None and status_val != "":
+            qs = qs.filter(status=status_val)
+        return qs
+
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)

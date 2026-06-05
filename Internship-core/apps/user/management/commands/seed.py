@@ -103,12 +103,6 @@ class Command(BaseCommand):
             RoleMenuRelation.objects.get_or_create(role=admin_role, menu_id=mid)
         self.stdout.write(f"  [OK] 管理员拥有全部菜单权限")
 
-        # 普通用户拥有目录+菜单项（不含按钮），以具备查看功能
-        view_menus = Menu.objects.filter(menu_type__in=[0, 1], status=1)
-        for menu in view_menus:
-            RoleMenuRelation.objects.get_or_create(role=user_role, menu=menu)
-        self.stdout.write(f"  [OK] 普通用户拥有基本查看权限")
-
         # ── 5. 用户 ────────────────────────────────────────
         admin = User.objects.filter(username="admin").first()
         if not admin:
@@ -123,12 +117,6 @@ class Command(BaseCommand):
             test.set_password("test123")
             test.save()
         self.stdout.write(f"  [OK] test / test123")
-
-        # 分配用户角色
-        from apps.user.models import UserRoleRelation
-        UserRoleRelation.objects.get_or_create(user=admin, role=admin_role)
-        UserRoleRelation.objects.get_or_create(user=test, role=user_role)
-        self.stdout.write(f"  [OK] 角色已分配给用户")
 
         self.stdout.write(self.style.SUCCESS("\n种子数据创建完成!"))
         self.stdout.write("  管理员: admin / admin123  (全部权限)")
