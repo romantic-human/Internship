@@ -2,11 +2,20 @@
   <div class="menu-tree-page">
     <el-card>
       <template #header>
-        <div class="card-header">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <span>菜单管理</span>
           <el-button v-permission="'menu:add'" type="primary" @click="handleAdd">新增菜单</el-button>
         </div>
       </template>
+
+      <el-form inline class="mb-2">
+        <el-form-item label="菜单名称">
+          <el-input v-model="searchKey" placeholder="菜单名称" clearable style="width:200px" @clear="fetchTree" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="fetchTree">查询</el-button>
+        </el-form-item>
+      </el-form>
 
       <el-table
         :data="treeData"
@@ -89,6 +98,7 @@ const loading = ref(false);
 const treeData = ref<MenuItem[]>([]);
 const formVisible = ref(false);
 const currentFormData = ref<Partial<MenuItem> | null>(null);
+const searchKey = ref("");
 
 function typeTagType(t: number): string {
   return t === 0 ? "" : t === 1 ? "primary" : "warning";
@@ -109,7 +119,9 @@ function flattenForOptions(items: MenuItem[]): (Partial<MenuItem> & { _level: nu
 async function fetchTree() {
   loading.value = true;
   try {
-    treeData.value = await getMenuTree();
+    const params: Record<string, any> = {};
+    if (searchKey.value) params.menu_name = searchKey.value;
+    treeData.value = await getMenuTree(params);
   } finally {
     loading.value = false;
   }

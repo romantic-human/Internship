@@ -1,4 +1,6 @@
 from django.db import transaction
+import csv
+from django.http import HttpResponse
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -74,6 +76,38 @@ class PermissionViewSet(viewsets.ModelViewSet):
                 relations = [MenuPermissionRelation(permission=instance, menu_id=mid) for mid in menu_ids]
                 MenuPermissionRelation.objects.bulk_create(relations)
         return APIResponse.success(message="绑定成功")
+
+    @action(detail=False, methods=["delete"], url_path="batch")
+    def batch(self, request):
+        """批量删除 — DELETE /api/permission/batch"""
+        ids = request.data.get("ids", [])
+        if not ids:
+            return APIResponse.error(message="ids 不能为空")
+        Permission.objects.filter(id__in=ids).delete()
+        return APIResponse.success(message="批量删除成功")
+
+    @action(detail=False, methods=["get"], url_path="export")
+    def export(self, request):
+        """导出权限 — GET /api/permission/export"""
+        response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
+        response["Content-Disposition"] = 'attachment; filename="permissions.csv"'
+        writer = csv.writer(response)
+        writer.writerow(["ID", "权限名称", "权限标识", "排序", "状态", "创建时间"])
+        perms = self.get_queryset().order_by("sort_order")
+        for p in perms:
+            writer.writerow([p.id, p.permission_name, p.permission_key, p.sort_order, "启用" if p.status else "禁用", p.create_time])
+        return response
+
+    @action(detail=True, methods=["put"], url_path="status")
+    def status(self, request, pk=None):
+        """状态切换 — PUT /api/permission/<id>/status"""
+        instance = self.get_object()
+        status_val = request.data.get("status")
+        if status_val not in (0, 1):
+            return APIResponse.error(message="状态值无效")
+        instance.status = status_val
+        instance.save()
+        return APIResponse.success(message="状态更新成功")
 
     @action(detail=True, methods=["put"], url_path="sort")
     def sort(self, request, pk=None):

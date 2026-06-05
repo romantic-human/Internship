@@ -7,6 +7,9 @@
           <div>
             <el-button type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
             <el-button type="success" @click="handleExport">导出</el-button>
+            <el-upload :show-file-list="false" accept=".xlsx,.xls" :before-upload="handleImport" style="display:inline-block;margin:0 12px">
+              <el-button type="warning">导入</el-button>
+            </el-upload>
             <el-button v-permission="'role:add'" type="primary" @click="handleAdd">新增角色</el-button>
           </div>
         </div>
@@ -49,9 +52,11 @@
             <el-button v-permission="'role:edit'" link type="primary" @click="handleEdit(row)">编辑</el-button>
             <el-button v-permission="'role:assign'" link type="primary" @click="handleAssignMenu(row)">分配菜单</el-button>
             <el-button v-permission="'role:assign'" link type="primary" @click="handleAssignUser(row)">分配用户</el-button>
-            <el-popconfirm v-permission="'role:delete'" title="确定删除该角色？" @confirm="handleDelete(row)">
-              <template #reference><el-button link type="danger">删除</el-button></template>
-            </el-popconfirm>
+            <span v-permission="'role:delete'">
+              <el-popconfirm title="确定删除该角色？" @confirm="handleDelete(row)">
+                <template #reference><el-button link type="danger">删除</el-button></template>
+              </el-popconfirm>
+            </span>
           </template>
         </el-table-column>
       </el-table>
@@ -132,6 +137,7 @@ import {
   getRoleUsers,
   assignRoleUsers,
   exportRoles,
+  importRoles,
   type RoleRecord,
 } from "@/api/role";
 import { getMenuTree, type MenuItem } from "@/api/menu";
@@ -270,6 +276,15 @@ async function handleExport() {
   a.click();
   URL.revokeObjectURL(url);
   ElMessage.success("导出成功");
+}
+
+async function handleImport(file: File) {
+  try {
+    await importRoles(file);
+    ElMessage.success("导入成功");
+    await fetchList();
+  } catch { /* handled by interceptor */ }
+  return false; // 阻止 el-upload 默认行为
 }
 
 function onSelectionChange(rows: RoleRecord[]) {

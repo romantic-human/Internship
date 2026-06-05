@@ -5,7 +5,7 @@
 所有组员执行此命令后即可获得统一的测试数据。
 """
 from django.core.management.base import BaseCommand
-from apps.user.models import User
+from apps.user.models import User, UserRoleRelation
 from apps.role.models import Role, RoleMenuRelation
 from apps.menu.models import Menu
 from apps.permission.models import Permission, MenuPermissionRelation
@@ -109,6 +109,8 @@ class Command(BaseCommand):
             admin = User(username="admin", nickname="系统管理员", is_superuser=True, status=1)
             admin.set_password("admin123")
             admin.save()
+        # 确保 admin 用户关联到 admin 角色
+        UserRoleRelation.objects.get_or_create(user=admin, role=admin_role)
         self.stdout.write(f"  [OK] admin / admin123")
 
         test = User.objects.filter(username="test").first()

@@ -12,6 +12,8 @@ from .serializers import (
 from apps.menu.models import Menu
 from apps.user.models import User, UserRoleRelation
 import csv
+import openpyxl
+from io import BytesIO
 from django.http import HttpResponse
 
 
@@ -119,6 +121,75 @@ class RoleViewSet(viewsets.ModelViewSet):
         for r in roles:
             writer.writerow([r.id, r.role_name, r.role_key, r.role_sort, "启用" if r.status else "禁用", r.create_time])
         return response
+
+    @action(detail=False, methods=["post"], url_path="import")
+    def import_roles(self, request):
+        """导入角色 — POST /api/role/import"""
+        file = request.FILES.get("file")
+        if not file:
+            return APIResponse.error(message="请上传文件")
+        try:
+            wb = openpyxl.load_workbook(BytesIO(file.read()))
+            ws = wb.active
+            rows = list(ws.iter_rows(values_only=True))
+            if not rows:
+                return APIResponse.error(message="文件为空")
+
+            # 表头映射（支持中文表头和英文字段名）
+            header_map = {
+                "角色名称": "role_name", "role_name": "role_name",
+                "角色标识": "role_key", "role_key": "role_key",
+                "排序": "role_sort", "role_sort": "role_sort",
+                "状态": "status", "status": "status",
+                "备注": "remark", "remark": "remark",
+            }
+            header_row = [str(h).strip() if h else "" for h in rows[0]]
+            col_index = {}
+            for i, h in enumerate(header_row):
+                if h in header_map:
+                    col_index[header_map[h]] = i
+
+            # 如果没有识别到表头，按默认顺序
+            if not col_index:
+                col_index = {"role_name": 0, "role_key": 1, "role_sort": 2, "status": 3, "remark": 4}
+                data_rows = rows[1:]
+            else:
+                data_rows = rows[1:]
+
+            count = 0
+            for row in data_rows:
+                cells = list(row)
+                role_name = cells[col_index.get("role_name", 0)] if col_index.get("role_name") is not None and col_index.get("role_name") < len(cells) else None
+                role_key = cells[col_index.get("role_key", 1)] if col_index.get("role_key") is not None and col_index.get("role_key") < len(cells) else None
+                if not role_name or not role_key:
+                    continue
+                role_sort = cells[col_index["role_sort"]] if "role_sort" in col_index and col_index["role_sort"] < len(cells) else 0
+                status_val = cells[col_index["status"]] if "status" in col_index and col_index["status"] < len(cells) else 1
+                remark = cells[col_index["remark"]] if "remark" in col_index and col_index["remark"] < len(cells) else ""
+
+                # 类型转换
+                try:
+                    role_sort = int(role_sort) if role_sort else 0
+                except (ValueError, TypeError):
+                    role_sort = 0
+                if isinstance(status_val, str):
+                    status_val = 1 if status_val == "启用" else 0
+                elif status_val is None:
+                    status_val = 1
+
+                Role.objects.update_or_create(
+                    role_key=str(role_key).strip(),
+                    defaults={
+                        "role_name": str(role_name).strip(),
+                        "role_sort": role_sort,
+                        "status": int(status_val),
+                        "remark": str(remark or "").strip(),
+                    }
+                )
+                count += 1
+            return APIResponse.success(message=f"导入成功，共 {count} 条")
+        except Exception as e:
+            return APIResponse.error(message=f"导入失败: {str(e)}")
 
     @action(detail=True, methods=["get", "put"], url_path="menus")
     def menus(self, request, pk=None):

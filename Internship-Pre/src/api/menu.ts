@@ -18,8 +18,8 @@ export interface MenuItem {
   children?: MenuItem[];
 }
 
-export function getMenuTree(): Promise<MenuItem[]> {
-  return request.get("/menu/tree");
+export function getMenuTree(params?: Record<string, any>): Promise<MenuItem[]> {
+  return request.get("/menu/tree", { params });
 }
 
 export function getMenuOptions(): Promise<MenuItem[]> {
