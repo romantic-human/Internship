@@ -42,9 +42,34 @@ class UserViewSet(viewsets.ModelViewSet):
 
     """用户管理 CRUD"""
 
-    queryset = User.objects.all()
+    queryset = User.objects.select_related("department").prefetch_related("userrolerelation_set__role").all()
 
     serializer_class = UserSerializer
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return UserListSerializer
+        return UserSerializer
+
+    def list(self, request, *args, **kwargs):
+        """用户列表（分页 + 搜索过滤）"""
+        queryset = self.filter_queryset(self.get_queryset())
+        username = request.query_params.get("username", "").strip()
+        status_val = request.query_params.get("status")
+        department_id = request.query_params.get("department_id")
+        if username:
+            queryset = queryset.filter(username__icontains=username)
+        if status_val is not None and status_val != "":
+            queryset = queryset.filter(status=int(status_val))
+        if department_id:
+            queryset = queryset.filter(department_id=int(department_id))
+        queryset = queryset.order_by("-create_time")
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
+        return APIResponse.success(data={"records": serializer.data, "total": queryset.count()})
 
     @action(detail=False, methods=["post"], permission_classes=[AllowAny])
 
