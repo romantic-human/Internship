@@ -88,13 +88,14 @@ async function handleBatchDelete() {
 }
 async function handleExport() {
   try {
-    const res = await exportConfigs();
-    const url = window.URL.createObjectURL(res.data as Blob);
+    const blob = await exportConfigs() as unknown as Blob;
+    const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `系统配置_${new Date().toISOString().slice(0, 10)}.xlsx`;
     a.click();
     window.URL.revokeObjectURL(url);
+    ElMessage.success("导出成功");
   } catch { ElMessage.error("导出失败"); }
 }
 onMounted(fetchList);
