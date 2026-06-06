@@ -4,7 +4,18 @@
       <template #header>
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <span>用户管理</span>
-          <el-button v-permission="'user:add'" type="primary" @click="handleAdd">新增用户</el-button>
+          <div>
+            <el-button type="success" @click="handleExport">导出 Excel</el-button>
+            <el-upload
+              :show-file-list="false"
+              accept=".xlsx,.xls"
+              :before-upload="handleImport"
+              style="display:inline-block;margin:0 8px"
+            >
+              <el-button type="warning">批量导入用户</el-button>
+            </el-upload>
+            <el-button v-permission="'user:add'" type="primary" @click="handleAdd">新增用户</el-button>
+          </div>
         </div>
       </template>
 
@@ -25,10 +36,26 @@
       </el-form>
 
       <el-table :data="list" v-loading="loading" stripe>
+        <el-table-column type="index" label="序号" width="60" align="center"
+          :index="(i:number) => (page - 1) * pageSize + i + 1" />
         <el-table-column prop="username" label="用户名" width="120" />
-        <el-table-column prop="nickname" label="昵称" width="120" />
+        <el-table-column prop="real_name" label="姓名" width="100" />
         <el-table-column prop="email" label="邮箱" min-width="180" />
         <el-table-column prop="telephone" label="手机号" width="130" />
+        <el-table-column prop="department_name" label="部门" width="120">
+          <template #default="{ row }">
+            {{ row.department_name || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="role_name" label="角色" min-width="140">
+          <template #default="{ row }">
+            <template v-if="row.role_name">
+              <el-tag v-for="name in row.role_name.split('、')" :key="name" size="small"
+                style="margin-right:4px">{{ name }}</el-tag>
+            </template>
+            <span v-else style="color:#999">-</span>
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="80" align="center">
           <template #default="{ row }">
             <el-switch
@@ -39,7 +66,11 @@
             />
           </template>
         </el-table-column>
-        <el-table-column prop="create_time" label="创建时间" width="170" />
+        <el-table-column prop="last_login" label="最后登录" width="170">
+          <template #default="{ row }">
+            {{ row.last_login || '-' }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
             <el-button v-permission="'user:edit'" link type="primary" @click="handleEdit(row)">编辑</el-button>
@@ -53,10 +84,12 @@
       <el-pagination
         v-if="total > pageSize"
         v-model:current-page="page"
-        :page-size="pageSize"
+        v-model:page-size="pageSize"
         :total="total"
-        layout="total, prev, pager, next"
+        :page-sizes="[10, 20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
         @current-change="fetchList"
+        @size-change="page=1;fetchList()"
         class="mt-3"
       />
     </el-card>
@@ -78,6 +111,8 @@ import {
   deleteUser,
   updateUserStatus,
   resetPassword,
+  exportUsers,
+  importUsers,
   type UserRecord,
 } from "@/api/user";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -87,7 +122,7 @@ const loading = ref(false);
 const list = ref<UserRecord[]>([]);
 const total = ref(0);
 const page = ref(1);
-const pageSize = 10;
+const pageSize = ref(20);
 const formVisible = ref(false);
 const currentFormData = ref<Partial<UserRecord> | null>(null);
 const filters = reactive({
@@ -98,7 +133,7 @@ const filters = reactive({
 async function fetchList() {
   loading.value = true;
   try {
-    const params: Record<string, any> = { page: page.value, pageSize };
+    const params: Record<string, any> = { page: page.value, pageSize: pageSize.value };
     if (filters.username) params.username = filters.username;
     if (filters.status !== null) params.status = filters.status;
     const res = await getUserList(params);
@@ -143,4 +178,26 @@ function handleResetPwd(row: UserRecord) {
 }
 
 onMounted(fetchList);
+
+async function handleExport() {
+  try {
+    const blob = await exportUsers() as unknown as Blob;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "users.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success("导出成功");
+  } catch { /* handled by interceptor */ }
+}
+
+async function handleImport(file: File) {
+  try {
+    const res = await importUsers(file);
+    ElMessage.success(`导入完成：成功 ${res.success} 条，跳过 ${res.skipped} 条`);
+    await fetchList();
+  } catch { /* handled by interceptor */ }
+  return false; // prevent el-upload default
+}
 </script>

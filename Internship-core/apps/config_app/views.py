@@ -1,10 +1,25 @@
+import os
+import uuid
+
+from django.conf import settings
 from rest_framework import viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from utils.response import APIResponse
 from utils.permissions import HasPermission
 from .models import SystemConfig
 from .serializers import SystemConfigSerializer
+
+PANEL_DEFAULTS = {
+    "system.name": "企业智能分析平台",
+    "system.logo": "",
+    "log.enabled": "1",
+    "log.retention_days": "90",
+    "log.alert_enabled": "1",
+    "security.level": "高",
+    "security.two_factor": "1",
+    "security.password_policy": "至少8位，包含数字与大小写字母",
+}
 
 
 class SystemConfigViewSet(viewsets.ModelViewSet):
@@ -13,7 +28,7 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
     permission_key = "config:list"
 
     def get_permissions(self):
-        if self.action == "by_key":
+        if self.action in ("by_key", "panel_get", "panel_save"):
             return [IsAuthenticated()]
         return [IsAuthenticated(), HasPermission()]
 
@@ -80,3 +95,49 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
             instances.append(SystemConfig(id=item_id, sort_order=item.get("sortOrder", 0)))
         SystemConfig.objects.bulk_update(instances, ["sort_order"])
         return APIResponse.success(message="排序更新成功")
+
+    @action(detail=False, methods=["get"], url_path="panel")
+    def panel_get(self, request):
+        configs = SystemConfig.objects.filter(config_key__in=PANEL_DEFAULTS.keys())
+        data = {c.config_key: c.config_value for c in configs}
+        for key, default in PANEL_DEFAULTS.items():
+            if key not in data:
+                data[key] = default
+        return APIResponse.success(data=data)
+
+    @action(detail=False, methods=["post"], url_path="panel-save")
+    def panel_save(self, request):
+        payload = request.data
+        for key, value in payload.items():
+            if key not in PANEL_DEFAULTS:
+                continue
+            obj, created = SystemConfig.objects.get_or_create(
+                config_key=key,
+                defaults={"config_name": key, "config_value": str(value), "config_type": 0, "status": 1},
+            )
+            if not created:
+                obj.config_value = str(value)
+                obj.save(update_fields=["config_value", "update_time"])
+        return APIResponse.success(message="配置保存成功")
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def upload_image(request):
+    file = request.FILES.get("file")
+    if not file:
+        return APIResponse.error(message="请选择文件", code=2000, http_status=400)
+    if file.size > 2 * 1024 * 1024:
+        return APIResponse.error(message="文件大小不能超过 2MB", code=2000, http_status=400)
+    ext = os.path.splitext(file.name)[1].lower()
+    if ext not in (".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp"):
+        return APIResponse.error(message="不支持的格式", code=2000, http_status=400)
+    upload_dir = os.path.join(settings.MEDIA_ROOT, "uploads")
+    os.makedirs(upload_dir, exist_ok=True)
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join(upload_dir, filename)
+    with open(filepath, "wb") as f:
+        for chunk in file.chunks():
+            f.write(chunk)
+    url = f"{settings.MEDIA_URL}uploads/{filename}"
+    return APIResponse.success(message="上传成功", data={"url": url})

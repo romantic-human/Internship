@@ -45,3 +45,11 @@ export function updateDepartmentSort(id: number, sortOrder: number) {
 export function batchSortDepartment(data: { id: number; sortOrder: number }[]) {
   return request.post("/department/batch-sort", data);
 }
+
+export function batchDeleteDepartments(ids: number[]) {
+  return request.delete("/department/batch", { data: { ids } });
+}
+
+export function exportDepartments() {
+  return request.get("/department/export", { responseType: "blob" });
+}
