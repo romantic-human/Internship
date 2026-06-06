@@ -93,13 +93,14 @@ async function handleBatchDelete() {
 }
 async function handleExport() {
   try {
-    const res = await exportDepartments();
-    const url = window.URL.createObjectURL(res.data as Blob);
+    const blob = await exportDepartments() as unknown as Blob;
+    const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `部门列表_${new Date().toISOString().slice(0, 10)}.xlsx`;
     a.click();
     window.URL.revokeObjectURL(url);
+    ElMessage.success("导出成功");
   } catch { ElMessage.error("导出失败"); }
 }
 onMounted(fetchTree);

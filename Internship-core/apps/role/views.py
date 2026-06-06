@@ -1,10 +1,8 @@
 """角色模块视图 — 参考《组织架构模块设计方案.md》第 5.3 节"""
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
 from utils.response import APIResponse
-from utils.permissions import HasPermission
 from .models import Role, RoleMenuRelation
 from .serializers import (
     RoleSerializer,
@@ -22,10 +20,6 @@ from django.http import HttpResponse
 class RoleViewSet(viewsets.ModelViewSet):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
-    permission_key = "role:list"
-
-    def get_permissions(self):
-        return [IsAuthenticated(), HasPermission()]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -45,12 +39,6 @@ class RoleViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-        role_name = request.query_params.get("role_name")
-        status_val = request.query_params.get("status")
-        if role_name:
-            queryset = queryset.filter(role_name__icontains=role_name)
-        if status_val is not None and status_val != "":
-            queryset = queryset.filter(status=int(status_val))
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)

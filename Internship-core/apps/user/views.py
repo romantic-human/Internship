@@ -1,91 +1,50 @@
 """用户模块视图 — 参考《组织架构模块设计方案.md》第 5.2 节"""
 
 import os
-import openpyxl
-from io import BytesIO
-from django.http import HttpResponse
+
 from django.conf import settings
+
 from django.utils import timezone
+
 from rest_framework import viewsets, status
+
 from rest_framework.decorators import action
+
 from rest_framework.permissions import AllowAny, IsAuthenticated
+
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
+
 from utils import APIResponse, HasPermission
+
 from .models import User
+
 from .serializers import (
+
     LoginSerializer,
+
     UserSerializer,
+
     UserListSerializer,
+
     ChangePasswordSerializer,
+
     ResetPasswordSerializer,
+
     RefreshTokenSerializer,
+
     UserCreateSerializer,
+
     UserProfileSerializer,
+
 )
 
 class UserViewSet(viewsets.ModelViewSet):
 
     """用户管理 CRUD"""
-    permission_key = "user:list"
 
-    queryset = User.objects.select_related("department").prefetch_related("userrolerelation_set__role").all()
+    queryset = User.objects.all()
 
     serializer_class = UserSerializer
-
-    def get_permissions(self):
-        if self.action in ("login", "register", "refresh_token"):
-            from rest_framework.permissions import AllowAny
-            return [AllowAny()]
-        return [IsAuthenticated(), HasPermission()]
-
-    def get_serializer_class(self):
-        if self.action == "create":
-            return UserCreateSerializer
-        if self.action == "list":
-            return UserListSerializer
-        return UserSerializer
-
-    def create(self, request, *args, **kwargs):
-        """新增用户 — 返回标准格式"""
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return APIResponse.success(data=serializer.data, message="新增成功")
-
-    def update(self, request, *args, **kwargs):
-        """编辑用户 — 返回标准格式"""
-        partial = kwargs.pop("partial", False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return APIResponse.success(data=serializer.data, message="更新成功")
-
-    def destroy(self, request, *args, **kwargs):
-        """删除用户 — 返回标准格式"""
-        instance = self.get_object()
-        instance.delete()
-        return APIResponse.success(message="删除成功")
-
-    def list(self, request, *args, **kwargs):
-        """用户列表（分页 + 搜索过滤）"""
-        queryset = self.get_queryset()
-        username = request.query_params.get("username", "").strip()
-        status_val = request.query_params.get("status")
-        department_id = request.query_params.get("department_id")
-        if username:
-            queryset = queryset.filter(username__icontains=username)
-        if status_val is not None and status_val != "":
-            queryset = queryset.filter(status=int(status_val))
-        if department_id:
-            queryset = queryset.filter(department_id=int(department_id))
-        queryset = queryset.order_by("-create_time")
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        serializer = self.get_serializer(queryset, many=True)
-        return APIResponse.success(data={"records": serializer.data, "total": queryset.count()})
 
     @action(detail=False, methods=["post"], permission_classes=[AllowAny])
 
@@ -408,114 +367,17 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def export(self, request):
 
-        """导出用户 Excel — GET /api/user/export"""
+        """导出用户 — GET /api/user/export"""
 
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "用户列表"
-
-        headers = ["用户名", "昵称", "真实姓名", "邮箱", "手机号", "性别", "状态", "创建时间"]
-        ws.append(headers)
-
-        from openpyxl.styles import Font, Alignment, Border, Side
-        font_bold = Font(name="微软雅黑", size=11, bold=True)
-        align_center = Alignment(horizontal="center", vertical="center")
-        thin = Side(style="thin")
-        border = Border(left=thin, right=thin, top=thin, bottom=thin)
-
-        for cell in ws[1]:
-            cell.font = font_bold
-            cell.alignment = align_center
-            cell.border = border
-
-        users = User.objects.select_related("department").all().order_by("-create_time")
-        font_normal = Font(name="微软雅黑", size=11)
-        for u in users:
-            ws.append([
-                u.username, u.nickname, u.real_name, u.email, u.telephone,
-                "男" if u.gender == 1 else ("女" if u.gender == 2 else "未知"),
-                "启用" if u.status == 1 else "禁用",
-                u.create_time.strftime("%Y-%m-%d %H:%M:%S") if u.create_time else "",
-            ])
-            for cell in ws[ws.max_row]:
-                cell.font = font_normal
-                cell.alignment = align_center
-                cell.border = border
-
-        col_widths = [16, 14, 14, 24, 16, 8, 8, 22]
-        for i, w in enumerate(col_widths, 1):
-            ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
-
-        buf = BytesIO()
-        wb.save(buf)
-        buf.seek(0)
-
-        response = HttpResponse(
-            buf.getvalue(),
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-        response["Content-Disposition"] = 'attachment; filename="users.xlsx"'
-        return response
+        return APIResponse.success(data={"message": "待实现"})
 
     @action(detail=False, methods=["post"], url_path="import")
 
     def import_(self, request):
 
-        """导入用户 Excel — POST /api/user/import"""
+        """导入用户 — POST /api/user/import"""
 
-        file = request.FILES.get("file")
-        if not file:
-            return APIResponse.error(message="请选择文件", code=2000, http_status=400)
-
-        ext = os.path.splitext(file.name)[1].lower()
-        if ext not in (".xlsx", ".xls"):
-            return APIResponse.error(message="请上传 .xlsx 或 .xls 格式文件", code=2000, http_status=400)
-
-        try:
-            wb = openpyxl.load_workbook(file, read_only=True)
-            ws = wb.active
-            rows = list(ws.iter_rows(values_only=True))
-        except Exception:
-            return APIResponse.error(message="文件解析失败", code=2000, http_status=400)
-
-        if len(rows) < 2:
-            return APIResponse.error(message="文件为空或只有表头", code=2000, http_status=400)
-
-        success_count = 0
-        skip_count = 0
-        errors = []
-
-        for idx, row in enumerate(rows[1:], start=2):
-            if not row or not row[0]:
-                continue
-            username = str(row[0]).strip()
-            if User.objects.filter(username=username).exists():
-                skip_count += 1
-                continue
-
-            gender_map = {"男": 1, "女": 2, "未知": 0}
-            status_map = {"启用": 1, "禁用": 0}
-
-            user = User(
-                username=username,
-                nickname=str(row[1] or "").strip(),
-                real_name=str(row[2] or "").strip(),
-                email=str(row[3] or "").strip(),
-                telephone=str(row[4] or "").strip(),
-                gender=gender_map.get(str(row[5] or "").strip(), 0),
-                status=status_map.get(str(row[6] or "").strip(), 1),
-            )
-            user.set_password("123456")
-            try:
-                user.save()
-                success_count += 1
-            except Exception as e:
-                errors.append(f"第 {idx} 行 ({username}): {str(e)}")
-
-        return APIResponse.success(
-            message=f"导入完成：成功 {success_count} 条，跳过 {skip_count} 条（用户名已存在）",
-            data={"success": success_count, "skipped": skip_count, "errors": errors},
-        )
+        return APIResponse.success(data={"message": "待实现"})
 
     @action(detail=False, methods=["post"])
 

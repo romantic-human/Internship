@@ -12,28 +12,17 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = "__all__"
-        extra_kwargs = {
-            "password": {"write_only": True, "required": False},
-        }
 
 
 class UserListSerializer(serializers.ModelSerializer):
     department_name = serializers.CharField(source="department.dept_name", read_only=True)
-    role_name = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
-            "id", "username", "nickname", "real_name", "email", "telephone",
-            "gender", "department_id", "department_name", "role_name",
-            "status", "last_login", "create_time",
+            "id", "username", "nickname", "email", "telephone",
+            "department_name", "status", "create_time",
         ]
-
-    def get_role_name(self, obj):
-        """通过 prefetch 的用户角色关联获取角色名列表"""
-        relations = obj.userrolerelation_set.all()
-        names = [r.role.role_name for r in relations if r.role.status == 1]
-        return "、".join(names) if names else ""
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -51,20 +40,14 @@ class RefreshTokenSerializer(serializers.Serializer):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    """创建用户（注册 / 后台新增通用）"""
+    """创建用户（注册用）"""
     password = serializers.CharField(write_only=True, required=False, default="123456")
-    department_id = serializers.PrimaryKeyRelatedField(
-        source="department",
-        queryset=User._meta.get_field("department").related_model.objects.all(),
-        required=False,
-        allow_null=True,
-    )
 
     class Meta:
         model = User
         fields = [
             "id", "username", "password", "nickname", "real_name",
-            "email", "telephone", "gender", "department_id", "status",
+            "email", "telephone", "gender", "status",
         ]
         read_only_fields = ["id"]
 

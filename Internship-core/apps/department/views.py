@@ -42,9 +42,6 @@ class DepartmentViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-        dept_name = request.query_params.get("dept_name")
-        if dept_name:
-            queryset = queryset.filter(dept_name__icontains=dept_name)
         serializer = self.get_serializer(queryset, many=True)
         return APIResponse.success(data=serializer.data)
 
@@ -113,37 +110,3 @@ class DepartmentViewSet(viewsets.ModelViewSet):
             instances.append(Department(id=item_id, sort_order=item.get("sortOrder", 0)))
         Department.objects.bulk_update(instances, ["sort_order"])
         return APIResponse.success(message="排序更新成功")
-
-    @action(detail=False, methods=["delete"], url_path="batch")
-    def batch_delete(self, request):
-        ids = request.data.get("ids", [])
-        if not ids:
-            return APIResponse.error(message="请传入 id 列表")
-        has_orphan_children = Department.objects.filter(parent_id__in=ids).exclude(id__in=ids).exists()
-        if has_orphan_children:
-            return APIResponse.error(message="存在子部门不在删除列表中，无法批量删除")
-        deleted, _ = Department.objects.filter(id__in=ids).delete()
-        return APIResponse.success(message=f"成功删除 {deleted} 条")
-
-    @action(detail=False, methods=["get"], url_path="export")
-    def export(self, request):
-        import openpyxl
-        from django.http import HttpResponse
-        queryset = Department.objects.all().order_by("sort_order")[:10000]
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "部门列表"
-        headers = ["部门名称", "负责人", "联系电话", "邮箱", "状态", "排序", "创建时间"]
-        ws.append(headers)
-        for d in queryset:
-            ws.append([
-                d.dept_name, d.leader, d.phone, d.email,
-                "启用" if d.status else "禁用", d.sort_order,
-                d.create_time.strftime("%Y-%m-%d %H:%M:%S") if d.create_time else "",
-            ])
-        response = HttpResponse(
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-        response["Content-Disposition"] = 'attachment; filename="departments.xlsx"'
-        wb.save(response)
-        return response

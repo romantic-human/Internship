@@ -1,3 +1,5 @@
+import openpyxl
+from django.http import HttpResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -126,3 +128,39 @@ class MenuViewSet(viewsets.ModelViewSet):
             instances.append(Menu(id=item_id, sort_order=item.get("sortOrder", 0)))
         Menu.objects.bulk_update(instances, ["sort_order"])
         return APIResponse.success(message="排序更新成功")
+
+    @action(detail=False, methods=["delete"], url_path="batch")
+    def batch(self, request):
+        """批量删除菜单"""
+        ids = request.data.get("ids", [])
+        if not ids:
+            return APIResponse.error(message="ids 不能为空")
+        # 检查是否有子菜单
+        has_children = Menu.objects.filter(parent_id__in=ids).exists()
+        if has_children:
+            return APIResponse.error(message="所选菜单中存在子菜单，无法批量删除")
+        Menu.objects.filter(id__in=ids).delete()
+        return APIResponse.success(message="批量删除成功")
+
+    @action(detail=False, methods=["get"], url_path="export")
+    def export(self, request):
+        """导出菜单"""
+        menus = list(Menu.objects.all().order_by("sort_order"))
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "菜单管理"
+        headers = ["ID", "菜单名称", "类型", "路由路径", "组件", "图标", "权限标识", "排序", "状态"]
+        ws.append(headers)
+        type_map = {0: "目录", 1: "菜单", 2: "按钮"}
+        for m in menus:
+            ws.append([
+                m.id, m.menu_name, type_map.get(m.menu_type, "未知"),
+                m.path, m.component, m.icon, m.permission,
+                m.sort_order, "启用" if m.status else "禁用",
+            ])
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = 'attachment; filename="menus.xlsx"'
+        wb.save(response)
+        return response

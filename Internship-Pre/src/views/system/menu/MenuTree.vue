@@ -4,7 +4,11 @@
       <template #header>
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <span>菜单管理</span>
-          <el-button v-permission="'menu:add'" type="primary" @click="handleAdd">新增菜单</el-button>
+          <div>
+            <el-button type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
+            <el-button type="success" @click="handleExport">导出</el-button>
+            <el-button v-permission="'menu:add'" type="primary" @click="handleAdd">新增菜单</el-button>
+          </div>
         </div>
       </template>
 
@@ -23,7 +27,9 @@
         default-expand-all
         :tree-props="{ children: 'children' }"
         v-loading="loading"
+        @selection-change="onSelectionChange"
       >
+        <el-table-column type="selection" width="50" reserve-selection />
         <el-table-column prop="menu_name" label="菜单名称" min-width="200" />
         <el-table-column prop="icon" label="图标" width="80" align="center">
           <template #default="{ row }">
@@ -59,11 +65,13 @@
           <template #default="{ row }">
             <el-button v-permission="'menu:edit'" link type="primary" @click="handleEdit(row)">编辑</el-button>
             <el-button v-permission="'menu:add'" link type="primary" @click="handleAddChild(row)">新增子菜单</el-button>
-            <el-popconfirm v-permission="'menu:delete'" title="确定删除该菜单？" @confirm="handleDelete(row)">
-              <template #reference>
-                <el-button link type="danger">删除</el-button>
-              </template>
-            </el-popconfirm>
+            <span v-permission="'menu:delete'">
+              <el-popconfirm title="确定删除该菜单？" @confirm="handleDelete(row)">
+                <template #reference>
+                  <el-button link type="danger">删除</el-button>
+                </template>
+              </el-popconfirm>
+            </span>
           </template>
         </el-table-column>
       </el-table>
@@ -82,7 +90,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { getMenuTree, deleteMenu, updateMenuStatus, type MenuItem } from "@/api/menu";
+import { getMenuTree, deleteMenu, updateMenuStatus, batchDeleteMenus, exportMenus, type MenuItem } from "@/api/menu";
 import { ElMessage } from "element-plus";
 import { markRaw, type Component } from "vue";
 import * as ElementPlusIcons from "@element-plus/icons-vue";
@@ -99,6 +107,11 @@ const treeData = ref<MenuItem[]>([]);
 const formVisible = ref(false);
 const currentFormData = ref<Partial<MenuItem> | null>(null);
 const searchKey = ref("");
+const selectedIds = ref<number[]>([]);
+
+function onSelectionChange(rows: MenuItem[]) {
+  selectedIds.value = rows.map(r => r.id);
+}
 
 function typeTagType(t: number): string {
   return t === 0 ? "" : t === 1 ? "primary" : "warning";
@@ -155,6 +168,29 @@ async function handleStatusChange(row: MenuItem, val: number) {
     await updateMenuStatus(row.id, val);
     row.status = val;
     ElMessage.success("状态更新成功");
+  } catch { /* handled by interceptor */ }
+}
+
+async function handleBatchDelete() {
+  if (!selectedIds.value.length) return;
+  try {
+    await batchDeleteMenus(selectedIds.value);
+    ElMessage.success("批量删除成功");
+    selectedIds.value = [];
+    await fetchTree();
+  } catch { /* handled by interceptor */ }
+}
+
+async function handleExport() {
+  try {
+    const blob = await exportMenus() as unknown as Blob;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "menus.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success("导出成功");
   } catch { /* handled by interceptor */ }
 }
 

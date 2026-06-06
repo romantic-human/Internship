@@ -40,11 +40,3 @@ export function updateConfigSort(id: number, sortOrder: number) {
 export function batchSortConfig(data: { id: number; sortOrder: number }[]) {
   return request.post("/config/batch-sort", data);
 }
-
-export function batchDeleteConfigs(ids: number[]) {
-  return request.delete("/config/batch", { data: { ids } });
-}
-
-export function exportConfigs() {
-  return request.get("/config/export", { responseType: "blob" });
-}

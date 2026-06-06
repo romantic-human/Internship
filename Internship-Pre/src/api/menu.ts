@@ -53,3 +53,11 @@ export function updateMenuSort(id: number, sortOrder: number) {
 export function batchSortMenu(data: { id: number; sortOrder: number }[]) {
   return request.post("/menu/batch-sort", data);
 }
+
+export function batchDeleteMenus(ids: number[]) {
+  return request.delete("/menu/batch", { data: { ids } });
+}
+
+export function exportMenus() {
+  return request.get("/menu/export", { responseType: "blob" });
+}
