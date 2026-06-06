@@ -127,3 +127,8 @@ class UserRoleRelation(models.Model):
     class Meta:
         db_table = "sys_user_role_relation"
         unique_together = ("user", "role")
+        verbose_name = "用户-角色关联"
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f"{self.user.username} - {self.role.role_name}"

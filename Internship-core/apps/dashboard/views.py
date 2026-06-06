@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.db.models import Count
+from django.db.models.functions import TruncDate
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -33,14 +34,21 @@ def dashboard_stats(request):
     if no_dept_count > 0:
         dept_distribution.append({"dept_name": "未分配", "user_count": no_dept_count})
 
-    # 近7天登录趋势
-    login_trend = []
-    for i in range(6, -1, -1):
-        day = today - timedelta(days=i)
-        login_trend.append({
-            "date": day.isoformat(),
-            "count": User.objects.filter(last_login__date=day).count(),
-        })
+    # 近7天登录趋势 (1次查询代替7次)
+    seven_days_ago = today - timedelta(days=6)
+    trend_qs = (
+        User.objects
+        .filter(last_login__isnull=False, last_login__date__gte=seven_days_ago)
+        .annotate(login_date=TruncDate("last_login"))
+        .values("login_date")
+        .annotate(count=Count("id"))
+        .order_by("login_date")
+    )
+    trend_dict = {item["login_date"]: item["count"] for item in trend_qs}
+    login_trend = [
+        {"date": (today - timedelta(days=i)).isoformat(), "count": trend_dict.get(today - timedelta(days=i), 0)}
+        for i in range(6, -1, -1)
+    ]
 
     data = {
         "user_count": User.objects.count(),

@@ -16,7 +16,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     def get_role_ids(self, obj) -> list[int]:
-        return list(obj.userrolerelation_set.values_list("role_id", flat=True))
+        return [r.role_id for r in obj.userrolerelation_set.all()]
 
 
 class UserListSerializer(serializers.ModelSerializer):
@@ -32,13 +32,13 @@ class UserListSerializer(serializers.ModelSerializer):
             "status", "last_login", "create_time",
         ]
 
-    def get_role_name(self, obj):
+    def get_role_name(self, obj) -> str:
         relations = obj.userrolerelation_set.all()
         names = [r.role.role_name for r in relations if r.role.status == 1]
         return "、".join(names) if names else ""
 
     def get_role_ids(self, obj) -> list[int]:
-        return list(obj.userrolerelation_set.values_list("role_id", flat=True))
+        return [r.role_id for r in obj.userrolerelation_set.all()]
 
 
 class ChangePasswordSerializer(serializers.Serializer):

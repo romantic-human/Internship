@@ -246,7 +246,7 @@ async function handleAssignUser(row: RoleRecord) {
     const userIds = await getRoleUsers(row.id);
     selectedUserIds.value = userIds;
     // 同步表格选中状态
-    const table = userTableRef.value as unknown as { toggleRowSelection(row: any, selected: boolean): void };
+    const table = userTableRef.value as unknown as { toggleRowSelection(row: UserRecord, selected: boolean): void };
     if (table) {
       userList.value.forEach((u) => {
         table.toggleRowSelection(u, userIds.includes(u.id));

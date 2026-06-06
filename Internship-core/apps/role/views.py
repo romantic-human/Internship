@@ -1,5 +1,5 @@
 """角色模块视图 — 参考《组织架构模块设计方案.md》第 5.3 节"""
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from django.db import transaction
 from utils.response import APIResponse
@@ -26,6 +26,7 @@ class RoleViewSet(viewsets.ModelViewSet):
     permission_key_map = {
         "menus": "role:assign",
         "users": "role:assign",
+        "batch": "role:delete",
     }
 
     def get_permissions(self):

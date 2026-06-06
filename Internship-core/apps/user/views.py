@@ -3,10 +3,10 @@
 import os
 
 from django.conf import settings
-
+from django.db import IntegrityError
 from django.utils import timezone
 
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 
 from rest_framework.decorators import action
 
@@ -25,9 +25,6 @@ from .serializers import (
     UserListSerializer,
 
     ChangePasswordSerializer,
-
-    ResetPasswordSerializer,
-
     RefreshTokenSerializer,
 
     UserCreateSerializer,
@@ -43,10 +40,13 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.select_related("department").prefetch_related("userrolerelation_set__role").all()
 
     serializer_class = UserSerializer
+    permission_key = "user:list"
+    permission_key_map = {
+        "batch": "user:delete",
+    }
 
     def get_permissions(self):
         if self.action in ("login", "register", "refresh_token"):
-            from rest_framework.permissions import AllowAny
             return [AllowAny()]
         return [IsAuthenticated(), HasPermission()]
 
@@ -234,7 +234,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
             user = serializer.save()
 
-        except Exception:
+        except IntegrityError:
 
             return APIResponse.conflict(message="用户名已存在")
 
@@ -326,25 +326,19 @@ class UserViewSet(viewsets.ModelViewSet):
 
         """修改状态 — PUT /api/user/:id/status"""
 
-        try:
+        user = self.get_object()
 
-            user = self.get_object()
+        status_val = request.data.get("status")
 
-            status_val = request.data.get("status")
+        if status_val not in (0, 1):
 
-            if status_val not in (0, 1):
+            return APIResponse.error(message="状态值无效", code=2000, http_status=400)
 
-                return APIResponse.error(message="状态值无效", code=2000, http_status=400)
+        user.status = status_val
 
-            user.status = status_val
+        user.save(update_fields=["status"])
 
-            user.save(update_fields=["status"])
-
-            return APIResponse.success(message="状态更新成功")
-
-        except Exception:
-
-            return APIResponse.error(message="用户不存在", code=2004, http_status=404)
+        return APIResponse.success(message="状态更新成功")
 
     @action(detail=False, methods=["put"], url_path="reset-password")
     def reset_password(self, request):
@@ -431,7 +425,7 @@ class UserViewSet(viewsets.ModelViewSet):
         import csv
         from django.http import HttpResponse
 
-        users = User.objects.all().order_by("-create_time")
+        users = self.get_queryset().order_by("-create_time")
         response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
         response["Content-Disposition"] = f"attachment; filename=users_{timezone.now().strftime('%Y%m%d')}.csv"
         writer = csv.writer(response)

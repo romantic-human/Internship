@@ -5,6 +5,9 @@ from django.db import models
 class SystemConfig(models.Model):
     """系统配置表 — 对应设计文档 3.3.10"""
 
+    def __str__(self):
+        return self.config_name
+
     config_name = models.CharField(max_length=64, verbose_name="配置名称")
     config_key = models.CharField(max_length=64, unique=True, verbose_name="配置键")
     config_value = models.TextField(verbose_name="配置值")

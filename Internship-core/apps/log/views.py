@@ -13,6 +13,9 @@ class OperationLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = OperationLog.objects.all()
     serializer_class = OperationLogSerializer
     permission_key = "log:list"
+    permission_key_map = {
+        "clear": "log:delete",
+    }
 
     def get_permissions(self):
         return [IsAuthenticated(), HasPermission()]

@@ -28,8 +28,12 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
     serializer_class = SystemConfigSerializer
     permission_key = "config:list"
 
+    permission_key_map = {
+        "batch": "config:delete",
+    }
+
     def get_permissions(self):
-        if self.action in ("by_key", "panel_get", "panel_save", "batch", "export", "upload"):
+        if self.action in ("by_key", "panel_get", "panel_save", "upload"):
             return [IsAuthenticated()]
         return [IsAuthenticated(), HasPermission()]
 

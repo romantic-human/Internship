@@ -14,6 +14,9 @@ class PermissionViewSet(viewsets.ModelViewSet):
     queryset = Permission.objects.all()
     serializer_class = PermissionSerializer
     permission_key = "permission:list"
+    permission_key_map = {
+        "batch": "permission:delete",
+    }
 
     def get_permissions(self):
         return [IsAuthenticated(), HasPermission()]

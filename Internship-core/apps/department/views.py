@@ -12,6 +12,9 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
     permission_key = "dept:list"
+    permission_key_map = {
+        "batch": "dept:delete",
+    }
 
     def get_permissions(self):
         if self.action == "tree":

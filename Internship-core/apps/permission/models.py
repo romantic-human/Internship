@@ -5,6 +5,9 @@ from django.db import models
 class Permission(models.Model):
     """权限表 — 对应设计文档 3.3.6"""
 
+    def __str__(self):
+        return f"{self.permission_name} ({self.permission_key})"
+
     permission_name = models.CharField(max_length=64, verbose_name="权限名称")
     permission_key = models.CharField(max_length=64, unique=True, verbose_name="权限标识")
     sort_order = models.IntegerField(default=0, verbose_name="排序号")
@@ -22,9 +25,14 @@ class Permission(models.Model):
 class MenuPermissionRelation(models.Model):
     """菜单-权限关联表 — 对应设计文档 3.3.7"""
 
+    def __str__(self):
+        return f"{self.menu} - {self.permission}"
+
     menu = models.ForeignKey("menu.Menu", on_delete=models.CASCADE, verbose_name="菜单")
     permission = models.ForeignKey(Permission, on_delete=models.CASCADE, verbose_name="权限")
 
     class Meta:
         db_table = "sys_menu_permission_relation"
         unique_together = ("menu", "permission")
+        verbose_name = "菜单-权限关联"
+        verbose_name_plural = verbose_name

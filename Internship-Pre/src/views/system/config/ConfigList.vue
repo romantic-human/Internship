@@ -23,7 +23,7 @@
           <el-button @click="filters={config_name:'',config_key:''};page=1;fetchList()">重置</el-button>
         </el-form-item>
       </el-form>
-      <el-table :data="list" v-loading="loading" stripe @selection-change="(rows: any[]) => selectedIds = rows.map(r => r.id)">
+      <el-table :data="list" v-loading="loading" stripe @selection-change="(rows: ConfigItem[]) => selectedIds = rows.map(r => r.id)">
         <template #empty><el-empty description="暂无数据" /></template>
         <el-table-column type="selection" width="45" />
         <el-table-column prop="config_name" label="配置名称" min-width="160" />

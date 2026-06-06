@@ -23,7 +23,7 @@
       <el-table
         :data="filteredTree" row-key="id" default-expand-all
         :tree-props="{ children: 'children' }" v-loading="loading" stripe
-        @selection-change="(rows: any[]) => selectedIds = rows.map(r => r.id)"
+        @selection-change="(rows: DeptItem[]) => selectedIds = rows.map(r => r.id)"
       >
         <template #empty><el-empty description="暂无数据" /></template>
         <el-table-column type="selection" width="45" />
