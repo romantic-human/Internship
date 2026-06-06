@@ -69,7 +69,9 @@ class PermissionViewSet(viewsets.ModelViewSet):
                 permission=instance
             ).values_list("menu_id", flat=True)
             return APIResponse.success(data=list(menu_ids))
-        menu_ids = request.data.get("menuIds", [])
+        menu_ids = request.data.get("menuIds")
+        if not isinstance(menu_ids, list):
+            return APIResponse.error(message="menuIds 必须是数组")
         with transaction.atomic():
             MenuPermissionRelation.objects.filter(permission=instance).delete()
             if menu_ids:

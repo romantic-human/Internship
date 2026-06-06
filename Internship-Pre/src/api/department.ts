@@ -52,4 +52,5 @@ export function batchDeleteDepartments(ids: number[]) {
 
 export function exportDepartments() {
   return request.get("/department/export", { responseType: "blob" });
+
 }

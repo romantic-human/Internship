@@ -2,6 +2,7 @@ import os
 import uuid
 
 from django.conf import settings
+from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -28,7 +29,7 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
     permission_key = "config:list"
 
     def get_permissions(self):
-        if self.action in ("by_key", "panel_get", "panel_save"):
+        if self.action in ("by_key", "panel_get", "panel_save", "batch", "export", "upload"):
             return [IsAuthenticated()]
         return [IsAuthenticated(), HasPermission()]
 
@@ -75,6 +76,16 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
             return APIResponse.success(data=config.config_value)
         return APIResponse.not_found()
 
+    @action(detail=True, methods=["put"], url_path="status")
+    def status(self, request, pk=None):
+        instance = self.get_object()
+        val = request.data.get("status")
+        if val not in (0, 1):
+            return APIResponse.error(message="状态值无效")
+        instance.status = val
+        instance.save()
+        return APIResponse.success(message="状态更新成功")
+
     @action(detail=True, methods=["put"], url_path="sort")
     def sort(self, request, pk=None):
         instance = self.get_object()
@@ -95,6 +106,27 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
             instances.append(SystemConfig(id=item_id, sort_order=item.get("sortOrder", 0)))
         SystemConfig.objects.bulk_update(instances, ["sort_order"])
         return APIResponse.success(message="排序更新成功")
+
+    @action(detail=False, methods=["delete"], url_path="batch")
+    def batch(self, request):
+        ids = request.data.get("ids", [])
+        if not ids:
+            return APIResponse.error(message="ids 不能为空")
+        SystemConfig.objects.filter(id__in=ids).delete()
+        return APIResponse.success(message="批量删除成功")
+
+    @action(detail=False, methods=["get"])
+    def export(self, request):
+        import csv
+        from django.http import HttpResponse
+        queryset = SystemConfig.objects.all().order_by("sort_order")
+        response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
+        response["Content-Disposition"] = f"attachment; filename=configs_{timezone.now().strftime('%Y%m%d')}.csv"
+        writer = csv.writer(response)
+        writer.writerow(["配置名称", "配置键", "配置值", "类型", "排序", "状态"])
+        for c in queryset:
+            writer.writerow([c.config_name, c.config_key, c.config_value, c.get_config_type_display(), c.sort_order, c.status])
+        return response
 
     @action(detail=False, methods=["get"], url_path="panel")
     def panel_get(self, request):

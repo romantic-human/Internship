@@ -59,7 +59,6 @@ class Command(BaseCommand):
 
         log_m = self._m(sys_m, "操作日志", 1, "Document", 6, "/system/log", "system/log/LogList")
         config_m = self._m(sys_m, "系统配置", 1, "Tools", 7, "/system/config", "system/config/ConfigList")
-
         self.stdout.write(f"  [OK] 菜单树: 7 个一级菜单 + 12 个按钮")
 
         # ── 3. 权限 ────────────────────────────────────────
@@ -79,7 +78,8 @@ class Command(BaseCommand):
             "log:list": ("日志查询", log_m), "log:delete": ("日志清空", log_m),
             "log:export": ("日志导出", log_m),
             "config:list": ("配置查询", config_m), "config:add": ("配置新增", config_m),
-            "config:edit": ("配置编辑", config_m),
+            "config:edit": ("配置编辑", config_m), "config:delete": ("配置删除", config_m),
+
         }
         for key, (name, menu) in perm_map.items():
             perm, _ = Permission.objects.get_or_create(

@@ -76,10 +76,7 @@ class MenuViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="tree")
     def tree(self, request):
-        menu_name = request.query_params.get("menu_name", "")
-        qs = Menu.objects.all()
-        if menu_name:
-            qs = qs.filter(menu_name__icontains=menu_name)
+        qs = self.get_queryset()
         all_menus = list(qs.order_by("sort_order"))
         parent_map = {}
         for m in all_menus:

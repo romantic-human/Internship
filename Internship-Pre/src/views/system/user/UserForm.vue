@@ -39,6 +39,11 @@
       <el-form-item label="手机号" prop="telephone">
         <el-input v-model="form.telephone" placeholder="请输入手机号" />
       </el-form-item>
+      <el-form-item label="角色">
+        <el-select v-model="form.role_ids" multiple style="width:100%" placeholder="请选择角色" clearable>
+          <el-option v-for="r in roleOptions" :key="r.id" :label="r.role_name" :value="r.id" />
+        </el-select>
+      </el-form-item>
       <el-form-item label="状态">
         <el-switch v-model="form.status" :active-value="1" :inactive-value="0" />
       </el-form-item>
@@ -54,6 +59,7 @@
 import { ref, computed, watch, onMounted } from "vue";
 import { createUser, updateUser, type UserRecord } from "@/api/user";
 import { getDepartmentTree, type DeptItem } from "@/api/department";
+import { getAllRoles, type RoleRecord } from "@/api/role";
 import { ElMessage } from "element-plus";
 import type { FormInstance } from "element-plus";
 
@@ -67,6 +73,7 @@ const emit = defineEmits<{ close: []; success: [] }>();
 const formRef = ref<FormInstance>();
 const submitting = ref(false);
 const deptOptions = ref<DeptItem[]>([]);
+const roleOptions = ref<RoleRecord[]>([]);
 
 const form = ref({
   username: "",
@@ -76,6 +83,7 @@ const form = ref({
   department_id: null as number | null,
   email: "",
   telephone: "",
+  role_ids: [] as number[],
   status: 1,
 });
 
@@ -98,12 +106,13 @@ watch(
         department_id: val.department_id ?? null,
         email: val.email || "",
         telephone: val.telephone || "",
+        role_ids: val.role_ids || [],
         status: val.status ?? 1,
       };
     } else {
       form.value = {
         username: "", nickname: "", real_name: "", gender: 0,
-        department_id: null, email: "", telephone: "", status: 1,
+        department_id: null, email: "", telephone: "", role_ids: [], status: 1,
       };
     }
   },
@@ -112,6 +121,7 @@ watch(
 
 onMounted(async () => {
   deptOptions.value = await getDepartmentTree();
+  roleOptions.value = await getAllRoles();
 });
 
 function handleClose() {

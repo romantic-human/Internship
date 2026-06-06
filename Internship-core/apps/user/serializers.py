@@ -1,6 +1,6 @@
 """用户模块序列化器 — 参考《组织架构模块设计方案.md》第 5.2 节"""
 from rest_framework import serializers
-from .models import User
+from .models import User, UserRoleRelation
 
 
 class LoginSerializer(serializers.Serializer):
@@ -9,20 +9,26 @@ class LoginSerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    role_ids = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = User
         fields = "__all__"
+
+    def get_role_ids(self, obj) -> list[int]:
+        return list(obj.userrolerelation_set.values_list("role_id", flat=True))
 
 
 class UserListSerializer(serializers.ModelSerializer):
     department_name = serializers.CharField(source="department.dept_name", read_only=True)
     role_name = serializers.SerializerMethodField()
+    role_ids = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
         fields = [
             "id", "username", "nickname", "real_name", "email", "telephone",
-            "gender", "department_id", "department_name", "role_name",
+            "gender", "department_id", "department_name", "role_name", "role_ids",
             "status", "last_login", "create_time",
         ]
 
@@ -30,6 +36,9 @@ class UserListSerializer(serializers.ModelSerializer):
         relations = obj.userrolerelation_set.all()
         names = [r.role.role_name for r in relations if r.role.status == 1]
         return "、".join(names) if names else ""
+
+    def get_role_ids(self, obj) -> list[int]:
+        return list(obj.userrolerelation_set.values_list("role_id", flat=True))
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -49,20 +58,31 @@ class RefreshTokenSerializer(serializers.Serializer):
 class UserCreateSerializer(serializers.ModelSerializer):
     """创建用户（注册用）"""
     password = serializers.CharField(write_only=True, required=False, default="123456")
+    department_id = serializers.PrimaryKeyRelatedField(
+        source="department",
+        queryset=User._meta.get_field("department").related_model.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    role_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
 
     class Meta:
         model = User
         fields = [
             "id", "username", "password", "nickname", "real_name",
-            "email", "telephone", "gender", "status",
+            "email", "telephone", "gender", "department_id", "status",
+            "role_ids",
         ]
         read_only_fields = ["id"]
 
     def create(self, validated_data):
+        role_ids = validated_data.pop("role_ids", [])
         password = validated_data.pop("password", "123456")
         user = User(**validated_data)
         user.set_password(password)
         user.save()
+        for rid in role_ids:
+            UserRoleRelation.objects.get_or_create(user=user, role_id=rid)
         return user
 
 

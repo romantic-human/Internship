@@ -33,6 +33,10 @@ export function deleteConfig(id: number) {
   return request.delete(`/config/${id}`);
 }
 
+export function updateConfigStatus(id: number, status: number) {
+  return request.put(`/config/${id}/status`, { status });
+}
+
 export function updateConfigSort(id: number, sortOrder: number) {
   return request.put(`/config/${id}/sort`, { sortOrder });
 }
@@ -47,4 +51,5 @@ export function batchDeleteConfigs(ids: number[]) {
 
 export function exportConfigs() {
   return request.get("/config/export", { responseType: "blob" });
+
 }

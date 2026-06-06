@@ -7,7 +7,7 @@
           <div>
             <el-button type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
             <el-button type="success" @click="handleExport">导出</el-button>
-            <el-upload :show-file-list="false" accept=".xlsx,.xls" :before-upload="handleImport" style="display:inline-block;margin:0 12px">
+            <el-upload :show-file-list="false" accept=".xlsx,.xls" :before-upload="handleImport" style="display:inline-block">
               <el-button type="warning">导入</el-button>
             </el-upload>
             <el-button v-permission="'role:add'" type="primary" @click="handleAdd">新增角色</el-button>
@@ -32,6 +32,7 @@
       </el-form>
 
       <el-table :data="list" v-loading="loading" stripe @selection-change="onSelectionChange">
+        <template #empty><el-empty description="暂无数据" /></template>
         <el-table-column type="selection" width="50" />
         <el-table-column prop="role_name" label="角色名称" min-width="150" />
         <el-table-column prop="role_key" label="角色标识" width="130" />
@@ -144,7 +145,7 @@ import {
 } from "@/api/role";
 import { getMenuTree, type MenuItem } from "@/api/menu";
 import { getUserList, type UserRecord } from "@/api/user";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import type { ElTree } from "element-plus";
 import RoleForm from "./RoleForm.vue";
 
@@ -245,9 +246,9 @@ async function handleAssignUser(row: RoleRecord) {
     const userIds = await getRoleUsers(row.id);
     selectedUserIds.value = userIds;
     // 同步表格选中状态
-    const table = userTableRef.value as any;
+    const table = userTableRef.value as unknown as { toggleRowSelection(row: any, selected: boolean): void };
     if (table) {
-      userList.value.forEach((u: any) => {
+      userList.value.forEach((u) => {
         table.toggleRowSelection(u, userIds.includes(u.id));
       });
     }
@@ -265,8 +266,8 @@ async function handleSaveUser() {
   }
 }
 
-function onUserSelectionChange(rows: any[]) {
-  selectedUserIds.value = rows.map((r: any) => r.id);
+function onUserSelectionChange(rows: UserRecord[]) {
+  selectedUserIds.value = rows.map((r) => r.id);
 }
 
 async function handleExport() {
@@ -295,11 +296,18 @@ function onSelectionChange(rows: RoleRecord[]) {
 
 async function handleBatchDelete() {
   if (!selectedIds.value.length) return;
-  await batchDeleteRoles(selectedIds.value);
-  ElMessage.success("批量删除成功");
-  selectedIds.value = [];
-  await fetchList();
+  try {
+    await ElMessageBox.confirm(`确定删除选中的 ${selectedIds.value.length} 个角色？`, "提示");
+    await batchDeleteRoles(selectedIds.value);
+    ElMessage.success("批量删除成功");
+    selectedIds.value = [];
+    await fetchList();
+  } catch { /* cancel */ }
 }
 
 onMounted(fetchList);
 </script>
+<style scoped>
+.mb-2 { margin-bottom: 12px; }
+.mt-3 { margin-top: 16px; }
+</style>

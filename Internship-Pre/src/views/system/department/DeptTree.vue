@@ -5,18 +5,27 @@
         <div class="card-header">
           <span>部门管理</span>
           <div>
-            <el-input v-model="keyword" placeholder="部门名称" clearable style="width:200px;margin-right:8px" @input="onKeywordChange" />
             <el-button :disabled="selectedIds.length === 0" type="danger" @click="handleBatchDelete">批量删除</el-button>
-            <el-button @click="handleExport">导出</el-button>
+            <el-button type="success" @click="handleExport">导出</el-button>
             <el-button v-permission="'dept:add'" type="primary" @click="handleAdd">新增部门</el-button>
           </div>
         </div>
       </template>
+      <el-form inline class="mb-2">
+        <el-form-item label="部门名称">
+          <el-input v-model="keyword" placeholder="部门名称" clearable style="width:200px" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="fetchTree">查询</el-button>
+          <el-button @click="keyword='';fetchTree()">重置</el-button>
+        </el-form-item>
+      </el-form>
       <el-table
         :data="filteredTree" row-key="id" default-expand-all
-        :tree-props="{ children: 'children' }" v-loading="loading"
+        :tree-props="{ children: 'children' }" v-loading="loading" stripe
         @selection-change="(rows: any[]) => selectedIds = rows.map(r => r.id)"
       >
+        <template #empty><el-empty description="暂无数据" /></template>
         <el-table-column type="selection" width="45" />
         <el-table-column prop="dept_name" label="部门名称" min-width="200" />
         <el-table-column prop="leader" label="负责人" width="120" />
@@ -56,19 +65,20 @@ const currentFormData = ref<Partial<DeptItem> | null>(null);
 const keyword = ref("");
 const selectedIds = ref<number[]>([]);
 
-function filterTree(items: DeptItem[], kw: string): DeptItem[] {
-  return items.reduce<DeptItem[]>((acc, item) => {
-    const match = !kw || item.dept_name?.includes(kw);
-    const children = item.children ? filterTree(item.children, kw) : [];
-    if (match || children.length > 0) {
-      acc.push({ ...item, children });
-    }
-    return acc;
-  }, []);
-}
-const filteredTree = computed(() => keyword.value ? filterTree(treeData.value, keyword.value) : treeData.value);
-
-function onKeywordChange() { /* reactivity handles it */ }
+const filteredTree = computed(() => {
+  if (!keyword.value) return treeData.value;
+  function filter(items: DeptItem[]): DeptItem[] {
+    return items.reduce<DeptItem[]>((acc, item) => {
+      const match = item.dept_name?.includes(keyword.value);
+      const children = item.children ? filter(item.children) : [];
+      if (match || children.length > 0) {
+        acc.push({ ...item, children });
+      }
+      return acc;
+    }, []);
+  }
+  return filter(treeData.value);
+});
 
 async function fetchTree() {
   loading.value = true;
@@ -105,3 +115,6 @@ async function handleExport() {
 }
 onMounted(fetchTree);
 </script>
+<style scoped>
+.mb-2 { margin-bottom: 12px; }
+</style>

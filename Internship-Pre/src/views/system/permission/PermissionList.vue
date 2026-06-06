@@ -29,6 +29,7 @@
       </el-form>
 
       <el-table :data="list" v-loading="loading" stripe @selection-change="onSelectionChange">
+        <template #empty><el-empty description="暂无数据" /></template>
         <el-table-column type="selection" width="50" />
         <el-table-column prop="permission_name" label="权限名称" min-width="160" />
         <el-table-column prop="permission_key" label="权限标识" min-width="180" />
@@ -92,7 +93,7 @@ import {
   type PermissionItem,
 } from "@/api/permission";
 import { getMenuTree, type MenuItem } from "@/api/menu";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import type { ElTree } from "element-plus";
 import PermissionForm from "./PermissionForm.vue";
 
@@ -145,11 +146,12 @@ function onSelectionChange(rows: PermissionItem[]) {
 async function handleBatchDelete() {
   if (!selectedIds.value.length) return;
   try {
+    await ElMessageBox.confirm(`确定删除选中的 ${selectedIds.value.length} 条权限？`, "提示");
     await batchDeletePermissions(selectedIds.value);
     ElMessage.success("批量删除成功");
     selectedIds.value = [];
     await fetchList();
-  } catch { /* handled by interceptor */ }
+  } catch { /* cancel */ }
 }
 
 async function handleExport() {
@@ -189,3 +191,7 @@ async function handleDelete(row: PermissionItem) {
 }
 onMounted(fetchList);
 </script>
+<style scoped>
+.mb-2 { margin-bottom: 12px; }
+.mt-3 { margin-top: 16px; }
+</style>

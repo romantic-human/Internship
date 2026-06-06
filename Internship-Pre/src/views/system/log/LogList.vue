@@ -6,7 +6,6 @@
           <span>操作日志</span>
           <div>
             <el-button type="success" @click="handleExport">导出</el-button>
-            <el-button @click="fetchList">刷新</el-button>
             <el-button v-permission="'log:delete'" type="danger" @click="handleClear">清空日志</el-button>
           </div>
         </div>
@@ -37,6 +36,7 @@
         </el-form-item>
       </el-form>
       <el-table :data="list" v-loading="loading" stripe>
+        <template #empty><el-empty description="暂无数据" /></template>
         <el-table-column prop="username" label="用户名" width="100" />
         <el-table-column prop="module" label="模块" width="100" />
         <el-table-column prop="operation" label="操作类型" width="120" />

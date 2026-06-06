@@ -70,6 +70,7 @@ export interface UserRecord {
   department_id: number | null;
   department_name?: string;
   role_name?: string;
+  role_ids: number[];
   last_login?: string | null;
   create_time: string;
 }
@@ -103,8 +104,8 @@ export function resetPassword(data: { userId: number; password?: string }) {
 }
 
 // ── 导出 / 导入 ───────────────────────────────────────────────
-export function exportUsers() {
-  return request.get("/user/export", { responseType: "blob" });
+export function exportUsers(params?: Record<string, any>) {
+  return request.get("/user/export", { params, responseType: "blob" });
 }
 
 export function importUsers(file: File): Promise<{ success: number; skipped: number; errors: string[] }> {

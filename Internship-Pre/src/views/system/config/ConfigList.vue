@@ -2,20 +2,29 @@
   <div class="config-page">
     <el-card>
       <template #header>
-        <div class="card-header">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <span>系统配置</span>
           <div>
-            <el-input v-model="filters.config_name" placeholder="配置名称" clearable style="width:160px;margin-right:8px" />
-            <el-input v-model="filters.config_key" placeholder="配置键" clearable style="width:160px;margin-right:8px" />
-            <el-button type="primary" @click="page=1;fetchList()">查询</el-button>
-            <el-button @click="filters={config_name:'',config_key:''};page=1;fetchList()">重置</el-button>
             <el-button :disabled="selectedIds.length === 0" type="danger" @click="handleBatchDelete">批量删除</el-button>
-            <el-button @click="handleExport">导出</el-button>
+            <el-button type="success" @click="handleExport">导出</el-button>
             <el-button v-permission="'config:add'" type="primary" @click="handleAdd">新增配置</el-button>
           </div>
         </div>
       </template>
+      <el-form :model="filters" inline class="mb-2">
+        <el-form-item label="配置名称">
+          <el-input v-model="filters.config_name" placeholder="配置名称" clearable style="width:160px" />
+        </el-form-item>
+        <el-form-item label="配置键">
+          <el-input v-model="filters.config_key" placeholder="配置键" clearable style="width:160px" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="page=1;fetchList()">查询</el-button>
+          <el-button @click="filters={config_name:'',config_key:''};page=1;fetchList()">重置</el-button>
+        </el-form-item>
+      </el-form>
       <el-table :data="list" v-loading="loading" stripe @selection-change="(rows: any[]) => selectedIds = rows.map(r => r.id)">
+        <template #empty><el-empty description="暂无数据" /></template>
         <el-table-column type="selection" width="45" />
         <el-table-column prop="config_name" label="配置名称" min-width="160" />
         <el-table-column prop="config_key" label="配置键" min-width="180" />
@@ -27,7 +36,9 @@
         </el-table-column>
         <el-table-column prop="sort_order" label="排序" width="70" align="center" />
         <el-table-column label="状态" width="80" align="center">
-          <template #default="{ row }"><el-tag :type="row.status ? 'success' : 'danger'" size="small">{{ row.status ? "启用" : "禁用" }}</el-tag></template>
+          <template #default="{ row }">
+            <el-switch :model-value="row.status" :active-value="1" :inactive-value="0" size="small" @change="(val: number) => handleStatusChange(row.id, val)" />
+          </template>
         </el-table-column>
         <el-table-column prop="create_time" label="创建时间" width="170" />
         <el-table-column label="操作" width="150" fixed="right">
@@ -49,7 +60,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { getConfigList, deleteConfig, batchDeleteConfigs, exportConfigs, type ConfigItem } from "@/api/config";
+import { getConfigList, deleteConfig, updateConfigStatus, batchDeleteConfigs, exportConfigs, type ConfigItem } from "@/api/config";
 import { ElMessage, ElMessageBox } from "element-plus";
 import ConfigForm from "./ConfigForm.vue";
 
@@ -77,6 +88,9 @@ function handleEdit(row: ConfigItem) { currentFormData.value = { ...row }; formV
 async function handleDelete(row: ConfigItem) {
   await deleteConfig(row.id); ElMessage.success("删除成功"); await fetchList();
 }
+async function handleStatusChange(id: number, val: number) {
+  await updateConfigStatus(id, val); ElMessage.success("状态更新成功");
+}
 async function handleBatchDelete() {
   try {
     await ElMessageBox.confirm(`确定删除选中的 ${selectedIds.value.length} 条配置？`, "提示");
@@ -92,7 +106,7 @@ async function handleExport() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `系统配置_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.download = `系统配置_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
     ElMessage.success("导出成功");
@@ -100,3 +114,7 @@ async function handleExport() {
 }
 onMounted(fetchList);
 </script>
+<style scoped>
+.mb-2 { margin-bottom: 12px; }
+.mt-3 { margin-top: 16px; }
+</style>

@@ -15,9 +15,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
 from utils import APIResponse, HasPermission
-
-from .models import User
-
+from .models import User, UserRoleRelation
 from .serializers import (
 
     LoginSerializer,
@@ -46,10 +44,47 @@ class UserViewSet(viewsets.ModelViewSet):
 
     serializer_class = UserSerializer
 
+    def get_permissions(self):
+        if self.action in ("login", "register", "refresh_token"):
+            from rest_framework.permissions import AllowAny
+            return [AllowAny()]
+        return [IsAuthenticated(), HasPermission()]
+
     def get_serializer_class(self):
+        if self.action == "create":
+            return UserCreateSerializer
         if self.action == "list":
             return UserListSerializer
         return UserSerializer
+
+    def create(self, request, *args, **kwargs):
+        """新增用户 — 返回标准格式"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return APIResponse.success(data=serializer.data, message="新增成功")
+
+    def update(self, request, *args, **kwargs):
+        """编辑用户 — 返回标准格式"""
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        role_ids = request.data.get("role_ids")
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        if role_ids is not None and isinstance(role_ids, list):
+            instance.userrolerelation_set.exclude(role_id__in=role_ids).delete()
+            existing = set(instance.userrolerelation_set.values_list("role_id", flat=True))
+            for rid in role_ids:
+                if rid not in existing:
+                    UserRoleRelation.objects.get_or_create(user=instance, role_id=rid)
+        return APIResponse.success(data=serializer.data, message="更新成功")
+
+    def destroy(self, request, *args, **kwargs):
+        """删除用户 — 返回标准格式"""
+        instance = self.get_object()
+        instance.delete()
+        return APIResponse.success(message="删除成功")
 
     def list(self, request, *args, **kwargs):
         """用户列表（分页 + 搜索过滤）"""
@@ -393,28 +428,16 @@ class UserViewSet(viewsets.ModelViewSet):
     def export(self, request):
 
         """导出用户 — GET /api/user/export"""
-        import openpyxl
+        import csv
         from django.http import HttpResponse
 
-        users = User.objects.select_related("department").all()[:10000]
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "用户列表"
-        headers = ["用户名", "昵称", "真实姓名", "邮箱", "手机号", "性别", "状态", "创建时间"]
-        ws.append(headers)
-        gender_map = {0: "未知", 1: "男", 2: "女"}
+        users = User.objects.all().order_by("-create_time")
+        response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
+        response["Content-Disposition"] = f"attachment; filename=users_{timezone.now().strftime('%Y%m%d')}.csv"
+        writer = csv.writer(response)
+        writer.writerow(["用户名", "昵称", "邮箱", "手机号", "性别", "状态", "创建时间"])
         for u in users:
-            ws.append([
-                u.username, u.nickname, u.real_name, u.email, u.telephone,
-                gender_map.get(u.gender, "未知"),
-                "启用" if u.status else "禁用",
-                u.create_time.strftime("%Y-%m-%d %H:%M:%S") if u.create_time else "",
-            ])
-        response = HttpResponse(
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-        response["Content-Disposition"] = 'attachment; filename="users.xlsx"'
-        wb.save(response)
+            writer.writerow([u.username, u.nickname or "", u.email or "", u.telephone or "", u.get_gender_display() if hasattr(u, "gender") else "", u.status, u.create_time])
         return response
 
     @action(detail=False, methods=["post"], url_path="import")

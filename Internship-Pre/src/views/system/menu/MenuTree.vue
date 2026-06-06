@@ -18,6 +18,7 @@
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="fetchTree">查询</el-button>
+          <el-button @click="searchKey='';fetchTree()">重置</el-button>
         </el-form-item>
       </el-form>
 
@@ -27,8 +28,10 @@
         default-expand-all
         :tree-props="{ children: 'children' }"
         v-loading="loading"
+        stripe
         @selection-change="onSelectionChange"
       >
+        <template #empty><el-empty description="暂无数据" /></template>
         <el-table-column type="selection" width="50" reserve-selection />
         <el-table-column prop="menu_name" label="菜单名称" min-width="200" />
         <el-table-column prop="icon" label="图标" width="80" align="center">
@@ -91,7 +94,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { getMenuTree, deleteMenu, updateMenuStatus, batchDeleteMenus, exportMenus, type MenuItem } from "@/api/menu";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { markRaw, type Component } from "vue";
 import * as ElementPlusIcons from "@element-plus/icons-vue";
 import MenuForm from "./MenuForm.vue";
@@ -173,6 +176,11 @@ async function handleStatusChange(row: MenuItem, val: number) {
 
 async function handleBatchDelete() {
   if (!selectedIds.value.length) return;
+  await ElMessageBox.confirm(`确定删除选中的 ${selectedIds.value.length} 个菜单？`, "批量删除", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning",
+  });
   try {
     await batchDeleteMenus(selectedIds.value);
     ElMessage.success("批量删除成功");
@@ -196,3 +204,7 @@ async function handleExport() {
 
 onMounted(fetchTree);
 </script>
+<style scoped>
+.mb-2 { margin-bottom: 12px; }
+.mt-3 { margin-top: 16px; }
+</style>
