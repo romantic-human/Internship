@@ -5,6 +5,15 @@
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <span>用户管理</span>
           <div>
+            <el-button type="success" @click="handleExport">导出 Excel</el-button>
+            <el-upload
+              :show-file-list="false"
+              accept=".xlsx,.xls"
+              :before-upload="handleImport"
+              style="display:inline-block;margin:0 8px"
+            >
+              <el-button type="warning">批量导入用户</el-button>
+            </el-upload>
             <el-button v-permission="'user:add'" type="primary" @click="handleAdd">新增用户</el-button>
           </div>
         </div>
@@ -102,6 +111,8 @@ import {
   deleteUser,
   updateUserStatus,
   resetPassword,
+  exportUsers,
+  importUsers,
   type UserRecord,
 } from "@/api/user";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -167,4 +178,26 @@ function handleResetPwd(row: UserRecord) {
 }
 
 onMounted(fetchList);
+
+async function handleExport() {
+  try {
+    const blob = await exportUsers() as unknown as Blob;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "users.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success("导出成功");
+  } catch { /* handled by interceptor */ }
+}
+
+async function handleImport(file: File) {
+  try {
+    const res = await importUsers(file);
+    ElMessage.success(`导入完成：成功 ${res.success} 条，跳过 ${res.skipped} 条`);
+    await fetchList();
+  } catch { /* handled by interceptor */ }
+  return false; // prevent el-upload default
+}
 </script>
