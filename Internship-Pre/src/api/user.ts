@@ -69,6 +69,8 @@ export interface UserRecord {
   status: number;
   department_id: number | null;
   department_name?: string;
+  role_name?: string;
+  last_login?: string | null;
   create_time: string;
 }
 

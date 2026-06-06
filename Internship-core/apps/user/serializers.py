@@ -19,13 +19,21 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserListSerializer(serializers.ModelSerializer):
     department_name = serializers.CharField(source="department.dept_name", read_only=True)
+    role_name = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             "id", "username", "nickname", "real_name", "email", "telephone",
-            "gender", "department_id", "department_name", "status", "create_time",
+            "gender", "department_id", "department_name", "role_name",
+            "status", "last_login", "create_time",
         ]
+
+    def get_role_name(self, obj):
+        """通过 prefetch 的用户角色关联获取角色名列表"""
+        relations = obj.userrolerelation_set.all()
+        names = [r.role.role_name for r in relations if r.role.status == 1]
+        return "、".join(names) if names else ""
 
 
 class ChangePasswordSerializer(serializers.Serializer):
