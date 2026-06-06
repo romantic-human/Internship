@@ -156,6 +156,10 @@ class RoleViewSet(viewsets.ModelViewSet):
             else:
                 data_rows = rows[1:]
 
+            # 校验必须包含角色名称和角色标识列
+            if "role_name" not in col_index or "role_key" not in col_index:
+                return APIResponse.error(message="文件格式错误：未找到角色名称或角色标识列，请导入角色数据文件")
+
             count = 0
             for row in data_rows:
                 cells = list(row)

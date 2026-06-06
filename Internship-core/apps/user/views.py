@@ -42,9 +42,34 @@ class UserViewSet(viewsets.ModelViewSet):
 
     """用户管理 CRUD"""
 
-    queryset = User.objects.all()
+    queryset = User.objects.select_related("department").prefetch_related("userrolerelation_set__role").all()
 
     serializer_class = UserSerializer
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return UserListSerializer
+        return UserSerializer
+
+    def list(self, request, *args, **kwargs):
+        """用户列表（分页 + 搜索过滤）"""
+        queryset = self.filter_queryset(self.get_queryset())
+        username = request.query_params.get("username", "").strip()
+        status_val = request.query_params.get("status")
+        department_id = request.query_params.get("department_id")
+        if username:
+            queryset = queryset.filter(username__icontains=username)
+        if status_val is not None and status_val != "":
+            queryset = queryset.filter(status=int(status_val))
+        if department_id:
+            queryset = queryset.filter(department_id=int(department_id))
+        queryset = queryset.order_by("-create_time")
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
+        return APIResponse.success(data={"records": serializer.data, "total": queryset.count()})
 
     @action(detail=False, methods=["post"], permission_classes=[AllowAny])
 
@@ -368,16 +393,118 @@ class UserViewSet(viewsets.ModelViewSet):
     def export(self, request):
 
         """导出用户 — GET /api/user/export"""
+        import openpyxl
+        from django.http import HttpResponse
 
-        return APIResponse.success(data={"message": "待实现"})
+        users = User.objects.select_related("department").all()[:10000]
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "用户列表"
+        headers = ["用户名", "昵称", "真实姓名", "邮箱", "手机号", "性别", "状态", "创建时间"]
+        ws.append(headers)
+        gender_map = {0: "未知", 1: "男", 2: "女"}
+        for u in users:
+            ws.append([
+                u.username, u.nickname, u.real_name, u.email, u.telephone,
+                gender_map.get(u.gender, "未知"),
+                "启用" if u.status else "禁用",
+                u.create_time.strftime("%Y-%m-%d %H:%M:%S") if u.create_time else "",
+            ])
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = 'attachment; filename="users.xlsx"'
+        wb.save(response)
+        return response
 
     @action(detail=False, methods=["post"], url_path="import")
 
     def import_(self, request):
 
         """导入用户 — POST /api/user/import"""
+        import openpyxl
+        from io import BytesIO
 
-        return APIResponse.success(data={"message": "待实现"})
+        file = request.FILES.get("file")
+        if not file:
+            return APIResponse.error(message="请上传文件")
+        try:
+            wb = openpyxl.load_workbook(BytesIO(file.read()))
+            ws = wb.active
+            rows = list(ws.iter_rows(values_only=True))
+            if not rows:
+                return APIResponse.error(message="文件为空")
+
+            header_map = {
+                "用户名": "username", "username": "username",
+                "昵称": "nickname", "nickname": "nickname",
+                "真实姓名": "real_name", "real_name": "real_name",
+                "邮箱": "email", "email": "email",
+                "手机号": "telephone", "telephone": "telephone",
+                "性别": "gender", "gender": "gender",
+                "状态": "status", "status": "status",
+            }
+            header_row = [str(h).strip() if h else "" for h in rows[0]]
+            col_index = {}
+            for i, h in enumerate(header_row):
+                if h in header_map:
+                    col_index[header_map[h]] = i
+
+            if "username" not in col_index:
+                return APIResponse.error(message="文件格式错误：未找到用户名列（用户名/username）")
+
+            success = 0
+            skipped = 0
+            errors = []
+            for idx, row in enumerate(rows[1:], start=2):
+                cells = list(row)
+                username = cells[col_index["username"]] if col_index.get("username") is not None and col_index.get("username") < len(cells) else None
+                if not username:
+                    skipped += 1
+                    errors.append(f"第{idx}行：用户名为空")
+                    continue
+                username = str(username).strip()
+
+                nickname = str(cells[col_index["nickname"]]).strip() if "nickname" in col_index and col_index["nickname"] < len(cells) and cells[col_index["nickname"]] else ""
+                real_name = str(cells[col_index["real_name"]]).strip() if "real_name" in col_index and col_index["real_name"] < len(cells) and cells[col_index["real_name"]] else ""
+                email_val = str(cells[col_index["email"]]).strip() if "email" in col_index and col_index["email"] < len(cells) and cells[col_index["email"]] else ""
+                telephone = str(cells[col_index["telephone"]]).strip() if "telephone" in col_index and col_index["telephone"] < len(cells) and cells[col_index["telephone"]] else ""
+                gender_val = cells[col_index["gender"]] if "gender" in col_index and col_index["gender"] < len(cells) else 0
+                status_val = cells[col_index["status"]] if "status" in col_index and col_index["status"] < len(cells) else 1
+
+                if isinstance(gender_val, str):
+                    gender_map = {"男": 1, "女": 2, "未知": 0}
+                    gender_val = gender_map.get(gender_val, 0)
+                elif gender_val is None:
+                    gender_val = 0
+                if isinstance(status_val, str):
+                    status_val = 1 if status_val == "启用" else 0
+                elif status_val is None:
+                    status_val = 1
+
+                try:
+                    user, created = User.objects.update_or_create(
+                        username=username,
+                        defaults={
+                            "nickname": nickname,
+                            "real_name": real_name,
+                            "email": email_val,
+                            "telephone": telephone,
+                            "gender": int(gender_val),
+                            "status": int(status_val),
+                        }
+                    )
+                    if created:
+                        user.set_password("123456")
+                        user.save(update_fields=["password"])
+                    success += 1
+                except Exception as e:
+                    skipped += 1
+                    errors.append(f"第{idx}行：{str(e)}")
+
+            return APIResponse.success(data={"success": success, "skipped": skipped, "errors": errors}, message=f"导入完成：成功 {success} 条，跳过 {skipped} 条")
+        except Exception as e:
+            return APIResponse.error(message=f"导入失败：{str(e)}")
 
     @action(detail=False, methods=["post"])
 
