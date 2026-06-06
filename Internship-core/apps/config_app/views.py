@@ -1,5 +1,5 @@
 from rest_framework import viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from utils.response import APIResponse
 from utils.permissions import HasPermission
@@ -13,7 +13,7 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
     permission_key = "config:list"
 
     def get_permissions(self):
-        if self.action == "by_key":
+        if self.action in ("by_key", "panel_get", "panel_save"):
             return [IsAuthenticated()]
         return [IsAuthenticated(), HasPermission()]
 
@@ -113,3 +113,79 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
         response["Content-Disposition"] = 'attachment; filename="configs.xlsx"'
         wb.save(response)
         return response
+
+    # ── 配置面板接口 ─────────────────────────────────────────────
+
+    # 面板默认配置项定义
+    PANEL_DEFAULTS = {
+        "system.name": "企业智能分析平台",
+        "system.logo": "",
+        "log.enabled": "1",
+        "log.retention_days": "90",
+        "log.alert_enabled": "1",
+        "security.level": "高",
+        "security.two_factor": "1",
+        "security.password_policy": "至少8位，包含数字与大小写字母",
+    }
+
+    @action(detail=False, methods=["get"], url_path="panel")
+    def panel_get(self, request):
+        """批量获取面板配置 — GET /api/config/panel"""
+        configs = SystemConfig.objects.filter(
+            config_key__in=self.PANEL_DEFAULTS.keys()
+        )
+        data = {c.config_key: c.config_value for c in configs}
+        # 补齐默认值
+        for key, default in self.PANEL_DEFAULTS.items():
+            if key not in data:
+                data[key] = default
+        return APIResponse.success(data=data)
+
+    @action(detail=False, methods=["post"], url_path="panel-save")
+    def panel_save(self, request):
+        """批量保存面板配置 — POST /api/config/panel-save"""
+        payload = request.data
+        if not isinstance(payload, dict):
+            return APIResponse.error(message="请传入键值对对象")
+        for key, value in payload.items():
+            if key not in self.PANEL_DEFAULTS:
+                continue
+            obj, created = SystemConfig.objects.get_or_create(
+                config_key=key,
+                defaults={
+                    "config_name": key,
+                    "config_value": str(value),
+                    "config_type": 0,
+                    "status": 1,
+                },
+            )
+            if not created:
+                obj.config_value = str(value)
+                obj.save(update_fields=["config_value", "update_time"])
+        return APIResponse.success(message="配置保存成功")
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def upload_image(request):
+    """通用图片上传 — POST /api/config/upload"""
+    import os
+    from django.conf import settings
+    file = request.FILES.get("file")
+    if not file:
+        return APIResponse.error(message="请选择文件", code=2000, http_status=400)
+    if file.size > 2 * 1024 * 1024:
+        return APIResponse.error(message="文件大小不能超过 2MB", code=2000, http_status=400)
+    ext = os.path.splitext(file.name)[1].lower()
+    if ext not in (".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp"):
+        return APIResponse.error(message="不支持的格式，请上传 JPG/PNG/GIF/SVG/WebP", code=2000, http_status=400)
+    upload_dir = os.path.join(settings.MEDIA_ROOT, "uploads")
+    os.makedirs(upload_dir, exist_ok=True)
+    import uuid
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join(upload_dir, filename)
+    with open(filepath, "wb") as f:
+        for chunk in file.chunks():
+            f.write(chunk)
+    url = f"{settings.MEDIA_URL}uploads/{filename}"
+    return APIResponse.success(message="上传成功", data={"url": url})

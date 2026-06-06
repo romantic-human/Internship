@@ -28,7 +28,7 @@ class UserViewSet(viewsets.ModelViewSet):
     """用户管理 CRUD"""
     permission_key = "user:list"
 
-    queryset = User.objects.select_related("department").all()
+    queryset = User.objects.select_related("department").prefetch_related("userrolerelation_set__role").all()
 
     serializer_class = UserSerializer
 
