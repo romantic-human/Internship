@@ -54,8 +54,8 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-pagination v-if="total > pageSize" v-model:current-page="page" :page-size="pageSize" :total="total"
-        layout="total, prev, pager, next" @current-change="fetchList" class="mt-3" />
+      <el-pagination v-if="total > pageSize" v-model:current-page="page" :page-size="pageSize" :page-sizes="[10, 20, 50, 100]" :total="total"
+        layout="total, sizes, prev, pager, next, jumper" @current-change="fetchList" @size-change="fetchList" class="mt-3" />
     </el-card>
     <PermissionForm v-if="formVisible" :visible="formVisible" :form-data="currentFormData"
       @close="formVisible = false" @success="fetchList" />

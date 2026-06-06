@@ -5,6 +5,7 @@
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <span>操作日志</span>
           <div>
+            <el-button type="success" @click="handleExport">导出</el-button>
             <el-button @click="fetchList">刷新</el-button>
             <el-button v-permission="'log:delete'" type="danger" @click="handleClear">清空日志</el-button>
           </div>
@@ -19,9 +20,20 @@
             <el-option label="成功" :value="1" /><el-option label="失败" :value="0" />
           </el-select>
         </el-form-item>
+        <el-form-item label="时间范围">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            value-format="YYYY-MM-DD"
+            style="width:240px"
+          />
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="page=1;fetchList()">查询</el-button>
-          <el-button @click="filters={};page=1;fetchList()">重置</el-button>
+          <el-button @click="filters={};dateRange=null;page=1;fetchList()">重置</el-button>
         </el-form-item>
       </el-form>
       <el-table :data="list" v-loading="loading" stripe>
@@ -42,8 +54,8 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-pagination v-if="total > pageSize" v-model:current-page="page" :page-size="pageSize" :total="total"
-        layout="total, prev, pager, next" @current-change="fetchList" class="mt-3" />
+      <el-pagination v-if="total > pageSize" v-model:current-page="page" :page-size="pageSize" :page-sizes="[10, 20, 50, 100]" :total="total"
+        layout="total, sizes, prev, pager, next, jumper" @current-change="fetchList" @size-change="fetchList" class="mt-3" />
     </el-card>
     <el-dialog v-model="detailVisible" title="日志详情" width="700px">
       <pre class="log-detail">{{ detailData }}</pre>
@@ -53,7 +65,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { getLogList, clearLogs, getLogDetail, type LogItem } from "@/api/log";
+import { getLogList, clearLogs, getLogDetail, exportLogs, type LogItem } from "@/api/log";
 import { ElMessage, ElMessageBox } from "element-plus";
 
 const loading = ref(false);
@@ -62,6 +74,7 @@ const total = ref(0);
 const page = ref(1);
 const pageSize = 10;
 const filters = ref<Record<string, any>>({});
+const dateRange = ref<[string, string] | null>(null);
 const detailVisible = ref(false);
 const detailData = ref("");
 
@@ -70,6 +83,10 @@ async function fetchList() {
   try {
     const params: Record<string, any> = { page: page.value, pageSize };
     Object.entries(filters.value).filter(([_, v]) => v !== "" && v !== undefined && v !== null).forEach(([k, v]) => params[k] = v);
+    if (dateRange.value) {
+      params.startTime = dateRange.value[0];
+      params.endTime = dateRange.value[1];
+    }
     const res = await getLogList(params);
     list.value = res.records;
     total.value = res.total;
@@ -85,6 +102,24 @@ async function handleClear() {
     await ElMessageBox.confirm("确定清空所有日志？", "提示");
     await clearLogs(); ElMessage.success("日志已清空"); await fetchList();
   } catch { /* cancel */ }
+}
+async function handleExport() {
+  try {
+    const params: Record<string, any> = {};
+    Object.entries(filters.value).filter(([_, v]) => v !== "" && v !== undefined && v !== null).forEach(([k, v]) => params[k] = v);
+    if (dateRange.value) {
+      params.startTime = dateRange.value[0];
+      params.endTime = dateRange.value[1];
+    }
+    const blob = await exportLogs(params) as unknown as Blob;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "operation_log.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success("导出成功");
+  } catch { /* handled by interceptor */ }
 }
 onMounted(fetchList);
 </script>

@@ -4,10 +4,19 @@
       <template #header>
         <div class="card-header">
           <span>系统配置</span>
-          <el-button v-permission="'config:add'" type="primary" @click="handleAdd">新增配置</el-button>
+          <div>
+            <el-input v-model="filters.config_name" placeholder="配置名称" clearable style="width:160px;margin-right:8px" />
+            <el-input v-model="filters.config_key" placeholder="配置键" clearable style="width:160px;margin-right:8px" />
+            <el-button type="primary" @click="page=1;fetchList()">查询</el-button>
+            <el-button @click="filters={config_name:'',config_key:''};page=1;fetchList()">重置</el-button>
+            <el-button :disabled="selectedIds.length === 0" type="danger" @click="handleBatchDelete">批量删除</el-button>
+            <el-button @click="handleExport">导出</el-button>
+            <el-button v-permission="'config:add'" type="primary" @click="handleAdd">新增配置</el-button>
+          </div>
         </div>
       </template>
-      <el-table :data="list" v-loading="loading" stripe>
+      <el-table :data="list" v-loading="loading" stripe @selection-change="(rows: any[]) => selectedIds = rows.map(r => r.id)">
+        <el-table-column type="selection" width="45" />
         <el-table-column prop="config_name" label="配置名称" min-width="160" />
         <el-table-column prop="config_key" label="配置键" min-width="180" />
         <el-table-column prop="config_value" label="配置值" min-width="200" show-overflow-tooltip />
@@ -30,8 +39,8 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-pagination v-if="total > pageSize" v-model:current-page="page" :page-size="pageSize" :total="total"
-        layout="total, prev, pager, next" @current-change="fetchList" class="mt-3" />
+      <el-pagination v-if="total > pageSize" v-model:current-page="page" :page-size="pageSize" :page-sizes="[10, 20, 50, 100]" :total="total"
+        layout="total, sizes, prev, pager, next, jumper" @current-change="fetchList" @size-change="fetchList" class="mt-3" />
     </el-card>
     <ConfigForm v-if="formVisible" :visible="formVisible" :form-data="currentFormData"
       @close="formVisible = false" @success="fetchList" />
@@ -40,8 +49,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { getConfigList, deleteConfig, type ConfigItem } from "@/api/config";
-import { ElMessage } from "element-plus";
+import { getConfigList, deleteConfig, batchDeleteConfigs, exportConfigs, type ConfigItem } from "@/api/config";
+import { ElMessage, ElMessageBox } from "element-plus";
 import ConfigForm from "./ConfigForm.vue";
 
 const TYPE_MAP: Record<number, string> = { 0: "字符串", 1: "数字", 2: "布尔", 3: "JSON" };
@@ -52,6 +61,8 @@ const page = ref(1);
 const pageSize = 10;
 const formVisible = ref(false);
 const currentFormData = ref<Partial<ConfigItem> | null>(null);
+const filters = ref({ config_name: "", config_key: "" });
+const selectedIds = ref<number[]>([]);
 
 async function fetchList() {
   loading.value = true;
@@ -65,6 +76,26 @@ function handleAdd() { currentFormData.value = null; formVisible.value = true; }
 function handleEdit(row: ConfigItem) { currentFormData.value = { ...row }; formVisible.value = true; }
 async function handleDelete(row: ConfigItem) {
   await deleteConfig(row.id); ElMessage.success("删除成功"); await fetchList();
+}
+async function handleBatchDelete() {
+  try {
+    await ElMessageBox.confirm(`确定删除选中的 ${selectedIds.value.length} 条配置？`, "提示");
+    await batchDeleteConfigs(selectedIds.value);
+    ElMessage.success("批量删除成功");
+    selectedIds.value = [];
+    await fetchList();
+  } catch { /* cancel or error */ }
+}
+async function handleExport() {
+  try {
+    const res = await exportConfigs();
+    const url = window.URL.createObjectURL(res.data as Blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `系统配置_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch { ElMessage.error("导出失败"); }
 }
 onMounted(fetchList);
 </script>

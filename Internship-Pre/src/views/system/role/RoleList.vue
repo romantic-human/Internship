@@ -64,9 +64,11 @@
         v-if="total > pageSize"
         v-model:current-page="page"
         :page-size="pageSize"
+        :page-sizes="[10, 20, 50, 100]"
         :total="total"
-        layout="total, prev, pager, next"
+        layout="total, sizes, prev, pager, next, jumper"
         @current-change="fetchList"
+        @size-change="fetchList"
         class="mt-3"
       />
     </el-card>
