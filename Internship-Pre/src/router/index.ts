@@ -21,6 +21,25 @@ const staticRoutes: RouteRecordRaw[] = [
     component: () => import("@/views/system/profile/Profile.vue"),
     meta: { title: "个人中心" },
   },
+  // RAG 知识库模块
+  {
+    path: "/rag/kb-list",
+    name: "KBList",
+    component: () => import("@/views/rag/KBList.vue"),
+    meta: { title: "知识库管理" },
+  },
+  {
+    path: "/rag/kb-detail",
+    name: "KBDetail",
+    component: () => import("@/views/rag/KBDetail.vue"),
+    meta: { title: "知识库详情" },
+  },
+  {
+    path: "/rag/chat",
+    name: "ChatView",
+    component: () => import("@/views/rag/ChatView.vue"),
+    meta: { title: "AI 问答" },
+  },
   {
     path: "/",
     redirect: "/dashboard",
