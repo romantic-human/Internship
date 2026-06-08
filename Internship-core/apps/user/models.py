@@ -35,7 +35,7 @@ class User(AbstractBaseUser):
     real_name = models.CharField(max_length=64, blank=True, default="", verbose_name="真实姓名")
     email = models.EmailField(max_length=128, blank=True, default="", verbose_name="邮箱")
     telephone = models.CharField(max_length=20, blank=True, default="", verbose_name="手机号")
-    gender = models.SmallIntegerField(default=0, verbose_name="性别")
+    gender = models.SmallIntegerField(default=0, choices=((0, "未知"), (1, "男"), (2, "女")), verbose_name="性别")
     avatar = models.CharField(max_length=255, blank=True, default="", verbose_name="头像")
     department = models.ForeignKey(
         "department.Department",

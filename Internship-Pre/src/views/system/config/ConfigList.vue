@@ -37,7 +37,7 @@
         <el-table-column prop="sort_order" label="排序" width="70" align="center" />
         <el-table-column label="状态" width="80" align="center">
           <template #default="{ row }">
-            <el-switch :model-value="row.status" :active-value="1" :inactive-value="0" size="small" @change="(val: number) => handleStatusChange(row.id, val)" />
+            <el-switch :model-value="row.status" :active-value="1" :inactive-value="0" size="small" @change="(val: number) => handleStatusChange(row, val)" />
           </template>
         </el-table-column>
         <el-table-column prop="create_time" label="创建时间" width="170" />
@@ -50,8 +50,8 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-pagination v-if="total > pageSize" v-model:current-page="page" :page-size="pageSize" :page-sizes="[10, 20, 50, 100]" :total="total"
-        layout="total, sizes, prev, pager, next, jumper" @current-change="fetchList" @size-change="fetchList" class="mt-3" />
+      <el-pagination v-if="total > pageSize" v-model:current-page="page" v-model:page-size="pageSize" :page-sizes="[10, 20, 50, 100]" :total="total"
+        layout="total, sizes, prev, pager, next, jumper" @current-change="fetchList" @size-change="page=1;fetchList()" class="mt-3" />
     </el-card>
     <ConfigForm v-if="formVisible" :visible="formVisible" :form-data="currentFormData"
       @close="formVisible = false" @success="fetchList" />
@@ -69,7 +69,7 @@ const loading = ref(false);
 const list = ref<ConfigItem[]>([]);
 const total = ref(0);
 const page = ref(1);
-const pageSize = 10;
+const pageSize = ref(10);
 const formVisible = ref(false);
 const currentFormData = ref<Partial<ConfigItem> | null>(null);
 const filters = ref({ config_name: "", config_key: "" });
@@ -78,7 +78,7 @@ const selectedIds = ref<number[]>([]);
 async function fetchList() {
   loading.value = true;
   try {
-    const res = await getConfigList({ page: page.value, pageSize });
+    const res = await getConfigList({ page: page.value, pageSize: pageSize.value });
     list.value = res.records;
     total.value = res.total;
   } finally { loading.value = false; }
@@ -88,8 +88,10 @@ function handleEdit(row: ConfigItem) { currentFormData.value = { ...row }; formV
 async function handleDelete(row: ConfigItem) {
   await deleteConfig(row.id); ElMessage.success("删除成功"); await fetchList();
 }
-async function handleStatusChange(id: number, val: number) {
-  await updateConfigStatus(id, val); ElMessage.success("状态更新成功");
+async function handleStatusChange(row: ConfigItem, val: number) {
+  await updateConfigStatus(row.id, val);
+  row.status = val;
+  ElMessage.success("状态更新成功");
 }
 async function handleBatchDelete() {
   try {

@@ -30,10 +30,11 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
 
     permission_key_map = {
         "batch": "config:delete",
+        "panel_save": "config:edit",
     }
 
     def get_permissions(self):
-        if self.action in ("by_key", "panel_get", "panel_save", "upload"):
+        if self.action in ("by_key", "panel_get"):
             return [IsAuthenticated()]
         return [IsAuthenticated(), HasPermission()]
 

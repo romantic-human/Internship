@@ -64,12 +64,12 @@
       <el-pagination
         v-if="total > pageSize"
         v-model:current-page="page"
-        :page-size="pageSize"
+        v-model:page-size="pageSize"
         :page-sizes="[10, 20, 50, 100]"
         :total="total"
         layout="total, sizes, prev, pager, next, jumper"
         @current-change="fetchList"
-        @size-change="fetchList"
+        @size-change="page=1;fetchList()"
         class="mt-3"
       />
     </el-card>
@@ -153,7 +153,7 @@ const loading = ref(false);
 const list = ref<RoleRecord[]>([]);
 const total = ref(0);
 const page = ref(1);
-const pageSize = 10;
+const pageSize = ref(10);
 const formVisible = ref(false);
 const currentFormData = ref<Partial<RoleRecord> | null>(null);
 const filters = reactive({
@@ -180,7 +180,7 @@ const selectedIds = ref<number[]>([]);
 async function fetchList() {
   loading.value = true;
   try {
-    const params: Record<string, any> = { page: page.value, pageSize };
+    const params: Record<string, any> = { page: page.value, pageSize: pageSize.value };
     if (filters.role_name) params.role_name = filters.role_name;
     if (filters.status !== null) params.status = filters.status;
     const res = await getRoleList(params);
@@ -218,10 +218,9 @@ async function handleAssignMenu(row: RoleRecord) {
   currentRoleId.value = row.id;
   menuDialogVisible.value = true;
   menuTreeData.value = await getMenuTree();
-  nextTick(async () => {
-    const menuIds = await getRoleMenus(row.id);
-    menuTreeRef.value?.setCheckedKeys(menuIds);
-  });
+  const menuIds = await getRoleMenus(row.id);
+  await nextTick();
+  menuTreeRef.value?.setCheckedKeys(menuIds);
 }
 
 async function handleSaveMenu() {
@@ -271,14 +270,18 @@ function onUserSelectionChange(rows: UserRecord[]) {
 }
 
 async function handleExport() {
-  const blob = await exportRoles() as unknown as Blob;
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "roles.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-  ElMessage.success("导出成功");
+  try {
+    const blob = await exportRoles() as unknown as Blob;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `角色列表_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success("导出成功");
+  } catch {
+    ElMessage.error("导出失败");
+  }
 }
 
 async function handleImport(file: File) {

@@ -22,11 +22,11 @@ export function register(data: {
   username: string;
   password: string;
   nickname?: string;
-}) {
+}): Promise<LoginResult> {
   return request.post("/user/register", data);
 }
 
-export function refreshTokenApi(data: { refresh: string }) {
+export function refreshTokenApi(data: { refresh: string }): Promise<{ access_token: string; refresh_token: string }> {
   return request.post("/user/refresh-token", data);
 }
 
@@ -38,14 +38,14 @@ export function getUserProfile(): Promise<{
   return request.get("/user/profile");
 }
 
-export function updateUserProfile(data: Record<string, any>) {
+export function updateUserProfile(data: Record<string, any>): Promise<any> {
   return request.put("/user/profile", data);
 }
 
 export function updatePassword(data: {
   old_password: string;
   new_password: string;
-}) {
+}): Promise<any> {
   return request.put("/user/update-password", data);
 }
 
@@ -79,32 +79,36 @@ export function getUserList(params: Record<string, any>): Promise<{ records: Use
   return request.get("/user/", { params });
 }
 
-export function createUser(data: Partial<UserRecord> & { password?: string }) {
+export function getUserDetail(id: number): Promise<UserRecord> {
+  return request.get(`/user/${id}`);
+}
+
+export function createUser(data: Partial<UserRecord> & { password?: string }): Promise<UserRecord> {
   return request.post("/user/", data);
 }
 
-export function updateUser(id: number, data: Partial<UserRecord>) {
+export function updateUser(id: number, data: Partial<UserRecord>): Promise<UserRecord> {
   return request.put(`/user/${id}`, data);
 }
 
-export function deleteUser(id: number) {
+export function deleteUser(id: number): Promise<any> {
   return request.delete(`/user/${id}`);
 }
 
-export function batchDeleteUsers(ids: number[]) {
+export function batchDeleteUsers(ids: number[]): Promise<any> {
   return request.delete("/user/batch", { data: { ids } });
 }
 
-export function updateUserStatus(id: number, status: number) {
+export function updateUserStatus(id: number, status: number): Promise<any> {
   return request.put(`/user/${id}/status`, { status });
 }
 
-export function resetPassword(data: { userId: number; password?: string }) {
+export function resetPassword(data: { userId: number; password?: string }): Promise<any> {
   return request.put("/user/reset-password", data);
 }
 
 // ── 导出 / 导入 ───────────────────────────────────────────────
-export function exportUsers(params?: Record<string, any>) {
+export function exportUsers(params?: Record<string, any>): Promise<Blob> {
   return request.get("/user/export", { params, responseType: "blob" });
 }
 

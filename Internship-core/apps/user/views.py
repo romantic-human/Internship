@@ -1,9 +1,10 @@
 """用户模块视图 — 参考《组织架构模块设计方案.md》第 5.2 节"""
 
 import os
+import uuid
 
 from django.conf import settings
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from rest_framework import viewsets
@@ -43,6 +44,7 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_key = "user:list"
     permission_key_map = {
         "batch": "user:delete",
+        "reset_password": "user:edit",
     }
 
     def get_permissions(self):
@@ -73,11 +75,15 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         if role_ids is not None and isinstance(role_ids, list):
-            instance.userrolerelation_set.exclude(role_id__in=role_ids).delete()
-            existing = set(instance.userrolerelation_set.values_list("role_id", flat=True))
-            for rid in role_ids:
-                if rid not in existing:
-                    UserRoleRelation.objects.get_or_create(user=instance, role_id=rid)
+            with transaction.atomic():
+                instance.userrolerelation_set.exclude(role_id__in=role_ids).delete()
+                existing = set(instance.userrolerelation_set.values_list("role_id", flat=True))
+                new_ids = [rid for rid in role_ids if rid not in existing]
+                if new_ids:
+                    UserRoleRelation.objects.bulk_create(
+                        [UserRoleRelation(user=instance, role_id=rid) for rid in new_ids],
+                        ignore_conflicts=True,
+                    )
         return APIResponse.success(data=serializer.data, message="更新成功")
 
     def destroy(self, request, *args, **kwargs):
@@ -352,7 +358,7 @@ class UserViewSet(viewsets.ModelViewSet):
         except User.DoesNotExist:
             return APIResponse.error(message="用户不存在", code=2004, http_status=404)
         user.set_password(new_password)
-        user.save(update_fields=["password"])
+        user.save(update_fields=["password", "update_time"])
         return APIResponse.success(message="密码已重置")
 
     @action(detail=False, methods=["delete"], url_path="batch")
@@ -577,13 +583,13 @@ class UserViewSet(viewsets.ModelViewSet):
 
             )
 
-        # 保存文件: media/avatars/<username><ext>
+        # 保存文件: media/avatars/<uuid><ext>
 
         avatar_dir = os.path.join(settings.MEDIA_ROOT, "avatars")
 
         os.makedirs(avatar_dir, exist_ok=True)
 
-        filename = f"{user.username}{ext}"
+        filename = f"{uuid.uuid4().hex}{ext}"
 
         filepath = os.path.join(avatar_dir, filename)
 

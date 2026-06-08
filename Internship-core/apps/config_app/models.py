@@ -11,7 +11,7 @@ class SystemConfig(models.Model):
     config_name = models.CharField(max_length=64, verbose_name="配置名称")
     config_key = models.CharField(max_length=64, unique=True, verbose_name="配置键")
     config_value = models.TextField(verbose_name="配置值")
-    config_type = models.SmallIntegerField(default=0, verbose_name="配置类型")
+    config_type = models.SmallIntegerField(default=0, choices=((0, "文本"), (1, "数字"), (2, "布尔"), (3, "JSON")), verbose_name="配置类型")
     remark = models.CharField(max_length=255, blank=True, default="", verbose_name="备注")
     status = models.SmallIntegerField(default=1, verbose_name="状态")
     sort_order = models.IntegerField(default=0, verbose_name="排序号")

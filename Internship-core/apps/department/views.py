@@ -120,6 +120,8 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         ids = request.data.get("ids", [])
         if not ids:
             return APIResponse.error(message="ids 不能为空")
+        if Department.objects.filter(parent_id__in=ids).exclude(id__in=ids).exists():
+            return APIResponse.error(message="存在子部门，无法删除")
         Department.objects.filter(id__in=ids).delete()
         return APIResponse.success(message="批量删除成功")
 

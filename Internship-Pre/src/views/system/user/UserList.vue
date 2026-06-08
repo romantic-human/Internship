@@ -196,11 +196,15 @@ function handleSelectionChange(rows: UserRecord[]) {
 }
 
 async function handleBatchDelete() {
-  await ElMessageBox.confirm(`确定删除选中的 ${selectedRows.value.length} 个用户？`, "批量删除", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning",
-  });
+  try {
+    await ElMessageBox.confirm(`确定删除选中的 ${selectedRows.value.length} 个用户？`, "批量删除", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+  } catch {
+    return;
+  }
   const ids = selectedRows.value.map((r) => r.id);
   await batchDeleteUsers(ids);
   ElMessage.success("批量删除成功");
@@ -224,17 +228,18 @@ async function handleExport() {
   }
 }
 
-function handleImportChange(uploadFile: UploadFile) {
+async function handleImportChange(uploadFile: UploadFile) {
   if (!uploadFile.raw) return;
   importing.value = true;
-  importUsers(uploadFile.raw).then(() => {
+  try {
+    await importUsers(uploadFile.raw);
     ElMessage.success("导入成功");
-    fetchList();
-  }).catch(() => {
+    await fetchList();
+  } catch {
     ElMessage.error("导入失败");
-  }).finally(() => {
+  } finally {
     importing.value = false;
-  });
+  }
 }
 
 onMounted(fetchList);

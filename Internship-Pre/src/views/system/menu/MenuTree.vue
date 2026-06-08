@@ -37,7 +37,7 @@
         <el-table-column prop="icon" label="图标" width="80" align="center">
           <template #default="{ row }">
             <el-icon v-if="row.icon">
-              <component :is="iconMap[row.icon]" />
+              <component :is="iconMap[row.icon] || MenuIcon" />
             </el-icon>
           </template>
         </el-table-column>
@@ -95,7 +95,7 @@
 import { ref, onMounted } from "vue";
 import { getMenuTree, deleteMenu, updateMenuStatus, batchDeleteMenus, exportMenus, type MenuItem } from "@/api/menu";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { markRaw, type Component } from "vue";
+import { markRaw, shallowRef, type Component } from "vue";
 import * as ElementPlusIcons from "@element-plus/icons-vue";
 import MenuForm from "./MenuForm.vue";
 
@@ -103,6 +103,7 @@ const iconMap: Record<string, Component> = {};
 for (const [key, comp] of Object.entries(ElementPlusIcons)) {
   iconMap[key] = markRaw(comp);
 }
+const MenuIcon = shallowRef(ElementPlusIcons["Menu"]);
 const TYPE_MAP: Record<number, string> = { 0: "目录", 1: "菜单", 2: "按钮" };
 
 const loading = ref(false);
@@ -176,11 +177,13 @@ async function handleStatusChange(row: MenuItem, val: number) {
 
 async function handleBatchDelete() {
   if (!selectedIds.value.length) return;
-  await ElMessageBox.confirm(`确定删除选中的 ${selectedIds.value.length} 个菜单？`, "批量删除", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning",
-  });
+  try {
+    await ElMessageBox.confirm(`确定删除选中的 ${selectedIds.value.length} 个菜单？`, "批量删除", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+  } catch { return; }
   try {
     await batchDeleteMenus(selectedIds.value);
     ElMessage.success("批量删除成功");

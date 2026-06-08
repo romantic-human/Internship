@@ -71,7 +71,8 @@ class OperationLogMiddleware(MiddlewareMixin):
         response_body = ""
         if hasattr(response, "data"):
             try:
-                response_body = json.dumps(response.data, ensure_ascii=False)
+                sanitized = sanitize_params(response.data)
+                response_body = json.dumps(sanitized, ensure_ascii=False)
             except (TypeError, AttributeError):
                 response_body = str(getattr(response, "content", b""))
 

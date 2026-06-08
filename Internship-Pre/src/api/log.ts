@@ -23,10 +23,10 @@ export function getLogDetail(id: number): Promise<LogItem> {
   return request.get(`/log/${id}`);
 }
 
-export function clearLogs() {
+export function clearLogs(): Promise<any> {
   return request.delete("/log/clear");
 }
 
-export function exportLogs(params: Record<string, any>) {
+export function exportLogs(params: Record<string, any>): Promise<Blob> {
   return request.get("/log/export", { params, responseType: "blob" });
 }

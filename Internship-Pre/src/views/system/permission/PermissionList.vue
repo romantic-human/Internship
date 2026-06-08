@@ -55,8 +55,8 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-pagination v-if="total > pageSize" v-model:current-page="page" :page-size="pageSize" :page-sizes="[10, 20, 50, 100]" :total="total"
-        layout="total, sizes, prev, pager, next, jumper" @current-change="fetchList" @size-change="fetchList" class="mt-3" />
+      <el-pagination v-if="total > pageSize" v-model:current-page="page" v-model:page-size="pageSize" :page-sizes="[10, 20, 50, 100]" :total="total"
+        layout="total, sizes, prev, pager, next, jumper" @current-change="fetchList" @size-change="page=1;fetchList()" class="mt-3" />
     </el-card>
     <PermissionForm v-if="formVisible" :visible="formVisible" :form-data="currentFormData"
       @close="formVisible = false" @success="fetchList" />
@@ -101,7 +101,7 @@ const loading = ref(false);
 const list = ref<PermissionItem[]>([]);
 const total = ref(0);
 const page = ref(1);
-const pageSize = 10;
+const pageSize = ref(10);
 const formVisible = ref(false);
 const currentFormData = ref<Partial<PermissionItem> | null>(null);
 const selectedIds = ref<number[]>([]);
@@ -120,7 +120,7 @@ const menuSaving = ref(false);
 async function fetchList() {
   loading.value = true;
   try {
-    const params: Record<string, any> = { page: page.value, pageSize };
+    const params: Record<string, any> = { page: page.value, pageSize: pageSize.value };
     if (filters.permission_name) params.permission_name = filters.permission_name;
     if (filters.status !== null) params.status = filters.status;
     const res = await getPermissionList(params);
@@ -155,24 +155,27 @@ async function handleBatchDelete() {
 }
 
 async function handleExport() {
-  const blob = await exportPermissions() as unknown as Blob;
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "permissions.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-  ElMessage.success("导出成功");
+  try {
+    const blob = await exportPermissions() as unknown as Blob;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `权限列表_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success("导出成功");
+  } catch {
+    ElMessage.error("导出失败");
+  }
 }
 
 async function handleBindMenu(row: PermissionItem) {
   currentPermissionId.value = row.id;
   menuDialogVisible.value = true;
   menuTreeData.value = await getMenuTree();
-  nextTick(async () => {
-    const menuIds = await getPermissionMenus(row.id);
-    menuTreeRef.value?.setCheckedKeys(menuIds);
-  });
+  const menuIds = await getPermissionMenus(row.id);
+  await nextTick();
+  menuTreeRef.value?.setCheckedKeys(menuIds);
 }
 
 async function handleSaveBindMenu() {

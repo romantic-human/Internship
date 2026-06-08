@@ -13,10 +13,26 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = "__all__"
+        fields = [
+            "id", "username", "nickname", "real_name", "email", "telephone",
+            "gender", "avatar", "department_id", "status", "is_superuser",
+            "last_login", "create_time", "update_time", "role_ids",
+        ]
+        extra_kwargs = {
+            "password": {"write_only": True},
+        }
 
     def get_role_ids(self, obj) -> list[int]:
         return [r.role_id for r in obj.userrolerelation_set.all()]
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop("password", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
 
 
 class UserListSerializer(serializers.ModelSerializer):

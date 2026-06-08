@@ -39,6 +39,9 @@
       <el-form-item label="手机号" prop="telephone">
         <el-input v-model="form.telephone" placeholder="请输入手机号" />
       </el-form-item>
+      <el-form-item v-if="!isEdit" label="密码" prop="password">
+        <el-input v-model="form.password" type="password" placeholder="留空默认为 123456" show-password />
+      </el-form-item>
       <el-form-item label="角色">
         <el-select v-model="form.role_ids" multiple style="width:100%" placeholder="请选择角色" clearable>
           <el-option v-for="r in roleOptions" :key="r.id" :label="r.role_name" :value="r.id" />
@@ -56,8 +59,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from "vue";
-import { createUser, updateUser, type UserRecord } from "@/api/user";
+import { ref, computed, watch, onMounted, nextTick } from "vue";
+import { createUser, updateUser, getUserDetail, type UserRecord } from "@/api/user";
 import { getDepartmentTree, type DeptItem } from "@/api/department";
 import { getAllRoles, type RoleRecord } from "@/api/role";
 import { ElMessage } from "element-plus";
@@ -77,6 +80,7 @@ const roleOptions = ref<RoleRecord[]>([]);
 
 const form = ref({
   username: "",
+  password: "",
   nickname: "",
   real_name: "",
   gender: 0,
@@ -90,28 +94,34 @@ const form = ref({
 const rules = {
   username: [{ required: true, message: "请输入用户名", trigger: "blur" }],
   email: [{ type: "email", message: "请输入正确邮箱", trigger: "blur" }],
+  password: [{ min: 6, message: "密码最少6位", trigger: "blur" }],
 };
 
 const isEdit = computed(() => !!props.formData?.id);
 
 watch(
   () => props.formData,
-  (val) => {
-    if (val) {
+  async (val) => {
+    if (val && val.id) {
+      let detail = val;
+      if (val.role_ids === undefined) {
+        try { detail = await getUserDetail(val.id); } catch { detail = val; }
+      }
       form.value = {
-        username: val.username || "",
-        nickname: val.nickname || "",
-        real_name: val.real_name || "",
-        gender: val.gender ?? 0,
-        department_id: val.department_id ?? null,
-        email: val.email || "",
-        telephone: val.telephone || "",
-        role_ids: val.role_ids || [],
-        status: val.status ?? 1,
+        username: detail.username || "",
+        password: "",
+        nickname: detail.nickname || "",
+        real_name: detail.real_name || "",
+        gender: detail.gender ?? 0,
+        department_id: detail.department_id ?? null,
+        email: detail.email || "",
+        telephone: detail.telephone || "",
+        role_ids: detail.role_ids || [],
+        status: detail.status ?? 1,
       };
     } else {
       form.value = {
-        username: "", nickname: "", real_name: "", gender: 0,
+        username: "", password: "", nickname: "", real_name: "", gender: 0,
         department_id: null, email: "", telephone: "", role_ids: [], status: 1,
       };
     }
@@ -119,18 +129,26 @@ watch(
   { immediate: true },
 );
 
-onMounted(async () => {
-  deptOptions.value = await getDepartmentTree();
-  roleOptions.value = await getAllRoles();
-});
+watch(() => props.visible, async (v) => {
+  if (v) {
+    deptOptions.value = await getDepartmentTree();
+    roleOptions.value = await getAllRoles();
+    await nextTick();
+    formRef.value?.clearValidate();
+  }
+}, { immediate: true });
 
 function handleClose() {
   emit("close");
 }
 
 async function handleSubmit() {
-  const valid = await formRef.value?.validate().catch(() => false);
-  if (!valid) return;
+  if (!formRef.value) return;
+  try {
+    await formRef.value.validate();
+  } catch {
+    return;
+  }
   submitting.value = true;
   try {
     if (isEdit.value) {
