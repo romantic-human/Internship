@@ -21,30 +21,35 @@ export function getConfigDetail(id: number): Promise<ConfigItem> {
   return request.get(`/config/${id}`);
 }
 
-export function createConfig(data: Partial<ConfigItem>) {
+export function createConfig(data: Partial<ConfigItem>): Promise<ConfigItem> {
   return request.post("/config/", data);
 }
 
-export function updateConfig(id: number, data: Partial<ConfigItem>) {
+export function updateConfig(id: number, data: Partial<ConfigItem>): Promise<ConfigItem> {
   return request.put(`/config/${id}`, data);
 }
 
-export function deleteConfig(id: number) {
+export function deleteConfig(id: number): Promise<any> {
   return request.delete(`/config/${id}`);
 }
 
-export function updateConfigSort(id: number, sortOrder: number) {
+export function updateConfigStatus(id: number, status: number): Promise<any> {
+  return request.put(`/config/${id}/status`, { status });
+}
+
+export function updateConfigSort(id: number, sortOrder: number): Promise<any> {
   return request.put(`/config/${id}/sort`, { sortOrder });
 }
 
-export function batchSortConfig(data: { id: number; sortOrder: number }[]) {
+export function batchSortConfig(data: { id: number; sortOrder: number }[]): Promise<any> {
   return request.post("/config/batch-sort", data);
 }
 
-export function batchDeleteConfigs(ids: number[]) {
+export function batchDeleteConfigs(ids: number[]): Promise<any> {
   return request.delete("/config/batch", { data: { ids } });
 }
 
-export function exportConfigs() {
+export function exportConfigs(): Promise<Blob> {
   return request.get("/config/export", { responseType: "blob" });
+
 }

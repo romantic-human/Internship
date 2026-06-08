@@ -5,6 +5,9 @@ from django.db import models
 class OperationLog(models.Model):
     """操作日志表 — 对应设计文档 3.3.9"""
 
+    def __str__(self):
+        return f"{self.username} - {self.module}/{self.operation}"
+
     username = models.CharField(max_length=64, verbose_name="操作用户")
     module = models.CharField(max_length=64, verbose_name="操作模块")
     operation = models.CharField(max_length=64, verbose_name="操作类型")

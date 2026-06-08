@@ -1,5 +1,5 @@
 """角色模块视图 — 参考《组织架构模块设计方案.md》第 5.3 节"""
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from django.db import transaction
 from utils.response import APIResponse
@@ -15,11 +15,22 @@ import csv
 import openpyxl
 from io import BytesIO
 from django.http import HttpResponse
+from rest_framework.permissions import IsAuthenticated
+from utils.permissions import HasPermission
 
 
 class RoleViewSet(viewsets.ModelViewSet):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
+    permission_key = "role:list"
+    permission_key_map = {
+        "menus": "role:assign",
+        "users": "role:assign",
+        "batch": "role:delete",
+    }
+
+    def get_permissions(self):
+        return [IsAuthenticated(), HasPermission()]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -34,7 +45,7 @@ class RoleViewSet(viewsets.ModelViewSet):
         if role_name:
             qs = qs.filter(role_name__icontains=role_name)
         if status_val is not None and status_val != "":
-            qs = qs.filter(status=status_val)
+            qs = qs.filter(status=int(status_val))
         return qs
 
     def list(self, request, *args, **kwargs):

@@ -51,7 +51,6 @@ class OperationLogMiddleware(MiddlewareMixin):
         duration = int((time.time() - getattr(request, "_log_start_time", time.time())) * 1000)
 
         user = getattr(request, "user", None)
-        user_id = user.id if user and user.is_authenticated else None
         username = user.username if user and user.is_authenticated else ""
 
         parts = [p for p in path.split("/") if p]
@@ -72,7 +71,8 @@ class OperationLogMiddleware(MiddlewareMixin):
         response_body = ""
         if hasattr(response, "data"):
             try:
-                response_body = json.dumps(response.data, ensure_ascii=False)
+                sanitized = sanitize_params(response.data)
+                response_body = json.dumps(sanitized, ensure_ascii=False)
             except (TypeError, AttributeError):
                 response_body = str(getattr(response, "content", b""))
 

@@ -1,6 +1,6 @@
 import openpyxl
 from django.http import HttpResponse
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from utils.response import APIResponse
@@ -13,6 +13,9 @@ class MenuViewSet(viewsets.ModelViewSet):
     queryset = Menu.objects.all()
     serializer_class = MenuSerializer
     permission_key = "menu:list"
+    permission_key_map = {
+        "batch": "menu:delete",
+    }
 
     def get_permissions(self):
         if self.action in ("tree", "options"):
@@ -76,10 +79,7 @@ class MenuViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="tree")
     def tree(self, request):
-        menu_name = request.query_params.get("menu_name", "")
-        qs = Menu.objects.all()
-        if menu_name:
-            qs = qs.filter(menu_name__icontains=menu_name)
+        qs = self.get_queryset()
         all_menus = list(qs.order_by("sort_order"))
         parent_map = {}
         for m in all_menus:
@@ -136,7 +136,7 @@ class MenuViewSet(viewsets.ModelViewSet):
         if not ids:
             return APIResponse.error(message="ids 不能为空")
         # 检查是否有子菜单
-        has_children = Menu.objects.filter(parent_id__in=ids).exists()
+        has_children = Menu.objects.filter(parent_id__in=ids).exclude(id__in=ids).exists()
         if has_children:
             return APIResponse.error(message="所选菜单中存在子菜单，无法批量删除")
         Menu.objects.filter(id__in=ids).delete()

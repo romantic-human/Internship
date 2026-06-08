@@ -17,15 +17,15 @@ export function getPermissionDetail(id: number): Promise<PermissionItem> {
   return request.get(`/permission/${id}`);
 }
 
-export function createPermission(data: Partial<PermissionItem>) {
+export function createPermission(data: Partial<PermissionItem>): Promise<PermissionItem> {
   return request.post("/permission/", data);
 }
 
-export function updatePermission(id: number, data: Partial<PermissionItem>) {
+export function updatePermission(id: number, data: Partial<PermissionItem>): Promise<PermissionItem> {
   return request.put(`/permission/${id}`, data);
 }
 
-export function deletePermission(id: number) {
+export function deletePermission(id: number): Promise<any> {
   return request.delete(`/permission/${id}`);
 }
 
@@ -33,26 +33,26 @@ export function getPermissionMenus(id: number): Promise<number[]> {
   return request.get(`/permission/${id}/menus`);
 }
 
-export function bindPermissionMenus(id: number, menuIds: number[]) {
+export function bindPermissionMenus(id: number, menuIds: number[]): Promise<any> {
   return request.put(`/permission/${id}/menus`, { menuIds });
 }
 
-export function updatePermissionSort(id: number, sortOrder: number) {
+export function updatePermissionSort(id: number, sortOrder: number): Promise<any> {
   return request.put(`/permission/${id}/sort`, { sortOrder });
 }
 
-export function batchSortPermission(data: { id: number; sortOrder: number }[]) {
+export function batchSortPermission(data: { id: number; sortOrder: number }[]): Promise<any> {
   return request.post("/permission/batch-sort", data);
 }
 
-export function batchDeletePermissions(ids: number[]) {
+export function batchDeletePermissions(ids: number[]): Promise<any> {
   return request.delete("/permission/batch", { data: { ids } });
 }
 
-export function exportPermissions() {
+export function exportPermissions(): Promise<Blob> {
   return request.get("/permission/export", { responseType: "blob" });
 }
 
-export function updatePermissionStatus(id: number, status: number) {
+export function updatePermissionStatus(id: number, status: number): Promise<any> {
   return request.put(`/permission/${id}/status`, { status });
 }

@@ -54,10 +54,15 @@ watch(() => props.formData, (val) => {
 
 function handleClose() { emit("close"); }
 async function handleSubmit() {
-  const valid = await formRef.value?.validate().catch(() => false);
-  if (!valid) return; submitting.value = true;
+  if (!formRef.value) return;
   try {
-    const payload = { ...form.value, parent_id: form.value.parent_id || 0 };
+    await formRef.value.validate();
+  } catch {
+    return;
+  }
+  submitting.value = true;
+  try {
+    const payload = { ...form.value, parent_id: form.value.parent_id ?? undefined };
     if (isEdit.value) { await updateDepartment(props.formData!.id!, payload); ElMessage.success("更新成功"); }
     else { await createDepartment(payload); ElMessage.success("新增成功"); }
     emit("success"); emit("close");

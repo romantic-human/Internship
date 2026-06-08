@@ -59,7 +59,6 @@ class Command(BaseCommand):
 
         log_m = self._m(sys_m, "操作日志", 1, "Document", 6, "/system/log", "system/log/LogList")
         config_m = self._m(sys_m, "系统配置", 1, "Tools", 7, "/system/config", "system/config/ConfigList")
-
         self.stdout.write(f"  [OK] 菜单树: 7 个一级菜单 + 12 个按钮")
 
         # ── 3. 权限 ────────────────────────────────────────
@@ -79,7 +78,8 @@ class Command(BaseCommand):
             "log:list": ("日志查询", log_m), "log:delete": ("日志清空", log_m),
             "log:export": ("日志导出", log_m),
             "config:list": ("配置查询", config_m), "config:add": ("配置新增", config_m),
-            "config:edit": ("配置编辑", config_m),
+            "config:edit": ("配置编辑", config_m), "config:delete": ("配置删除", config_m),
+
         }
         for key, (name, menu) in perm_map.items():
             perm, _ = Permission.objects.get_or_create(
@@ -103,6 +103,16 @@ class Command(BaseCommand):
             RoleMenuRelation.objects.get_or_create(role=admin_role, menu_id=mid)
         self.stdout.write(f"  [OK] 管理员拥有全部菜单权限")
 
+        # 普通用户拥有只读菜单权限
+        readonly_keys = ["dept:list", "config:list", "log:list", "user:list", "role:list", "menu:list", "permission:list"]
+        for pk in readonly_keys:
+            perm = Permission.objects.filter(permission_key=pk).first()
+            if perm:
+                mids = MenuPermissionRelation.objects.filter(permission=perm).values_list("menu_id", flat=True)
+                for mid in mids:
+                    RoleMenuRelation.objects.get_or_create(role=user_role, menu_id=mid)
+        self.stdout.write(f"  [OK] 普通用户拥有只读权限")
+
         # ── 5. 用户 ────────────────────────────────────────
         admin = User.objects.filter(username="admin").first()
         if not admin:
@@ -118,11 +128,12 @@ class Command(BaseCommand):
             test = User(username="test", nickname="测试用户", is_superuser=False, status=1, department=tech)
             test.set_password("test123")
             test.save()
+        UserRoleRelation.objects.get_or_create(user=test, role=user_role)
         self.stdout.write(f"  [OK] test / test123")
 
         self.stdout.write(self.style.SUCCESS("\n种子数据创建完成!"))
         self.stdout.write("  管理员: admin / admin123  (全部权限)")
-        self.stdout.write("  普通用户: test / test123  (暂无权限)")
+        self.stdout.write("  普通用户: test / test123  (只读权限)")
 
     def _m(self, parent, name, mtype, icon, sort, path="", component="", permission=""):
         """创建菜单项"""

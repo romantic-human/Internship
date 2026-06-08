@@ -126,9 +126,8 @@ const componentMap: Record<string, () => Promise<any>> = {
   "system/department/DeptTree": () => import("@/views/system/department/DeptTree.vue"),
   "system/permission/PermissionList": () => import("@/views/system/permission/PermissionList.vue"),
   "system/log/LogList": () => import("@/views/system/log/LogList.vue"),
-  "system/config/ConfigList": () => import("@/views/system/config/ConfigPanel.vue"),
+  "system/config/ConfigList": () => import("@/views/system/config/ConfigList.vue"),
   "system/config/ConfigPanel": () => import("@/views/system/config/ConfigPanel.vue"),
-  "system/config/ConfigAdvanced": () => import("@/views/system/config/ConfigList.vue"),
 };
 
 function getComponent(componentPath: string) {
@@ -147,20 +146,17 @@ function buildRoutesFromMenu(menus: MenuItem[]): RouteRecordRaw[] {
   const routes: RouteRecordRaw[] = [];
 
   for (const menu of menus) {
-    // 只处理可见且启用的菜单
     if (menu.visible !== 1 || menu.status !== 1) continue;
 
-    if (menu.menu_type === 1 && menu.path) {
-      // 菜单 → 注册路由
+    if (menu.menu_type === 1 && menu.path && menu.component) {
       routes.push({
         path: menu.path,
-        name: menu.menu_name,
+        name: `menu_${menu.id}`,
         component: getComponent(menu.component),
         meta: { title: menu.menu_name, icon: menu.icon },
       });
     }
 
-    // 目录 → 递归
     if (menu.children && menu.children.length > 0) {
       routes.push(...buildRoutesFromMenu(menu.children));
     }

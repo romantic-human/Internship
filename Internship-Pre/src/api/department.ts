@@ -18,38 +18,39 @@ export function getDepartmentTree(): Promise<DeptItem[]> {
   return request.get("/department/tree");
 }
 
-export function getDepartmentDetail(id: number) {
+export function getDepartmentDetail(id: number): Promise<DeptItem> {
   return request.get(`/department/${id}`);
 }
 
-export function createDepartment(data: Partial<DeptItem>) {
+export function createDepartment(data: Partial<DeptItem>): Promise<DeptItem> {
   return request.post("/department/", data);
 }
 
-export function updateDepartment(id: number, data: Partial<DeptItem>) {
+export function updateDepartment(id: number, data: Partial<DeptItem>): Promise<DeptItem> {
   return request.put(`/department/${id}`, data);
 }
 
-export function deleteDepartment(id: number) {
+export function deleteDepartment(id: number): Promise<any> {
   return request.delete(`/department/${id}`);
 }
 
-export function updateDepartmentStatus(id: number, status: number) {
+export function updateDepartmentStatus(id: number, status: number): Promise<any> {
   return request.put(`/department/${id}/status`, { status });
 }
 
-export function updateDepartmentSort(id: number, sortOrder: number) {
+export function updateDepartmentSort(id: number, sortOrder: number): Promise<any> {
   return request.put(`/department/${id}/sort`, { sortOrder });
 }
 
-export function batchSortDepartment(data: { id: number; sortOrder: number }[]) {
+export function batchSortDepartment(data: { id: number; sortOrder: number }[]): Promise<any> {
   return request.post("/department/batch-sort", data);
 }
 
-export function batchDeleteDepartments(ids: number[]) {
+export function batchDeleteDepartments(ids: number[]): Promise<any> {
   return request.delete("/department/batch", { data: { ids } });
 }
 
-export function exportDepartments() {
+export function exportDepartments(): Promise<Blob> {
   return request.get("/department/export", { responseType: "blob" });
+
 }
