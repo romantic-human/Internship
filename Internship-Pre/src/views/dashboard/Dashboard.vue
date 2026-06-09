@@ -47,7 +47,11 @@
                 <span>{{ row.execution_time }}ms</span>
               </template>
             </el-table-column>
-            <el-table-column prop="create_time" label="时间" min-width="150" />
+            <el-table-column prop="create_time" label="时间" min-width="150">
+              <template #default="{ row }">
+                {{ row.create_time ? formatDate(row.create_time, 'YYYY-MM-DD HH:mm:ss') : '-' }}
+              </template>
+            </el-table-column>
           </el-table>
         </el-card>
       </el-col>
@@ -70,13 +74,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, nextTick } from "vue";
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from "vue";
 import { useAuthStore } from "@/store/auth";
+import { useAppStore } from "@/store/app";
 import { getDashboardStats, type DashboardStats } from "@/api/dashboard";
 import { User, Menu as MenuIcon, Key, OfficeBuilding, Document, Setting, Refresh, Timer } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
+import { formatDate } from "@/utils/format";
 
 const authStore = useAuthStore();
+const appStore = useAppStore();
+const isDark = computed(() => appStore.theme === "dark");
 const loading = ref(false);
 const currentTime = ref("");
 let timer: ReturnType<typeof setInterval> | null = null;
@@ -113,6 +121,31 @@ function updateTime() {
   currentTime.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 }
 
+/** 暗色主题 ECharts 配色 */
+function chartTheme() {
+  if (!isDark.value) return {};
+  return {
+    backgroundColor: "transparent",
+    textStyle: { color: "#c8cad0" },
+    title: { textStyle: { color: "#e0e2e8" } },
+    tooltip: {
+      backgroundColor: "rgba(30,31,40,0.95)",
+      borderColor: "#3a3b45",
+      textStyle: { color: "#c8cad0" },
+    },
+  };
+}
+
+function axisTheme() {
+  if (!isDark.value) return {};
+  return {
+    axisLine: { lineStyle: { color: "#3a3b45" } },
+    axisTick: { lineStyle: { color: "#3a3b45" } },
+    axisLabel: { color: "#8b8d97" },
+    splitLine: { lineStyle: { color: "#2a2b35" } },
+  };
+}
+
 function initCharts() {
   if (pieChartRef.value) {
     pieChart = echarts.init(pieChartRef.value);
@@ -128,27 +161,40 @@ function initCharts() {
 
 function updateCharts() {
   if (pieChart && stats.value.dept_distribution?.length) {
+    const dark = isDark.value;
     pieChart.setOption({
-      tooltip: { trigger: "item" },
+      ...chartTheme(),
+      tooltip: { trigger: "item", ...chartTheme().tooltip },
+      legend: {
+        bottom: 0,
+        type: "scroll",
+        textStyle: { color: isDark.value ? "#c8cad0" : "#606266" },
+      },
       series: [{
         type: "pie",
-        radius: ["40%", "65%"],
+        radius: ["35%", "60%"],
+        center: ["50%", "45%"],
         avoidLabelOverlap: true,
-        itemStyle: { borderRadius: 4, borderColor: "#fff", borderWidth: 2 },
-        label: { show: true, formatter: "{b}: {c}" },
+        itemStyle: { borderRadius: 4, borderColor: dark ? "#1e1f28" : "#fff", borderWidth: 2 },
+        label: { show: false },
+        emphasis: {
+          label: { show: true, formatter: "{b}: {c} ({d}%)", color: dark ? "#c8cad0" : "#333" },
+        },
         data: stats.value.dept_distribution.map((d) => ({ name: d.dept_name, value: d.user_count })),
       }],
     });
   }
   if (lineChart && stats.value.login_trend?.length) {
     lineChart.setOption({
-      tooltip: { trigger: "axis" },
+      ...chartTheme(),
+      tooltip: { trigger: "axis", ...chartTheme().tooltip },
       grid: { left: 40, right: 16, top: 16, bottom: 24 },
       xAxis: {
         type: "category",
         data: stats.value.login_trend.map((d) => d.date.slice(5)),
+        ...axisTheme(),
       },
-      yAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "value", minInterval: 1, ...axisTheme() },
       series: [{
         type: "line",
         smooth: true,
@@ -170,6 +216,11 @@ async function fetchStats() {
   } catch { /* handled */ }
   finally { loading.value = false; }
 }
+
+/** 主题切换时重新渲染图表 */
+watch(isDark, () => {
+  nextTick(() => updateCharts());
+});
 
 onMounted(() => {
   updateTime();
@@ -211,5 +262,12 @@ onUnmounted(() => {
 
 .dark .welcome-header h2 { color: #e0e2e8; }
 .dark .stat-value { color: #e0e2e8; }
+.dark .time-text { color: #8b8d97; }
+.dark .stat-label { color: #8b8d97; }
+.dark .card-header { color: #c8cad0; }
+.dark .dashboard .el-card { background: #1e1f28; border-color: #2a2b35; }
+.dark .dashboard .el-card__header { border-bottom-color: #2a2b35; color: #c8cad0; }
+.dark .dashboard .el-table { --el-table-bg-color: #1a1b23; --el-table-tr-bg-color: #1a1b23; --el-table-header-bg-color: #1e1f28; --el-table-row-hover-bg-color: #25262f; --el-table-border-color: #2a2b35; --el-table-text-color: #c8cad0; --el-table-header-text-color: #8b8d97; }
+.dark .dashboard .el-tag { --el-tag-bg-color: rgba(64,158,255,0.15); --el-tag-border-color: transparent; --el-tag-text-color: #79b8f8; }
 
 </style>

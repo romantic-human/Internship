@@ -44,10 +44,18 @@ const staticRoutes: RouteRecordRaw[] = [
     path: "/",
     redirect: "/dashboard",
   },
-  // 捕获所有未匹配路由
+  // 错误页面
+  {
+    path: "/403",
+    name: "Forbidden",
+    component: () => import("@/views/error/403.vue"),
+    meta: { title: "无权限", layout: false },
+  },
   {
     path: "/:pathMatch(.*)*",
-    redirect: "/dashboard",
+    name: "NotFound",
+    component: () => import("@/views/error/404.vue"),
+    meta: { title: "页面不存在", layout: false },
   },
 ];
 
@@ -56,7 +64,7 @@ const router = createRouter({
   routes: staticRoutes,
 });
 
-const whiteList = ["/login"];
+const whiteList = ["/login", "/403"];
 
 let dynamicRoutesLoading: Promise<void> | null = null;
 
