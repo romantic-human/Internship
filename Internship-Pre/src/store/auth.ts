@@ -128,6 +128,11 @@ const componentMap: Record<string, () => Promise<any>> = {
   "system/log/LogList": () => import("@/views/system/log/LogList.vue"),
   "system/config/ConfigList": () => import("@/views/system/config/ConfigList.vue"),
   "system/config/ConfigPanel": () => import("@/views/system/config/ConfigPanel.vue"),
+  "system/config/ConfigAdvanced": () => import("@/views/system/config/ConfigList.vue"),
+  // RAG 知识库
+  "rag/KBList": () => import("@/views/rag/KBList.vue"),
+  "rag/KBDetail": () => import("@/views/rag/KBDetail.vue"),
+  "rag/ChatView": () => import("@/views/rag/ChatView.vue"),
 };
 
 function getComponent(componentPath: string) {
