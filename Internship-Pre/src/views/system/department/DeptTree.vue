@@ -41,7 +41,7 @@
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button v-permission="'dept:edit'" link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-popconfirm v-permission="'dept:delete'" title="确定删除？" @confirm="handleDelete(row)">
+            <el-popconfirm v-if="authStore.hasPermission('dept:delete')" v-permission="'dept:delete'" title="确定删除？" @confirm="handleDelete(row)">
               <template #reference><el-button link type="danger">删除</el-button></template>
             </el-popconfirm>
           </template>
@@ -57,8 +57,11 @@
 import { ref, computed, onMounted, nextTick, watch } from "vue";
 import { getDepartmentTree, deleteDepartment, updateDepartmentStatus, batchDeleteDepartments, exportDepartments, batchSortDepartment, type DeptItem } from "@/api/department";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { useAuthStore } from "@/store/auth";
 import DeptForm from "./DeptForm.vue";
 import Sortable from "sortablejs";
+
+const authStore = useAuthStore();
 
 const loading = ref(false);
 const treeData = ref<DeptItem[]>([]);
