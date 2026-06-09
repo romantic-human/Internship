@@ -122,7 +122,7 @@ class DocumentViewSet(viewsets.GenericViewSet):
     def list(self, request, *args, **kwargs):
         kb_id = request.query_params.get("knowledge_base")
         queryset = self.get_queryset()
-        if kb_id:
+        if kb_id and kb_id.isdigit():
             queryset = queryset.filter(knowledge_base_id=kb_id)
         page = self.paginate_queryset(queryset)
         if page is not None:
