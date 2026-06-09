@@ -5,9 +5,6 @@ from django.db import models
 class Department(models.Model):
     """部门表 — 对应设计文档 3.3.8"""
 
-    def __str__(self):
-        return self.dept_name
-
     parent = models.ForeignKey(
         "self",
         on_delete=models.CASCADE,

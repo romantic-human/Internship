@@ -11,6 +11,7 @@
               @click="handleBatchDelete"
             >批量删除{{ selectedRows.length ? ` (${selectedRows.length})` : '' }}</el-button>
             <el-button type="success" @click="handleExport" :loading="exporting">导出用户</el-button>
+            <el-button type="info" @click="handleDownloadTemplate">下载模板</el-button>
             <el-upload
               ref="uploadRef"
               :auto-upload="false"
@@ -36,9 +37,37 @@
             <el-option label="禁用" :value="0" />
           </el-select>
         </el-form-item>
+        <el-form-item label="部门">
+          <el-tree-select
+            v-model="filters.department_id"
+            :data="deptOptions"
+            :props="{ label: 'dept_name', children: 'children', value: 'id' }"
+            placeholder="全部部门"
+            check-strictly
+            clearable
+            filterable
+            style="width:160px"
+          />
+        </el-form-item>
+        <el-form-item label="角色">
+          <el-select v-model="filters.role_id" placeholder="全部角色" clearable style="width:140px">
+            <el-option v-for="r in roleOptions" :key="r.id" :label="r.role_name" :value="r.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="注册时间">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始"
+            end-placeholder="结束"
+            value-format="YYYY-MM-DD"
+            style="width:220px"
+          />
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="page=1;fetchList()">查询</el-button>
-          <el-button @click="filters.username='';filters.status=null;page=1;fetchList()">重置</el-button>
+          <el-button @click="resetFilters">重置</el-button>
         </el-form-item>
       </el-form>
 
@@ -123,8 +152,11 @@ import {
   exportUsers,
   importUsers,
   batchDeleteUsers,
+  downloadUserTemplate,
   type UserRecord,
 } from "@/api/user";
+import { getDepartmentTree, type DeptItem } from "@/api/department";
+import { getAllRoles, type RoleRecord } from "@/api/role";
 import { ElMessage, ElMessageBox } from "element-plus";
 import type { UploadFile } from "element-plus";
 import { useAuthStore } from "@/store/auth";
@@ -142,9 +174,14 @@ const currentFormData = ref<Partial<UserRecord> | null>(null);
 const exporting = ref(false);
 const importing = ref(false);
 const selectedRows = ref<UserRecord[]>([]);
+const deptOptions = ref<DeptItem[]>([]);
+const roleOptions = ref<RoleRecord[]>([]);
+const dateRange = ref<[string, string] | null>(null);
 const filters = reactive({
   username: "",
   status: null as number | null,
+  department_id: null as number | null,
+  role_id: null as number | null,
 });
 
 async function fetchList() {
@@ -153,6 +190,12 @@ async function fetchList() {
     const params: Record<string, any> = { page: page.value, pageSize: pageSize.value };
     if (filters.username) params.username = filters.username;
     if (filters.status !== null) params.status = filters.status;
+    if (filters.department_id) params.department_id = filters.department_id;
+    if (filters.role_id) params.role_id = filters.role_id;
+    if (dateRange.value) {
+      params.start_date = dateRange.value[0];
+      params.end_date = dateRange.value[1];
+    }
     const res = await getUserList(params);
     list.value = res.records;
     total.value = res.total;
@@ -231,6 +274,20 @@ async function handleExport() {
   }
 }
 
+async function handleDownloadTemplate() {
+  try {
+    const blob = await downloadUserTemplate() as unknown as Blob;
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "用户导入模板.xlsx";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch {
+    ElMessage.error("下载模板失败");
+  }
+}
+
 async function handleImportChange(uploadFile: UploadFile) {
   if (!uploadFile.raw) return;
   importing.value = true;
@@ -245,7 +302,27 @@ async function handleImportChange(uploadFile: UploadFile) {
   }
 }
 
-onMounted(fetchList);
+function resetFilters() {
+  filters.username = '';
+  filters.status = null;
+  filters.department_id = null;
+  filters.role_id = null;
+  dateRange.value = null;
+  page.value = 1;
+  fetchList();
+}
+
+async function loadFilterOptions() {
+  try {
+    deptOptions.value = await getDepartmentTree();
+    roleOptions.value = await getAllRoles();
+  } catch { /* ignore */ }
+}
+
+onMounted(() => {
+  loadFilterOptions();
+  fetchList();
+});
 </script>
 <style scoped>
 .mb-2 { margin-bottom: 12px; }

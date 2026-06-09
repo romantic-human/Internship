@@ -13,6 +13,25 @@
       <el-form :model="filters" inline class="mb-2">
         <el-form-item label="用户名"><el-input v-model="filters.username" placeholder="用户名" clearable style="width:140px" /></el-form-item>
         <el-form-item label="模块"><el-input v-model="filters.module" placeholder="模块" clearable style="width:140px" /></el-form-item>
+        <el-form-item label="操作类型">
+          <el-select v-model="filters.operation" placeholder="全部" clearable style="width:130px">
+            <el-option label="登录" value="登录" />
+            <el-option label="新增" value="新增" />
+            <el-option label="编辑" value="编辑" />
+            <el-option label="删除" value="删除" />
+            <el-option label="查询" value="查询" />
+            <el-option label="导出" value="导出" />
+            <el-option label="导入" value="导入" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="请求方法">
+          <el-select v-model="filters.method" placeholder="全部" clearable style="width:110px">
+            <el-option label="GET" value="GET" />
+            <el-option label="POST" value="POST" />
+            <el-option label="PUT" value="PUT" />
+            <el-option label="DELETE" value="DELETE" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="操作类型"><el-input v-model="filters.operation" placeholder="操作类型" clearable style="width:140px" /></el-form-item>
         <el-form-item label="状态">
           <el-select v-model="filters.status" placeholder="全部" clearable style="width:100px">
@@ -32,6 +51,7 @@
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="page=1;fetchList()">查询</el-button>
+          <el-button @click="resetFilters">重置</el-button>
           <el-button @click="filters={};dateRange=null;page=1;fetchList()">重置</el-button>
         </el-form-item>
       </el-form>
@@ -73,6 +93,20 @@ const list = ref<LogItem[]>([]);
 const total = ref(0);
 const page = ref(1);
 const pageSize = ref(10);
+const filters = ref<Record<string, any>>({
+  username: '',
+  module: '',
+  operation: '',
+  method: '',
+  status: null as number | null,
+});
+
+function resetFilters() {
+  filters.value = { username: '', module: '', operation: '', method: '', status: null };
+  dateRange.value = null;
+  page.value = 1;
+  fetchList();
+}
 const filters = ref<Record<string, any>>({});
 const dateRange = ref<[string, string] | null>(null);
 const detailVisible = ref(false);

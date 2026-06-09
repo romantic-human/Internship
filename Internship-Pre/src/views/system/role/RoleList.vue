@@ -7,6 +7,7 @@
           <div>
             <el-button type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
             <el-button type="success" @click="handleExport">导出</el-button>
+            <el-button type="info" @click="handleDownloadTemplate">下载模板</el-button>
             <el-upload :show-file-list="false" accept=".xlsx,.xls" :before-upload="handleImport" style="display:inline-block">
               <el-button type="warning">导入</el-button>
             </el-upload>
@@ -141,6 +142,7 @@ import {
   assignRoleUsers,
   exportRoles,
   importRoles,
+  downloadRoleTemplate,
   type RoleRecord,
 } from "@/api/role";
 import { getMenuTree, type MenuItem } from "@/api/menu";
@@ -281,6 +283,20 @@ async function handleExport() {
     ElMessage.success("导出成功");
   } catch {
     ElMessage.error("导出失败");
+  }
+}
+
+async function handleDownloadTemplate() {
+  try {
+    const blob = await downloadRoleTemplate() as unknown as Blob;
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "角色导入模板.xlsx";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch {
+    ElMessage.error("下载模板失败");
   }
 }
 

@@ -6,7 +6,6 @@ export interface DashboardStats {
   menu_count: number;
   permission_count: number;
   department_count: number;
-  today_login_count: number;
   log_today: number;
   log_week: number;
   log_month: number;
@@ -18,8 +17,6 @@ export interface DashboardStats {
     execution_time: number;
     create_time: string;
   }[];
-  dept_distribution: { dept_name: string; user_count: number }[];
-  login_trend: { date: string; count: number }[];
 }
 
 export function getDashboardStats(): Promise<DashboardStats> {

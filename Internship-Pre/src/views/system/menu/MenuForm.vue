@@ -160,15 +160,11 @@ function handleClose() {
 }
 
 async function handleSubmit() {
-  if (!formRef.value) return;
-  try {
-    await formRef.value.validate();
-  } catch {
-    return;
-  }
+  const valid = await formRef.value?.validate().catch(() => false);
+  if (!valid) return;
   submitting.value = true;
   try {
-    const payload = { ...form.value, parent_id: form.value.parent_id ?? undefined };
+    const payload = { ...form.value, parent_id: form.value.parent_id || 0 };
     if (isEdit.value) {
       await updateMenu(props.formData!.id!, payload);
       ElMessage.success("更新成功");

@@ -21,41 +21,14 @@ const staticRoutes: RouteRecordRaw[] = [
     component: () => import("@/views/system/profile/Profile.vue"),
     meta: { title: "个人中心" },
   },
-  // RAG 知识库模块
-  {
-    path: "/rag/kb-list",
-    name: "KBList",
-    component: () => import("@/views/rag/KBList.vue"),
-    meta: { title: "知识库管理" },
-  },
-  {
-    path: "/rag/kb-detail",
-    name: "KBDetail",
-    component: () => import("@/views/rag/KBDetail.vue"),
-    meta: { title: "知识库详情" },
-  },
-  {
-    path: "/rag/chat",
-    name: "ChatView",
-    component: () => import("@/views/rag/ChatView.vue"),
-    meta: { title: "AI 问答" },
-  },
   {
     path: "/",
     redirect: "/dashboard",
   },
-  // 错误页面
-  {
-    path: "/403",
-    name: "Forbidden",
-    component: () => import("@/views/error/403.vue"),
-    meta: { title: "无权限", layout: false },
-  },
+  // 捕获所有未匹配路由
   {
     path: "/:pathMatch(.*)*",
-    name: "NotFound",
-    component: () => import("@/views/error/404.vue"),
-    meta: { title: "页面不存在", layout: false },
+    redirect: "/dashboard",
   },
 ];
 
@@ -64,7 +37,7 @@ const router = createRouter({
   routes: staticRoutes,
 });
 
-const whiteList = ["/login", "/403"];
+const whiteList = ["/login"];
 
 let dynamicRoutesLoading: Promise<void> | null = null;
 

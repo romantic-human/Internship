@@ -15,6 +15,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
+from django.http import HttpResponse
+
 from utils import APIResponse, HasPermission
 from .models import User, UserRoleRelation
 from .serializers import (
@@ -98,12 +100,21 @@ class UserViewSet(viewsets.ModelViewSet):
         username = request.query_params.get("username", "").strip()
         status_val = request.query_params.get("status")
         department_id = request.query_params.get("department_id")
+        role_id = request.query_params.get("role_id")
+        start_date = request.query_params.get("start_date") or request.query_params.get("startDate")
+        end_date = request.query_params.get("end_date") or request.query_params.get("endDate")
         if username:
             queryset = queryset.filter(username__icontains=username)
         if status_val is not None and status_val != "":
             queryset = queryset.filter(status=int(status_val))
         if department_id:
             queryset = queryset.filter(department_id=int(department_id))
+        if role_id:
+            queryset = queryset.filter(userrolerelation__role_id=int(role_id)).distinct()
+        if start_date:
+            queryset = queryset.filter(create_time__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(create_time__lte=end_date)
         queryset = queryset.order_by("-create_time")
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -422,6 +433,43 @@ class UserViewSet(viewsets.ModelViewSet):
         user.save(update_fields=["password"])
 
         return APIResponse.success(message="密码修改成功")
+
+    @action(detail=False, methods=["get"], url_path="check-unique")
+    def check_unique(self, request):
+        """检查用户名/邮箱/手机号唯一性 — GET /api/user/check-unique?field=username&value=xxx&exclude_id=1"""
+        field = request.query_params.get("field", "")
+        value = request.query_params.get("value", "")
+        exclude_id = request.query_params.get("exclude_id")
+        if field not in ("username", "email", "telephone") or not value:
+            return APIResponse.error(message="参数错误")
+        qs = User.objects.filter(**{field: value})
+        if exclude_id:
+            qs = qs.exclude(id=int(exclude_id))
+        exists = qs.exists()
+        field_labels = {"username": "用户名", "email": "邮箱", "telephone": "手机号"}
+        if exists:
+            return APIResponse.success(data={"unique": False}, message=f"{field_labels[field]}已存在")
+        return APIResponse.success(data={"unique": True})
+
+    @action(detail=False, methods=["get"], url_path="template")
+    def template(self, request):
+        """下载用户导入模板 — GET /api/user/template"""
+        import openpyxl
+        from io import BytesIO
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "用户导入模板"
+        headers = ["用户名", "昵称", "真实姓名", "邮箱", "手机号", "性别", "状态"]
+        ws.append(headers)
+        ws.append(["zhangsan", "张三", "张三丰", "zhangsan@example.com", "13800138000", "男", "启用"])
+        for col_idx, header in enumerate(headers, 1):
+            ws.cell(row=1, column=col_idx).font = openpyxl.styles.Font(bold=True)
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        response["Content-Disposition"] = "attachment; filename=user_template.xlsx"
+        wb.save(response)
+        return response
 
     @action(detail=False, methods=["get"])
 

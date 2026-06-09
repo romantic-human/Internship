@@ -13,6 +13,13 @@ export interface ConfigItem {
   update_time: string;
 }
 
+export interface ConfigListParams {
+  page?: number;
+  pageSize?: number;
+  config_name?: string;
+}
+
+export function getConfigList(params: ConfigListParams): Promise<{ records: ConfigItem[]; total: number }> {
 export function getConfigList(params: Record<string, any>): Promise<{ records: ConfigItem[]; total: number }> {
   return request.get("/config/", { params });
 }
@@ -29,22 +36,27 @@ export function updateConfig(id: number, data: Partial<ConfigItem>): Promise<Con
   return request.put(`/config/${id}`, data);
 }
 
+export function deleteConfig(id: number): Promise<void> {
 export function deleteConfig(id: number): Promise<any> {
   return request.delete(`/config/${id}`);
 }
 
+export function updateConfigStatus(id: number, status: number): Promise<void> {
 export function updateConfigStatus(id: number, status: number): Promise<any> {
   return request.put(`/config/${id}/status`, { status });
 }
 
+export function updateConfigSort(id: number, sortOrder: number): Promise<void> {
 export function updateConfigSort(id: number, sortOrder: number): Promise<any> {
   return request.put(`/config/${id}/sort`, { sortOrder });
 }
 
+export function batchSortConfig(data: { id: number; sortOrder: number }[]): Promise<void> {
 export function batchSortConfig(data: { id: number; sortOrder: number }[]): Promise<any> {
   return request.post("/config/batch-sort", data);
 }
 
+export function batchDeleteConfigs(ids: number[]): Promise<void> {
 export function batchDeleteConfigs(ids: number[]): Promise<any> {
   return request.delete("/config/batch", { data: { ids } });
 }

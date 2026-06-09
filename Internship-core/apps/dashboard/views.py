@@ -1,7 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
-from django.db.models import Count
-from django.db.models.functions import TruncDate
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -18,37 +16,9 @@ from utils.response import APIResponse
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def dashboard_stats(request):
-    now = timezone.now()
-    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = timezone.make_aware(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0))
     week_start = today_start - timedelta(days=today_start.weekday())
     month_start = today_start.replace(day=1)
-
-    today = today_start.date()
-
-    # 用户部门分布
-    dept_distribution = list(
-        Department.objects.annotate(user_count=Count("user")).values("dept_name", "user_count")
-    )
-    # 加入无部门用户
-    no_dept_count = User.objects.filter(department__isnull=True).count()
-    if no_dept_count > 0:
-        dept_distribution.append({"dept_name": "未分配", "user_count": no_dept_count})
-
-    # 近7天登录趋势 (1次查询代替7次)
-    seven_days_ago = today - timedelta(days=6)
-    trend_qs = (
-        User.objects
-        .filter(last_login__isnull=False, last_login__date__gte=seven_days_ago)
-        .annotate(login_date=TruncDate("last_login"))
-        .values("login_date")
-        .annotate(count=Count("id"))
-        .order_by("login_date")
-    )
-    trend_dict = {item["login_date"]: item["count"] for item in trend_qs}
-    login_trend = [
-        {"date": (today - timedelta(days=i)).isoformat(), "count": trend_dict.get(today - timedelta(days=i), 0)}
-        for i in range(6, -1, -1)
-    ]
 
     data = {
         "user_count": User.objects.count(),
@@ -56,7 +26,6 @@ def dashboard_stats(request):
         "menu_count": Menu.objects.count(),
         "permission_count": Permission.objects.count(),
         "department_count": Department.objects.count(),
-        "today_login_count": User.objects.filter(last_login__date=today).count(),
         "log_today": OperationLog.objects.filter(create_time__gte=today_start).count(),
         "log_week": OperationLog.objects.filter(create_time__gte=week_start).count(),
         "log_month": OperationLog.objects.filter(create_time__gte=month_start).count(),
@@ -65,7 +34,5 @@ def dashboard_stats(request):
                 "username", "module", "operation", "ip", "execution_time", "create_time"
             )
         ),
-        "dept_distribution": dept_distribution,
-        "login_trend": login_trend,
     }
     return APIResponse.success(data=data)

@@ -21,6 +21,7 @@
         </el-form-item>
       </el-form>
       <el-table
+        ref="tableRef"
         :data="filteredTree" row-key="id" default-expand-all
         :tree-props="{ children: 'children' }" v-loading="loading" stripe
         @selection-change="(rows: DeptItem[]) => selectedIds = rows.map(r => r.id)"
@@ -40,7 +41,7 @@
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button v-permission="'dept:edit'" link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-popconfirm v-if="authStore.hasPermission('dept:delete')" title="确定删除？" @confirm="handleDelete(row)">
+            <el-popconfirm v-if="authStore.hasPermission('dept:delete')" v-permission="'dept:delete'" title="确定删除？" @confirm="handleDelete(row)">
               <template #reference><el-button link type="danger">删除</el-button></template>
             </el-popconfirm>
           </template>
@@ -53,11 +54,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
-import { getDepartmentTree, deleteDepartment, updateDepartmentStatus, batchDeleteDepartments, exportDepartments, type DeptItem } from "@/api/department";
+import { ref, computed, onMounted, nextTick, watch } from "vue";
+import { getDepartmentTree, deleteDepartment, updateDepartmentStatus, batchDeleteDepartments, exportDepartments, batchSortDepartment, type DeptItem } from "@/api/department";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useAuthStore } from "@/store/auth";
 import DeptForm from "./DeptForm.vue";
+import Sortable from "sortablejs";
 
 const authStore = useAuthStore();
 
@@ -67,6 +69,7 @@ const formVisible = ref(false);
 const currentFormData = ref<Partial<DeptItem> | null>(null);
 const keyword = ref("");
 const selectedIds = ref<number[]>([]);
+const tableRef = ref();
 
 const filteredTree = computed(() => {
   if (!keyword.value) return treeData.value;
@@ -116,7 +119,46 @@ async function handleExport() {
     ElMessage.success("导出成功");
   } catch { ElMessage.error("导出失败"); }
 }
-onMounted(fetchTree);
+function initDragSort() {
+  nextTick(() => {
+    const el = tableRef.value?.$el?.querySelector('.el-table__body-wrapper tbody');
+    if (!el) return;
+    Sortable.create(el, {
+      handle: '.el-table__row',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      onEnd: async (evt: any) => {
+        if (evt.oldIndex === evt.newIndex) return;
+        const flatRows = tableRef.value?.data;
+        if (!flatRows) return;
+        const oldItem = flatRows[evt.oldIndex];
+        const newItem = flatRows[evt.newIndex];
+        if (oldItem?.parent_id !== newItem?.parent_id) {
+          ElMessage.warning('只能在同一层级内拖拽排序');
+          await fetchTree();
+          return;
+        }
+        const siblings = flatRows.filter((r: DeptItem) => r.parent_id === oldItem.parent_id);
+        const payload = siblings.map((item: DeptItem, idx: number) => ({
+          id: item.id,
+          sortOrder: idx,
+        }));
+        try {
+          await batchSortDepartment(payload);
+          ElMessage.success('排序更新成功');
+          await fetchTree();
+        } catch { /* handled by interceptor */ }
+      },
+    });
+  });
+}
+
+// Re-init drag sort when filtered data changes
+watch(filteredTree, () => { initDragSort(); });
+
+onMounted(() => {
+  fetchTree().then(initDragSort);
+});
 </script>
 <style scoped>
 .mb-2 { margin-bottom: 12px; }

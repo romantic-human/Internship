@@ -5,9 +5,6 @@ from django.db import models
 class Menu(models.Model):
     """菜单表 — 对应设计文档 3.3.4"""
 
-    def __str__(self):
-        return self.menu_name
-
     parent = models.ForeignKey(
         "self",
         on_delete=models.CASCADE,
