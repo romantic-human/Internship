@@ -44,7 +44,7 @@
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button v-permission="'config:edit'" link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-popconfirm v-permission="'config:delete'" title="确定删除？" @confirm="handleDelete(row)">
+            <el-popconfirm v-if="authStore.hasPermission('config:delete')" title="确定删除？" @confirm="handleDelete(row)">
               <template #reference><el-button link type="danger">删除</el-button></template>
             </el-popconfirm>
           </template>
@@ -62,7 +62,10 @@
 import { ref, onMounted } from "vue";
 import { getConfigList, deleteConfig, updateConfigStatus, batchDeleteConfigs, exportConfigs, type ConfigItem } from "@/api/config";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { useAuthStore } from "@/store/auth";
 import ConfigForm from "./ConfigForm.vue";
+
+const authStore = useAuthStore();
 
 const TYPE_MAP: Record<number, string> = { 0: "字符串", 1: "数字", 2: "布尔", 3: "JSON" };
 const loading = ref(false);

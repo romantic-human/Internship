@@ -84,7 +84,7 @@
           <template #default="{ row }">
             <el-button v-permission="'user:edit'" link type="primary" @click="handleEdit(row)">编辑</el-button>
             <el-button link type="primary" @click="handleResetPwd(row)">重置密码</el-button>
-            <el-popconfirm v-permission="'user:delete'" title="确定删除该用户？" @confirm="handleDelete(row)">
+            <el-popconfirm v-if="authStore.hasPermission('user:delete')" title="确定删除该用户？" @confirm="handleDelete(row)">
               <template #reference><el-button link type="danger">删除</el-button></template>
             </el-popconfirm>
           </template>
@@ -127,7 +127,10 @@ import {
 } from "@/api/user";
 import { ElMessage, ElMessageBox } from "element-plus";
 import type { UploadFile } from "element-plus";
+import { useAuthStore } from "@/store/auth";
 import UserForm from "./UserForm.vue";
+
+const authStore = useAuthStore();
 
 const loading = ref(false);
 const list = ref<UserRecord[]>([]);

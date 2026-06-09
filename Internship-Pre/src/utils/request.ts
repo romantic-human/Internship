@@ -48,7 +48,7 @@ async function handleTokenRefresh(error: any, refreshToken: string) {
   if (!isRefreshing) {
     isRefreshing = true;
     try {
-      const res = await axios.post("/api/user/refresh-token", { refresh: refreshToken });
+      const res = await axios.post("/api/user/refresh-token/", { refresh: refreshToken });
       const newToken = res.data.data.access_token;
       const authStore = useAuthStore();
       authStore.setTokens(newToken, res.data.data.refresh_token);
@@ -130,6 +130,9 @@ request.interceptors.response.use(
 
     if (data?.code === 3003) {
       ElMessage.error("无操作权限");
+      // 跳转到 403 页面
+      window.location.href = "/403";
+      return Promise.reject(error);
     } else if (status !== 401) {
       ElMessage.error(data?.message || `请求错误 ${status}`);
     }
