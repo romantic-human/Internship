@@ -1,9 +1,31 @@
 import axios, { type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { useAuthStore } from "@/store/auth";
 
 function getToken(): string {
   return localStorage.getItem("access_token") || "";
+}
+
+function sanitizeValue(val: any): any {
+  if (typeof val === "string") {
+    return val.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+  if (Array.isArray(val)) {
+    return val.map(sanitizeValue);
+  }
+  if (val !== null && typeof val === "object") {
+    const sanitized: Record<string, any> = {};
+    for (const key of Object.keys(val)) {
+      sanitized[key] = sanitizeValue(val[key]);
+    }
+    return sanitized;
+  }
+  return val;
+}
+
+function needsSanitize(url: string): boolean {
+  const skipPaths = ["/user/refresh-token", "/user/login"];
+  return !skipPaths.some((p) => url.includes(p));
 }
 function getRefreshToken(): string {
   return localStorage.getItem("refresh_token") || "";
@@ -36,7 +58,12 @@ async function handleTokenRefresh(error: any, refreshToken: string) {
     } catch (refreshErr) {
       processQueue(refreshErr);
       useAuthStore().logout();
-      window.location.href = "/login";
+      ElMessageBox.alert("登录已过期，请重新登录", "提示", {
+        confirmButtonText: "确定",
+        type: "warning",
+      }).finally(() => {
+        window.location.href = "/login";
+      });
       return Promise.reject(refreshErr);
     } finally {
       isRefreshing = false;
@@ -72,6 +99,10 @@ request.interceptors.response.use(
     }
     const res = response.data;
     if (res.code === 200 || res.code === 1000) {
+      // XSS 防护：对用户输入内容做 HTML 转义
+      if (needsSanitize(response.config.url || "")) {
+        return sanitizeValue(res.data);
+      }
       return res.data;
     }
     ElMessage.error(res.message || "请求失败");

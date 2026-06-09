@@ -55,8 +55,32 @@
           </div>
         </div>
 
-        <!-- AI 思考中 -->
-        <div v-if="thinking" class="message assistant">
+        <!-- AI 思考中（流式输出中） -->
+        <div v-if="streaming" class="message assistant">
+          <div class="message-avatar">
+            <el-avatar :size="36" style="background: #67c23a">AI</el-avatar>
+          </div>
+          <div class="message-body">
+            <div class="message-content" v-html="renderMarkdown(streamingContent)"></div>
+            <div v-if="streamingSources && streamingSources.length > 0" class="message-sources">
+              <el-collapse>
+                <el-collapse-item title="参考来源">
+                  <div v-for="(src, si) in streamingSources" :key="si" class="source-item">
+                    <div class="source-header">
+                      <el-tag size="small">{{ src.document_name }}</el-tag>
+                      <span class="source-meta">块 #{{ src.chunk_index }}</span>
+                      <span class="source-meta">相关度: {{ (src.relevance_score * 100).toFixed(1) }}%</span>
+                    </div>
+                    <div class="source-content">{{ src.content }}</div>
+                  </div>
+                </el-collapse-item>
+              </el-collapse>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI 思考中（非流式） -->
+        <div v-if="thinking && !streaming" class="message assistant">
           <div class="message-avatar">
             <el-avatar :size="36" style="background: #67c23a">AI</el-avatar>
           </div>
@@ -75,14 +99,14 @@
           type="textarea"
           :rows="2"
           placeholder="请输入你的问题..."
-          :disabled="thinking"
-          @keydown.enter.ctrl="handleSend"
+          :disabled="thinking || streaming"
+          @keydown.enter.ctrl="handleSendStream"
         />
         <el-button
           type="primary"
-          :loading="thinking"
+          :loading="thinking || streaming"
           :disabled="!inputText.trim()"
-          @click="handleSend"
+          @click="handleSendStream"
           style="margin-left: 8px; height: 54px"
         >
           发送
@@ -93,18 +117,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from "vue";
+import { ref, nextTick, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { ArrowLeft, Delete, ChatDotRound, Loading } from "@element-plus/icons-vue";
-import { chatWithKB, type ChatSource } from "@/api/rag";
+import { chatWithKBStream, type ChatSource } from "@/api/rag";
 
 const route = useRoute();
 const router = useRouter();
 const kbId = Number(route.query.id);
 const kbName = String(route.query.name || "知识库");
 
-// 没有选择知识库时跳转到知识库列表
 if (!kbId || isNaN(kbId)) {
   router.replace("/rag/kb-list");
 }
@@ -116,10 +139,31 @@ interface Message {
   tokens_used?: number;
 }
 
-const messages = ref<Message[]>([]);
+const STORAGE_KEY = `chat_history_${kbId}`;
+
+function loadHistory(): Message[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(msgs: Message[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs));
+}
+
+const messages = ref<Message[]>(loadHistory());
 const inputText = ref("");
 const thinking = ref(false);
+const streaming = ref(false);
+const streamingContent = ref("");
+const streamingSources = ref<ChatSource[]>([]);
+const abortController = ref<AbortController | null>(null);
 const messageListRef = ref<HTMLElement>();
+
+watch(messages, (msgs) => saveHistory(msgs), { deep: true });
 
 function scrollToBottom() {
   nextTick(() => {
@@ -130,7 +174,6 @@ function scrollToBottom() {
 }
 
 function renderMarkdown(text: string): string {
-  // 简单的 Markdown 渲染：处理换行、加粗、列表
   return text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -139,37 +182,58 @@ function renderMarkdown(text: string): string {
     .replace(/\n/g, "<br/>");
 }
 
-async function handleSend(e?: KeyboardEvent) {
-  if (e) e.preventDefault();
+function handleSendStream() {
   const question = inputText.value.trim();
-  if (!question || thinking.value) return;
+  if (!question || thinking.value || streaming.value) return;
 
   messages.value.push({ role: "user", content: question });
   inputText.value = "";
   scrollToBottom();
 
-  thinking.value = true;
-  try {
-    const res = await chatWithKB(kbId, question);
-    messages.value.push({
-      role: "assistant",
-      content: res.answer,
-      sources: res.sources,
-      tokens_used: res.tokens_used,
-    });
-  } catch {
-    messages.value.push({
-      role: "assistant",
-      content: "抱歉，处理您的问题时出现了错误，请稍后重试。",
-    });
-  } finally {
-    thinking.value = false;
-    scrollToBottom();
-  }
+  streaming.value = true;
+  streamingContent.value = "";
+  streamingSources.value = [];
+
+  let fullContent = "";
+
+  abortController.value = chatWithKBStream(
+    kbId,
+    question,
+    (token: string) => {
+      fullContent += token;
+      streamingContent.value = fullContent;
+      scrollToBottom();
+    },
+    (sources: ChatSource[]) => {
+      streamingSources.value = sources;
+    },
+    () => {
+      if (fullContent) {
+        messages.value.push({
+          role: "assistant",
+          content: fullContent,
+          sources: streamingSources.value,
+        });
+      }
+      streaming.value = false;
+      streamingContent.value = "";
+      streamingSources.value = [];
+      abortController.value = null;
+      scrollToBottom();
+    },
+    (err: string) => {
+      ElMessage.error(err);
+      streaming.value = false;
+      streamingContent.value = "";
+      streamingSources.value = [];
+      abortController.value = null;
+    },
+  );
 }
 
 function clearHistory() {
   messages.value = [];
+  localStorage.removeItem(STORAGE_KEY);
 }
 </script>
 

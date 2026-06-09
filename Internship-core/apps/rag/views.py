@@ -1,9 +1,11 @@
 """RAG 知识库模块视图"""
+import json
 import os
 import threading
 import logging
 
 from django.conf import settings
+from django.http import StreamingHttpResponse, FileResponse
 from rest_framework import viewsets, status as http_status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -14,7 +16,7 @@ from utils.response import APIResponse
 from utils.permissions import HasPermission
 from .models import KnowledgeBase, Document, DocumentChunk
 from .serializers import (
-    KnowledgeBaseSerializer, DocumentSerializer, DocumentChunkSerializer,
+    KnowledgeBaseSerializer, DocumentSerializer,
     ChatRequestSerializer,
 )
 from .services.vector_store import VectorStoreService
@@ -28,7 +30,14 @@ class KnowledgeBaseViewSet(viewsets.ModelViewSet):
     """知识库 CRUD"""
     queryset = KnowledgeBase.objects.all()
     serializer_class = KnowledgeBaseSerializer
-    permission_key = "rag:kb:list"
+    permission_key_map = {
+        "list": "rag:kb:list",
+        "retrieve": "rag:kb:list",
+        "create": "rag:kb:add",
+        "update": "rag:kb:edit",
+        "partial_update": "rag:kb:edit",
+        "destroy": "rag:kb:delete",
+    }
 
     def get_permissions(self):
         if self.action in ("list", "retrieve"):
@@ -80,12 +89,35 @@ class DocumentViewSet(viewsets.GenericViewSet):
     """文档管理"""
     queryset = Document.objects.select_related("knowledge_base").all()
     serializer_class = DocumentSerializer
-    permission_key = "rag:doc:list"
+    permission_key_map = {
+        "list": "rag:doc:list",
+        "retrieve": "rag:doc:list",
+        "destroy": "rag:doc:delete",
+        "upload": "rag:doc:upload",
+        "reprocess": "rag:doc:upload",
+    }
 
     def get_permissions(self):
         if self.action in ("list", "retrieve"):
             return [IsAuthenticated()]
         return [IsAuthenticated(), HasPermission()]
+
+    @action(detail=True, methods=["get"], url_path="preview")
+    def preview(self, request, pk=None):
+        doc = self.get_object()
+        abs_path = os.path.join(settings.MEDIA_ROOT, doc.file_path)
+        if not os.path.exists(abs_path):
+            return APIResponse.not_found(message="文件不存在")
+        content_type_map = {
+            "pdf": "application/pdf",
+            "txt": "text/plain; charset=utf-8",
+            "md": "text/markdown; charset=utf-8",
+            "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        }
+        content_type = content_type_map.get(doc.file_type, "application/octet-stream")
+        response = FileResponse(open(abs_path, "rb"), content_type=content_type)
+        response["Content-Disposition"] = f'inline; filename="{doc.file_name}"'
+        return response
 
     def list(self, request, *args, **kwargs):
         kb_id = request.query_params.get("knowledge_base")
@@ -205,25 +237,22 @@ class DocumentViewSet(viewsets.GenericViewSet):
 
 
 class ChatView(APIView):
-    """RAG 问答接口"""
-    permission_classes = [IsAuthenticated]
+    """RAG 问答接口（非流式）"""
+    permission_classes = [IsAuthenticated, HasPermission]
+    permission_key = "rag:chat"
 
     def post(self, request, kb_id):
         serializer = ChatRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         question = serializer.validated_data["question"]
 
-        # 验证知识库
         try:
             kb = KnowledgeBase.objects.get(id=kb_id, status=1)
         except KnowledgeBase.DoesNotExist:
             return APIResponse.error(message="知识库不存在或已禁用", code=2004, http_status=404)
 
         try:
-            # 1. 向量化问题
             query_embedding = LLMService.generate_query_embedding(question)
-
-            # 2. ChromaDB 检索
             results = VectorStoreService.search(
                 kb_id=kb_id,
                 query_embedding=query_embedding,
@@ -237,11 +266,9 @@ class ChatView(APIView):
                     "tokens_used": 0,
                 })
 
-            # 3. 构建来源信息
             sources = []
             for r in results:
                 meta = r.get("metadata", {})
-                # distance → relevance_score (cosine distance → similarity)
                 relevance = max(0, 1 - r.get("distance", 0))
                 sources.append({
                     "document_id": meta.get("doc_id", 0),
@@ -251,7 +278,6 @@ class ChatView(APIView):
                     "relevance_score": round(relevance, 4),
                 })
 
-            # 4. 调用 LLM
             llm_result = LLMService.chat(question, results)
 
             return APIResponse.success(data={
@@ -263,3 +289,67 @@ class ChatView(APIView):
         except Exception as e:
             logger.exception("问答处理失败")
             return APIResponse.error(message=f"问答处理失败: {str(e)}", code=5000, http_status=500)
+
+
+class ChatStreamView(APIView):
+    """RAG 流式问答接口（SSE）"""
+    permission_classes = [IsAuthenticated, HasPermission]
+    permission_key = "rag:chat"
+
+    def post(self, request, kb_id):
+        serializer = ChatRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        question = serializer.validated_data["question"]
+
+        try:
+            kb = KnowledgeBase.objects.get(id=kb_id, status=1)
+        except KnowledgeBase.DoesNotExist:
+            return APIResponse.error(message="知识库不存在或已禁用", code=2004, http_status=404)
+
+        def event_stream():
+            try:
+                query_embedding = LLMService.generate_query_embedding(question)
+                results = VectorStoreService.search(
+                    kb_id=kb_id,
+                    query_embedding=query_embedding,
+                    top_k=settings.RAG_TOP_K,
+                )
+
+                if not results:
+                    yield f"data: {json.dumps({'type': 'answer', 'content': '根据现有知识库未找到相关信息。'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'sources', 'content': []})}\n\n"
+                    yield f"data: {json.dumps({'type': 'done'})}\n\n"
+                    return
+
+                # 构建来源信息用于最后发送
+                sources = []
+                for r in results:
+                    meta = r.get("metadata", {})
+                    relevance = max(0, 1 - r.get("distance", 0))
+                    sources.append({
+                        "document_id": meta.get("doc_id", 0),
+                        "document_name": meta.get("file_name", "未知"),
+                        "chunk_index": meta.get("chunk_index", 0),
+                        "content": r.get("content", "")[:200],
+                        "relevance_score": round(relevance, 4),
+                    })
+
+                # 流式生成回答
+                for sse_data in LLMService.chat_stream(question, results):
+                    yield sse_data
+
+                yield f"data: {json.dumps({'type': 'sources', 'content': sources})}\n\n"
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+            except Exception as e:
+                logger.exception("流式问答处理失败")
+                yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+        response = StreamingHttpResponse(
+            streaming_content=event_stream(),
+            content_type="text/event-stream",
+        )
+        response["Cache-Control"] = "no-cache"
+        response["X-Accel-Buffering"] = "no"
+        return response
