@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     "apps.log",
     "apps.config_app",
     "apps.dashboard",
+    # RAG
+    "apps.rag",
 ]
 
 MIDDLEWARE = [
@@ -171,3 +173,16 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "企业级管理系统组织架构模块接口文档",
     "VERSION": "1.0.0",
 }
+
+# ── RAG 知识库配置 ──────────────────────────────────────────────
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+DEEPSEEK_CHAT_MODEL = os.getenv("DEEPSEEK_CHAT_MODEL", "deepseek-chat")
+
+DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
+
+CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", str(BASE_DIR / "chroma_data"))
+RAG_CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "500"))
+RAG_CHUNK_OVERLAP = int(os.getenv("RAG_CHUNK_OVERLAP", "100"))
+RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
+RAG_MAX_FILE_SIZE_MB = int(os.getenv("RAG_MAX_FILE_SIZE_MB", "20"))
