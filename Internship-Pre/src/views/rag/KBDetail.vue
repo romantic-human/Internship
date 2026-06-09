@@ -95,6 +95,11 @@ const router = useRouter();
 const kbId = Number(route.query.id);
 const kbName = String(route.query.name || "知识库");
 
+// 没有选择知识库时跳转到知识库列表
+if (!kbId || isNaN(kbId)) {
+  router.replace("/rag/kb-list");
+}
+
 const loading = ref(false);
 const uploading = ref(false);
 const tableData = ref<Document[]>([]);

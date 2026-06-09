@@ -59,7 +59,24 @@ class Command(BaseCommand):
 
         log_m = self._m(sys_m, "操作日志", 1, "Document", 6, "/system/log", "system/log/LogList")
         config_m = self._m(sys_m, "系统配置", 1, "Tools", 7, "/system/config", "system/config/ConfigList")
-        self.stdout.write(f"  [OK] 菜单树: 7 个一级菜单 + 12 个按钮")
+
+        # ── RAG 知识库 ──────────────────────────────────────
+        rag_m = self._m(None, "RAG知识库", 0, "Document", 10)
+        kb_list_m = self._m(rag_m, "知识库列表", 1, "Document", 0, "/rag/kb-list", "rag/KBList")
+        self._m(kb_list_m, "新增知识库", 2, "", 0, permission="rag:kb:add")
+        self._m(kb_list_m, "编辑知识库", 2, "", 1, permission="rag:kb:edit")
+        self._m(kb_list_m, "删除知识库", 2, "", 2, permission="rag:kb:delete")
+
+        kb_detail_m = self._m(rag_m, "文档管理", 1, "Document", 1, "/rag/kb-detail", "rag/KBDetail")
+        self._m(kb_detail_m, "上传文档", 2, "", 0, permission="rag:doc:upload")
+        self._m(kb_detail_m, "删除文档", 2, "", 1, permission="rag:doc:delete")
+
+        chat_m = self._m(rag_m, "AI问答", 1, "Document", 2, "/rag/chat", "rag/ChatView")
+        self._m(chat_m, "AI问答", 2, "", 0, permission="rag:chat")
+
+        self.stdout.write(f"  [OK] RAG知识库: 3 个菜单 + 6 个按钮")
+
+        self.stdout.write(f"  [OK] 菜单树: 8 个一级菜单 + 18 个按钮")
 
         # ── 3. 权限 ────────────────────────────────────────
         perm_map = {
@@ -79,7 +96,11 @@ class Command(BaseCommand):
             "log:export": ("日志导出", log_m),
             "config:list": ("配置查询", config_m), "config:add": ("配置新增", config_m),
             "config:edit": ("配置编辑", config_m), "config:delete": ("配置删除", config_m),
-
+            # RAG 知识库
+            "rag:kb:add": ("新增知识库", kb_list_m), "rag:kb:edit": ("编辑知识库", kb_list_m),
+            "rag:kb:delete": ("删除知识库", kb_list_m),
+            "rag:doc:upload": ("上传文档", kb_detail_m), "rag:doc:delete": ("删除文档", kb_detail_m),
+            "rag:chat": ("AI问答", chat_m),
         }
         for key, (name, menu) in perm_map.items():
             perm, _ = Permission.objects.get_or_create(

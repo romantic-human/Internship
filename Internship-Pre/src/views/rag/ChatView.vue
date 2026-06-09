@@ -94,14 +94,20 @@
 
 <script setup lang="ts">
 import { ref, nextTick } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { ArrowLeft, Delete, ChatDotRound, Loading } from "@element-plus/icons-vue";
 import { chatWithKB, type ChatSource } from "@/api/rag";
 
 const route = useRoute();
+const router = useRouter();
 const kbId = Number(route.query.id);
 const kbName = String(route.query.name || "知识库");
+
+// 没有选择知识库时跳转到知识库列表
+if (!kbId || isNaN(kbId)) {
+  router.replace("/rag/kb-list");
+}
 
 interface Message {
   role: "user" | "assistant";

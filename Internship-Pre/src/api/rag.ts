@@ -19,7 +19,7 @@ export function getKnowledgeBaseList(params?: Record<string, any>): Promise<{ re
 }
 
 export function getKnowledgeBase(id: number): Promise<KnowledgeBase> {
-  return request.get(`/rag/kb/${id}`);
+  return request.get(`/rag/kb/${id}/`);
 }
 
 export function createKnowledgeBase(data: Partial<KnowledgeBase>): Promise<KnowledgeBase> {
@@ -27,11 +27,11 @@ export function createKnowledgeBase(data: Partial<KnowledgeBase>): Promise<Knowl
 }
 
 export function updateKnowledgeBase(id: number, data: Partial<KnowledgeBase>): Promise<KnowledgeBase> {
-  return request.put(`/rag/kb/${id}`, data);
+  return request.put(`/rag/kb/${id}/`, data);
 }
 
 export function deleteKnowledgeBase(id: number) {
-  return request.delete(`/rag/kb/${id}`);
+  return request.delete(`/rag/kb/${id}/`);
 }
 
 // ── 文档 ─────────────────────────────────────────────
@@ -54,22 +54,22 @@ export function getDocumentList(params?: Record<string, any>): Promise<{ records
 }
 
 export function getDocument(id: number): Promise<Document> {
-  return request.get(`/rag/documents/${id}`);
+  return request.get(`/rag/documents/${id}/`);
 }
 
 export function deleteDocument(id: number) {
-  return request.delete(`/rag/documents/${id}`);
+  return request.delete(`/rag/documents/${id}/`);
 }
 
 export function reprocessDocument(id: number): Promise<Document> {
-  return request.post(`/rag/documents/${id}/reprocess`);
+  return request.post(`/rag/documents/${id}/reprocess/`);
 }
 
 export function uploadDocument(knowledgeBaseId: number, file: File): Promise<Document> {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("knowledge_base_id", String(knowledgeBaseId));
-  return request.post("/rag/documents/upload", formData, {
+  return request.post("/rag/documents/upload/", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 }
@@ -90,5 +90,5 @@ export interface ChatResponse {
 }
 
 export function chatWithKB(kbId: number, question: string): Promise<ChatResponse> {
-  return request.post(`/rag/kb/${kbId}/chat`, { question });
+  return request.post(`/rag/kb/${kbId}/chat/`, { question });
 }
