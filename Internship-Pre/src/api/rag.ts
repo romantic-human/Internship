@@ -118,6 +118,7 @@ export function chatWithKBStream(
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+      let finished = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -129,14 +130,12 @@ export function chatWithKBStream(
           if (line.startsWith("data: ")) {
             try {
               const data = JSON.parse(line.slice(6));
-              if (data.type === "token") {
-                onToken(data.content);
-              } else if (data.type === "answer") {
+              if (data.type === "token" || data.type === "answer") {
                 onToken(data.content);
               } else if (data.type === "sources") {
                 onSources(data.content);
               } else if (data.type === "done") {
-                onDone();
+                // 由 while 循环结束后的 onDone() 统一处理
               } else if (data.type === "error") {
                 onError(data.content);
               }
@@ -146,7 +145,10 @@ export function chatWithKBStream(
           }
         }
       }
-      onDone();
+      if (!finished) {
+        finished = true;
+        onDone();
+      }
     })
     .catch((err) => {
       if (err.name !== "AbortError") {

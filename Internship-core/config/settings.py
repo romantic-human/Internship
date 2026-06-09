@@ -39,7 +39,6 @@ INSTALLED_APPS = [
     "apps.log",
     "apps.config_app",
     "apps.dashboard",
-    "apps.dashboard",
     # RAG
     "apps.rag",
 ]
