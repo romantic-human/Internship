@@ -49,7 +49,7 @@
           <template #default="{ row }">
             <el-button v-permission="'permission:edit'" link type="primary" @click="handleEdit(row)">编辑</el-button>
             <el-button link type="primary" @click="handleBindMenu(row)">绑定菜单</el-button>
-            <el-popconfirm v-permission="'permission:delete'" title="确定删除？" @confirm="handleDelete(row)">
+            <el-popconfirm v-if="authStore.hasPermission('permission:delete')" title="确定删除？" @confirm="handleDelete(row)">
               <template #reference><el-button link type="danger">删除</el-button></template>
             </el-popconfirm>
           </template>
@@ -95,7 +95,10 @@ import {
 import { getMenuTree, type MenuItem } from "@/api/menu";
 import { ElMessage, ElMessageBox } from "element-plus";
 import type { ElTree } from "element-plus";
+import { useAuthStore } from "@/store/auth";
 import PermissionForm from "./PermissionForm.vue";
+
+const authStore = useAuthStore();
 
 const loading = ref(false);
 const list = ref<PermissionItem[]>([]);
