@@ -128,6 +128,7 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         from apps.user.models import User
         if User.objects.filter(department_id__in=ids).exists():
             return APIResponse.error(message="部分部门下存在用户，无法删除")
+            return APIResponse.error(message="存在子部门，无法删除")
         Department.objects.filter(id__in=ids).delete()
         return APIResponse.success(message="批量删除成功")
 

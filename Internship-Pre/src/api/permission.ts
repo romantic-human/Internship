@@ -17,6 +17,7 @@ export interface PermissionListParams {
 }
 
 export function getPermissionList(params: PermissionListParams): Promise<{ records: PermissionItem[]; total: number }> {
+export function getPermissionList(params: Record<string, any>): Promise<{ records: PermissionItem[]; total: number }> {
   return request.get("/permission/", { params });
 }
 
@@ -33,6 +34,7 @@ export function updatePermission(id: number, data: Partial<PermissionItem>): Pro
 }
 
 export function deletePermission(id: number): Promise<void> {
+export function deletePermission(id: number): Promise<any> {
   return request.delete(`/permission/${id}`);
 }
 
@@ -41,18 +43,22 @@ export function getPermissionMenus(id: number): Promise<number[]> {
 }
 
 export function bindPermissionMenus(id: number, menuIds: number[]): Promise<void> {
+export function bindPermissionMenus(id: number, menuIds: number[]): Promise<any> {
   return request.put(`/permission/${id}/menus`, { menuIds });
 }
 
 export function updatePermissionSort(id: number, sortOrder: number): Promise<void> {
+export function updatePermissionSort(id: number, sortOrder: number): Promise<any> {
   return request.put(`/permission/${id}/sort`, { sortOrder });
 }
 
 export function batchSortPermission(data: { id: number; sortOrder: number }[]): Promise<void> {
+export function batchSortPermission(data: { id: number; sortOrder: number }[]): Promise<any> {
   return request.post("/permission/batch-sort", data);
 }
 
 export function batchDeletePermissions(ids: number[]): Promise<void> {
+export function batchDeletePermissions(ids: number[]): Promise<any> {
   return request.delete("/permission/batch", { data: { ids } });
 }
 
@@ -61,5 +67,6 @@ export function exportPermissions(): Promise<Blob> {
 }
 
 export function updatePermissionStatus(id: number, status: number): Promise<void> {
+export function updatePermissionStatus(id: number, status: number): Promise<any> {
   return request.put(`/permission/${id}/status`, { status });
 }

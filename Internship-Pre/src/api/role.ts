@@ -26,6 +26,7 @@ export interface ImportResult {
 }
 
 export function getRoleList(params: RoleListParams): Promise<{ records: RoleRecord[]; total: number }> {
+export function getRoleList(params: Record<string, any>): Promise<{ records: RoleRecord[]; total: number }> {
   return request.get("/role/", { params });
 }
 
@@ -38,10 +39,12 @@ export function updateRole(id: number, data: Partial<RoleRecord>): Promise<RoleR
 }
 
 export function deleteRole(id: number): Promise<void> {
+export function deleteRole(id: number): Promise<any> {
   return request.delete(`/role/${id}`);
 }
 
 export function batchDeleteRoles(ids: number[]): Promise<void> {
+export function batchDeleteRoles(ids: number[]): Promise<any> {
   return request.delete("/role/batch", { data: { ids } });
 }
 
@@ -50,10 +53,12 @@ export function getAllRoles(): Promise<RoleRecord[]> {
 }
 
 export function updateRoleSort(id: number, sortOrder: number): Promise<void> {
+export function updateRoleSort(id: number, sortOrder: number): Promise<any> {
   return request.put(`/role/${id}/sort`, { sortOrder });
 }
 
 export function batchSortRoles(data: { id: number; sortOrder: number }[]): Promise<void> {
+export function batchSortRoles(data: { id: number; sortOrder: number }[]): Promise<any> {
   return request.post("/role/batch-sort", data);
 }
 
@@ -66,6 +71,7 @@ export function downloadRoleTemplate(): Promise<Blob> {
 }
 
 export function importRoles(file: File): Promise<ImportResult> {
+export function importRoles(file: File): Promise<any> {
   const formData = new FormData();
   formData.append("file", file);
   return request.post("/role/import", formData, {
@@ -74,6 +80,7 @@ export function importRoles(file: File): Promise<ImportResult> {
 }
 
 export function updateRoleStatus(id: number, status: number): Promise<void> {
+export function updateRoleStatus(id: number, status: number): Promise<any> {
   return request.put(`/role/${id}/status`, { status });
 }
 
@@ -82,6 +89,7 @@ export function getRoleMenus(id: number): Promise<number[]> {
 }
 
 export function assignRoleMenus(id: number, menu_ids: number[]): Promise<void> {
+export function assignRoleMenus(id: number, menu_ids: number[]): Promise<any> {
   return request.put(`/role/${id}/menus`, { menu_ids });
 }
 
@@ -90,5 +98,6 @@ export function getRoleUsers(id: number): Promise<number[]> {
 }
 
 export function assignRoleUsers(id: number, user_ids: number[]): Promise<void> {
+export function assignRoleUsers(id: number, user_ids: number[]): Promise<any> {
   return request.put(`/role/${id}/users`, { user_ids });
 }

@@ -23,6 +23,7 @@ export interface MenuListParams {
 }
 
 export function getMenuTree(params?: MenuListParams): Promise<MenuItem[]> {
+export function getMenuTree(params?: Record<string, any>): Promise<MenuItem[]> {
   return request.get("/menu/tree", { params });
 }
 
@@ -43,22 +44,27 @@ export function updateMenu(id: number, data: Partial<MenuItem>): Promise<MenuIte
 }
 
 export function deleteMenu(id: number): Promise<void> {
+export function deleteMenu(id: number): Promise<any> {
   return request.delete(`/menu/${id}`);
 }
 
 export function updateMenuStatus(id: number, status: number): Promise<void> {
+export function updateMenuStatus(id: number, status: number): Promise<any> {
   return request.put(`/menu/${id}/status`, { status });
 }
 
 export function updateMenuSort(id: number, sortOrder: number): Promise<void> {
+export function updateMenuSort(id: number, sortOrder: number): Promise<any> {
   return request.put(`/menu/${id}/sort`, { sortOrder });
 }
 
 export function batchSortMenu(data: { id: number; sortOrder: number }[]): Promise<void> {
+export function batchSortMenu(data: { id: number; sortOrder: number }[]): Promise<any> {
   return request.post("/menu/batch-sort", data);
 }
 
 export function batchDeleteMenus(ids: number[]): Promise<void> {
+export function batchDeleteMenus(ids: number[]): Promise<any> {
   return request.delete("/menu/batch", { data: { ids } });
 }
 
