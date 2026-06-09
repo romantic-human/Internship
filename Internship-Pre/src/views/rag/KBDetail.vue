@@ -9,6 +9,7 @@
           <h3 style="margin: 0 0 0 12px">{{ kbName }}</h3>
         </div>
         <el-upload
+          v-permission="'rag:doc:upload'"
           :before-upload="handleBeforeUpload"
           :show-file-list="false"
           accept=".pdf,.txt,.md,.docx"
@@ -20,6 +21,7 @@
       </div>
 
       <el-table :data="tableData" v-loading="loading" stripe border>
+        <template #empty><el-empty description="暂无数据" /></template>
         <el-table-column type="index" label="序号" width="60" align="center" :index="(i: number) => (currentPage - 1) * pageSize + i + 1" />
         <el-table-column prop="file_name" label="文件名" min-width="200" show-overflow-tooltip />
         <el-table-column prop="file_type" label="类型" width="70" align="center">
@@ -43,22 +45,16 @@
           </template>
         </el-table-column>
         <el-table-column prop="create_time" label="上传时间" width="170" />
-        <el-table-column label="操作" width="160" align="center" fixed="right">
+        <el-table-column label="操作" width="220" align="center" fixed="right">
           <template #default="{ row }">
             <el-button
+              v-permission="'rag:doc:upload'"
               v-if="row.status === 3"
               type="warning" link size="small"
-              @click="handleReprocess(row)"
-            >
-              <el-icon><RefreshRight /></el-icon> 重新处理
-            </el-button>
-            <el-popconfirm title="确认删除此文档？" @confirm="handleDelete(row.id)">
-              <template #reference>
-                <el-button type="danger" link size="small">
-                  <el-icon><Delete /></el-icon>
-                </el-button>
-              </template>
-            </el-popconfirm>
+              @click="handleReprocess(row.id)"
+            >重新处理</el-button>
+            <el-button type="primary" link size="small" @click="handlePreview(row)">预览</el-button>
+            <el-button v-permission="'rag:doc:delete'" type="danger" link size="small" @click="handleDelete(row.id)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -70,7 +66,7 @@
         :total="total"
         layout="total, sizes, prev, pager, next, jumper"
         style="margin-top: 16px; justify-content: flex-end"
-        @size-change="fetchData"
+        @size-change="currentPage=1;fetchData()"
         @current-change="fetchData"
       />
     </el-card>
@@ -78,15 +74,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
-import { ArrowLeft, UploadFilled, Delete, RefreshRight } from "@element-plus/icons-vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { ArrowLeft, UploadFilled, View } from "@element-plus/icons-vue";
 import {
   getDocumentList,
   uploadDocument,
   deleteDocument,
   reprocessDocument,
+  getDocumentPreviewUrl,
   type Document,
 } from "@/api/rag";
 
@@ -106,6 +103,7 @@ const tableData = ref<Document[]>([]);
 const total = ref(0);
 const currentPage = ref(1);
 const pageSize = ref(20);
+let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 function formatSize(bytes: number): string {
   if (!bytes) return "0 B";
@@ -113,6 +111,38 @@ function formatSize(bytes: number): string {
   let i = 0;
   while (bytes >= 1024 && i < 3) { bytes /= 1024; i++; }
   return `${bytes.toFixed(1)} ${units[i]}`;
+}
+
+function startPolling() {
+  stopPolling();
+  pollTimer = setInterval(() => {
+    const hasPending = tableData.value.some(d => d.status === 0 || d.status === 1);
+    if (!hasPending) {
+      stopPolling();
+      return;
+    }
+    fetchData(true);
+  }, 2000);
+}
+
+function stopPolling() {
+  if (pollTimer !== null) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
+function handlePreview(row: Document) {
+  const url = getDocumentPreviewUrl(row.id);
+  if (row.file_type === "pdf") {
+    window.open(url, "_blank");
+  } else {
+    ElMessageBox.alert(
+      `<iframe src="${url}" style="width:100%;height:500px;border:none"></iframe>`,
+      "文件预览",
+      { dangerouslyUseHTMLString: true, showCancelButton: false, confirmButtonText: "关闭" },
+    );
+  }
 }
 
 function statusType(status: number): string {
@@ -125,8 +155,8 @@ function statusType(status: number): string {
   }
 }
 
-async function fetchData() {
-  loading.value = true;
+async function fetchData(silent = false) {
+  if (!silent) loading.value = true;
   try {
     const res = await getDocumentList({
       knowledge_base: kbId,
@@ -138,7 +168,7 @@ async function fetchData() {
   } catch {
     // handled by interceptor
   } finally {
-    loading.value = false;
+    if (!silent) loading.value = false;
   }
 }
 
@@ -148,6 +178,7 @@ async function handleBeforeUpload(file: File) {
     await uploadDocument(kbId, file);
     ElMessage.success("上传成功，正在处理...");
     fetchData();
+    startPolling();
   } catch {
     // handled by interceptor
   } finally {
@@ -157,18 +188,24 @@ async function handleBeforeUpload(file: File) {
 }
 
 async function handleDelete(id: number) {
-  await deleteDocument(id);
-  ElMessage.success("删除成功");
-  fetchData();
+  try {
+    await ElMessageBox.confirm("确定删除该文档？", "提示");
+    await deleteDocument(id);
+    ElMessage.success("删除成功");
+    fetchData();
+  } catch { /* cancel or error */ }
 }
 
-async function handleReprocess(row: Document) {
-  await reprocessDocument(row.id);
-  ElMessage.success("正在重新处理");
-  fetchData();
+async function handleReprocess(id: number) {
+  try {
+    await reprocessDocument(id);
+    ElMessage.success("正在重新处理");
+    fetchData();
+  } catch { /* handled by interceptor */ }
 }
 
-onMounted(fetchData);
+onMounted(() => { fetchData(); startPolling(); });
+onUnmounted(stopPolling);
 </script>
 
 <style scoped>

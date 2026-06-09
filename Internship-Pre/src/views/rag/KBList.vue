@@ -12,12 +12,14 @@
         >
           <template #prefix><el-icon><Search /></el-icon></template>
         </el-input>
-        <el-button type="primary" @click="openDialog()">
+        <el-button v-permission="'rag:kb:add'" type="primary" @click="openDialog()">
           <el-icon><Plus /></el-icon> 新建知识库
         </el-button>
       </div>
 
       <el-table :data="tableData" v-loading="loading" stripe border>
+        <template #empty><el-empty description="暂无数据" /></template>
+        <el-table-column type="selection" width="45" />
         <el-table-column type="index" label="序号" width="60" align="center" :index="(i: number) => (currentPage - 1) * pageSize + i + 1" />
         <el-table-column prop="name" label="名称" min-width="140" />
         <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
@@ -34,22 +36,10 @@
         <el-table-column prop="create_time" label="创建时间" width="170" />
         <el-table-column label="操作" width="240" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="goDetail(row)">
-              <el-icon><FolderOpened /></el-icon> 管理
-            </el-button>
-            <el-button type="success" link size="small" @click="goChat(row)">
-              <el-icon><ChatDotRound /></el-icon> 问答
-            </el-button>
-            <el-button type="primary" link size="small" @click="openDialog(row)">
-              <el-icon><Edit /></el-icon> 编辑
-            </el-button>
-            <el-popconfirm title="确认删除?" @confirm="handleDelete(row.id)">
-              <template #reference>
-                <el-button type="danger" link size="small">
-                  <el-icon><Delete /></el-icon>
-                </el-button>
-              </template>
-            </el-popconfirm>
+            <el-button v-permission="'rag:kb:list'" type="primary" link size="small" @click="goDetail(row)">管理</el-button>
+            <el-button v-permission="'rag:chat'" type="success" link size="small" @click="goChat(row)">问答</el-button>
+            <el-button v-permission="'rag:kb:edit'" type="primary" link size="small" @click="openDialog(row)">编辑</el-button>
+            <el-button v-permission="'rag:kb:delete'" type="danger" link size="small" @click="handleDelete(row.id)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -61,7 +51,7 @@
         :total="total"
         layout="total, sizes, prev, pager, next, jumper"
         style="margin-top: 16px; justify-content: flex-end"
-        @size-change="fetchData"
+        @size-change="currentPage=1;fetchData()"
         @current-change="fetchData"
       />
     </el-card>
@@ -90,8 +80,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage, type FormInstance } from "element-plus";
-import { Search, Plus, FolderOpened, ChatDotRound, Edit, Delete } from "@element-plus/icons-vue";
+import { ElMessage, ElMessageBox, type FormInstance } from "element-plus";
+import { Search, Plus } from "@element-plus/icons-vue";
 import {
   getKnowledgeBaseList,
   createKnowledgeBase,
@@ -179,9 +169,12 @@ async function handleSubmit() {
 }
 
 async function handleDelete(id: number) {
-  await deleteKnowledgeBase(id);
-  ElMessage.success("删除成功");
-  fetchData();
+  try {
+    await ElMessageBox.confirm("确定删除该知识库？", "提示");
+    await deleteKnowledgeBase(id);
+    ElMessage.success("删除成功");
+    fetchData();
+  } catch { /* cancel or error */ }
 }
 
 function goDetail(row: KnowledgeBase) {

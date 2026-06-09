@@ -29,6 +29,26 @@ class Command(BaseCommand):
         )
         self.stdout.write(f"  [OK] 技术部")
 
+        hr, _ = Department.objects.get_or_create(
+            dept_name="人事部", defaults={"parent": root, "sort_order": 20, "status": 1},
+        )
+        self.stdout.write(f"  [OK] 人事部")
+
+        finance, _ = Department.objects.get_or_create(
+            dept_name="财务部", defaults={"parent": root, "sort_order": 30, "status": 1},
+        )
+        self.stdout.write(f"  [OK] 财务部")
+
+        frontend, _ = Department.objects.get_or_create(
+            dept_name="前端组", defaults={"parent": tech, "sort_order": 11, "status": 1},
+        )
+        self.stdout.write(f"  [OK] 前端组")
+
+        backend, _ = Department.objects.get_or_create(
+            dept_name="后端组", defaults={"parent": tech, "sort_order": 12, "status": 1},
+        )
+        self.stdout.write(f"  [OK] 后端组")
+
         # ── 2. 菜单树 ──────────────────────────────────────
         sys_m = self._m(None, "系统管理", 0, "Setting", 0)
 
@@ -152,9 +172,25 @@ class Command(BaseCommand):
         UserRoleRelation.objects.get_or_create(user=test, role=user_role)
         self.stdout.write(f"  [OK] test / test123")
 
+        demo_data = [
+            ("zhangsan", "张三", tech, "zhang123"),
+            ("lisi", "李四", tech, "lisi123"),
+            ("wangwu", "王五", hr, "wang123"),
+            ("zhaoliu", "赵六", finance, "zhao123"),
+        ]
+        for uname, nickname, dept, pwd in demo_data:
+            u = User.objects.filter(username=uname).first()
+            if not u:
+                u = User(username=uname, nickname=nickname, is_superuser=False, status=1, department=dept)
+                u.set_password(pwd)
+                u.save()
+            UserRoleRelation.objects.get_or_create(user=u, role=user_role)
+            self.stdout.write(f"  [OK] {uname} / {pwd}")
+
         self.stdout.write(self.style.SUCCESS("\n种子数据创建完成!"))
         self.stdout.write("  管理员: admin / admin123  (全部权限)")
         self.stdout.write("  普通用户: test / test123  (只读权限)")
+        self.stdout.write("  更多用户: zhangsan/lisi/wangwu/zhaoliu (密码见上)")
 
     def _m(self, parent, name, mtype, icon, sort, path="", component="", permission=""):
         """创建菜单项"""

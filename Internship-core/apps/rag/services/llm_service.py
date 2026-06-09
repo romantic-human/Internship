@@ -1,5 +1,7 @@
 """LLM 服务封装：DeepSeek Chat API + 通义千问 Embedding"""
+import json
 import logging
+from typing import Generator
 from django.conf import settings
 from openai import OpenAI
 
@@ -90,3 +92,40 @@ class LLMService:
             "answer": answer,
             "tokens_used": tokens_used,
         }
+
+    @classmethod
+    def chat_stream(cls, question: str, context_chunks: list[dict]) -> Generator[str, None, None]:
+        """
+        流式问答：逐 token 产出 SSE 格式的 JSON 字符串
+        Yields: SSE data lines with type "token"
+        """
+        context_parts = []
+        for i, chunk in enumerate(context_chunks, 1):
+            meta = chunk.get("metadata", {})
+            file_name = meta.get("file_name", "未知文档")
+            chunk_idx = meta.get("chunk_index", 0)
+            context_parts.append(
+                f"[来源{i}: {file_name}-块{chunk_idx}]\n{chunk['content']}"
+            )
+        context_text = "\n\n".join(context_parts) if context_parts else "（无相关参考资料）"
+
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT.format(context=context_text)},
+            {"role": "user", "content": question},
+        ]
+
+        client = cls._get_client()
+        response = client.chat.completions.create(
+            model=settings.DEEPSEEK_CHAT_MODEL,
+            messages=messages,
+            temperature=0.3,
+            max_tokens=2000,
+            stream=True,
+        )
+
+        for chunk in response:
+            delta = chunk.choices[0].delta if chunk.choices else None
+            if delta and delta.content:
+                yield f"data: {json.dumps({'type': 'token', 'content': delta.content})}\n\n"
+
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
