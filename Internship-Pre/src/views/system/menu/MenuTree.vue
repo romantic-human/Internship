@@ -23,6 +23,7 @@
       </el-form>
 
       <el-table
+        ref="tableRef"
         :data="treeData"
         row-key="id"
         default-expand-all
@@ -92,12 +93,15 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, nextTick } from "vue";
+import { getMenuTree, deleteMenu, updateMenuStatus, batchDeleteMenus, exportMenus, batchSortMenu, type MenuItem } from "@/api/menu";
 import { ref, onMounted } from "vue";
 import { getMenuTree, deleteMenu, updateMenuStatus, batchDeleteMenus, exportMenus, type MenuItem } from "@/api/menu";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { markRaw, shallowRef, type Component } from "vue";
 import * as ElementPlusIcons from "@element-plus/icons-vue";
 import MenuForm from "./MenuForm.vue";
+import Sortable from "sortablejs";
 
 const iconMap: Record<string, Component> = {};
 for (const [key, comp] of Object.entries(ElementPlusIcons)) {
@@ -112,6 +116,7 @@ const formVisible = ref(false);
 const currentFormData = ref<Partial<MenuItem> | null>(null);
 const searchKey = ref("");
 const selectedIds = ref<number[]>([]);
+const tableRef = ref();
 
 function onSelectionChange(rows: MenuItem[]) {
   selectedIds.value = rows.map(r => r.id);
@@ -205,6 +210,44 @@ async function handleExport() {
   } catch { /* handled by interceptor */ }
 }
 
+function initDragSort() {
+  nextTick(() => {
+    const el = tableRef.value?.$el?.querySelector('.el-table__body-wrapper tbody');
+    if (!el) return;
+    Sortable.create(el, {
+      handle: '.el-table__row',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      onEnd: async (evt: any) => {
+        if (evt.oldIndex === evt.newIndex) return;
+        const flatRows = tableRef.value?.data;
+        if (!flatRows) return;
+        const oldItem = flatRows[evt.oldIndex];
+        const newItem = flatRows[evt.newIndex];
+        // Only reorder within same parent level
+        if (oldItem?.parent_id !== newItem?.parent_id) {
+          ElMessage.warning('只能在同一层级内拖拽排序');
+          await fetchTree();
+          return;
+        }
+        const siblings = flatRows.filter((r: MenuItem) => r.parent_id === oldItem.parent_id);
+        const payload = siblings.map((item: MenuItem, idx: number) => ({
+          id: item.id,
+          sortOrder: idx,
+        }));
+        try {
+          await batchSortMenu(payload);
+          ElMessage.success('排序更新成功');
+          await fetchTree();
+        } catch { /* handled by interceptor */ }
+      },
+    });
+  });
+}
+
+onMounted(() => {
+  fetchTree().then(initDragSort);
+});
 onMounted(fetchTree);
 </script>
 <style scoped>

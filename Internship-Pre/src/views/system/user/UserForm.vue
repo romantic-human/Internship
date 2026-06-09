@@ -60,6 +60,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from "vue";
+import { createUser, updateUser, getUserDetail, checkUnique, type UserRecord } from "@/api/user";
 import { createUser, updateUser, getUserDetail, type UserRecord } from "@/api/user";
 import { getDepartmentTree, type DeptItem } from "@/api/department";
 import { getAllRoles, type RoleRecord } from "@/api/role";
@@ -92,6 +93,50 @@ const form = ref({
 });
 
 const rules = {
+  username: [
+    { required: true, message: "请输入用户名", trigger: "blur" },
+    {
+      trigger: "blur",
+      asyncValidator: (_rule: any, value: string, callback: any) => {
+        if (!value) return callback();
+        checkUnique("username", value, isEdit.value ? props.formData?.id : undefined)
+          .then((res) => {
+            if (res.unique) callback();
+            else callback(new Error("用户名已存在"));
+          })
+          .catch(() => callback());
+      },
+    },
+  ],
+  email: [
+    { type: "email", message: "请输入正确邮箱", trigger: "blur" },
+    {
+      trigger: "blur",
+      asyncValidator: (_rule: any, value: string, callback: any) => {
+        if (!value) return callback();
+        checkUnique("email", value, isEdit.value ? props.formData?.id : undefined)
+          .then((res) => {
+            if (res.unique) callback();
+            else callback(new Error("邮箱已被使用"));
+          })
+          .catch(() => callback());
+      },
+    },
+  ],
+  telephone: [
+    {
+      trigger: "blur",
+      asyncValidator: (_rule: any, value: string, callback: any) => {
+        if (!value) return callback();
+        checkUnique("telephone", value, isEdit.value ? props.formData?.id : undefined)
+          .then((res) => {
+            if (res.unique) callback();
+            else callback(new Error("手机号已被使用"));
+          })
+          .catch(() => callback());
+      },
+    },
+  ],
   username: [{ required: true, message: "请输入用户名", trigger: "blur" }],
   email: [{ type: "email", message: "请输入正确邮箱", trigger: "blur" }],
   password: [{ min: 6, message: "密码最少6位", trigger: "blur" }],

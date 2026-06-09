@@ -29,6 +29,7 @@ class OperationLogViewSet(viewsets.ReadOnlyModelViewSet):
         username = request.query_params.get("username")
         module = request.query_params.get("module")
         operation = request.query_params.get("operation")
+        method = request.query_params.get("method")
         log_status = request.query_params.get("status")
         start_time = request.query_params.get("startTime") or request.query_params.get("start_date") or request.query_params.get("startDate")
         end_time = request.query_params.get("endTime") or request.query_params.get("end_date") or request.query_params.get("endDate")
@@ -39,6 +40,8 @@ class OperationLogViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(module__icontains=module)
         if operation:
             queryset = queryset.filter(operation__icontains=operation)
+        if method:
+            queryset = queryset.filter(method=method)
         if log_status is not None and log_status != "":
             queryset = queryset.filter(status=log_status)
         if start_time:

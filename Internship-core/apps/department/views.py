@@ -66,6 +66,9 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         if Department.objects.filter(parent=instance).exists():
             return APIResponse.error(message="存在子部门，无法删除")
+        from apps.user.models import User
+        if User.objects.filter(department=instance).exists():
+            return APIResponse.error(message="该部门下存在用户，无法删除")
         instance.delete()
         return APIResponse.success(message="删除成功")
 
@@ -121,6 +124,10 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         if not ids:
             return APIResponse.error(message="ids 不能为空")
         if Department.objects.filter(parent_id__in=ids).exclude(id__in=ids).exists():
+            return APIResponse.error(message="存在子部门不在删除列表中，无法批量删除")
+        from apps.user.models import User
+        if User.objects.filter(department_id__in=ids).exists():
+            return APIResponse.error(message="部分部门下存在用户，无法删除")
             return APIResponse.error(message="存在子部门，无法删除")
         Department.objects.filter(id__in=ids).delete()
         return APIResponse.success(message="批量删除成功")

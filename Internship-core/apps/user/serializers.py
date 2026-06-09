@@ -59,7 +59,15 @@ class UserListSerializer(serializers.ModelSerializer):
 
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True)
-    new_password = serializers.CharField(required=True, min_length=6)
+    new_password = serializers.CharField(required=True, min_length=8)
+
+    def validate_new_password(self, value):
+        import re
+        if not re.search(r"\d", value):
+            raise serializers.ValidationError("密码必须包含至少一个数字")
+        if not re.search(r"[a-zA-Z]", value):
+            raise serializers.ValidationError("密码必须包含至少一个字母")
+        return value
 
 
 class ResetPasswordSerializer(serializers.Serializer):
