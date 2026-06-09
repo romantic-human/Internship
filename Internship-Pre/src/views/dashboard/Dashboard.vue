@@ -9,7 +9,7 @@
     </div>
 
     <el-row :gutter="16" class="stats-row">
-      <el-col :xs="12" :sm="8" :md="4" v-for="card in statCards" :key="card.label">
+      <el-col :xs="12" :sm="6" :md="4" v-for="card in statCards" :key="card.label">
         <el-card shadow="hover" class="stat-card" :body-style="{ padding: '16px' }" :style="{ '--card-color': card.color }">
           <div class="stat-inner">
             <div class="stat-icon">
@@ -25,15 +25,7 @@
     </el-row>
 
     <el-row :gutter="16">
-      <el-col :span="8">
-        <el-card shadow="hover">
-          <template #header>
-            <div class="card-header"><el-icon><Monitor /></el-icon> 实时性能</div>
-          </template>
-          <ClockWidget />
-        </el-card>
-      </el-col>
-      <el-col :span="16">
+      <el-col :span="14">
         <el-card shadow="hover">
           <template #header>
             <div class="card-header">
@@ -55,8 +47,26 @@
                 <span>{{ row.execution_time }}ms</span>
               </template>
             </el-table-column>
-            <el-table-column prop="create_time" label="时间" min-width="150" />
+            <el-table-column prop="create_time" label="时间" min-width="150">
+              <template #default="{ row }">
+                {{ row.create_time ? formatDate(row.create_time, 'YYYY-MM-DD HH:mm:ss') : '-' }}
+              </template>
+            </el-table-column>
           </el-table>
+        </el-card>
+      </el-col>
+      <el-col :span="10">
+        <el-card shadow="hover" style="margin-bottom:12px">
+          <template #header>
+            <div class="card-header"><el-icon><MenuIcon /></el-icon> 用户部门分布</div>
+          </template>
+          <div ref="pieChartRef" style="height:280px" />
+        </el-card>
+        <el-card shadow="hover">
+          <template #header>
+            <div class="card-header"><el-icon><Timer /></el-icon> 近7日登录趋势</div>
+          </template>
+          <div ref="lineChartRef" style="height:200px" />
         </el-card>
       </el-col>
     </el-row>
@@ -64,21 +74,35 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from "vue";
 import { useAuthStore } from "@/store/auth";
+import { useAppStore } from "@/store/app";
 import { getDashboardStats, type DashboardStats } from "@/api/dashboard";
-import { User, Menu as MenuIcon, Key, OfficeBuilding, Document, Setting, Monitor, Refresh } from "@element-plus/icons-vue";
-import ClockWidget from "@/components/ClockWidget.vue";
+import { User, Menu as MenuIcon, Key, OfficeBuilding, Document, Setting, Refresh, Timer } from "@element-plus/icons-vue";
+import * as echarts from "echarts";
+import { formatDate } from "@/utils/format";
 
 const authStore = useAuthStore();
+const appStore = useAppStore();
+const isDark = computed(() => appStore.theme === "dark");
 const loading = ref(false);
 const currentTime = ref("");
 let timer: ReturnType<typeof setInterval> | null = null;
 
+const pieChartRef = ref<HTMLDivElement>();
+const lineChartRef = ref<HTMLDivElement>();
+let pieChart: echarts.ECharts | null = null;
+let lineChart: echarts.ECharts | null = null;
+let pieResize: ResizeObserver | null = null;
+let lineResize: ResizeObserver | null = null;
+
 const stats = ref<DashboardStats>({
   user_count: 0, role_count: 0, menu_count: 0,
   permission_count: 0, department_count: 0,
+  today_login_count: 0,
   log_today: 0, log_week: 0, log_month: 0, recent_logs: [],
+  dept_distribution: [],
+  login_trend: [],
 });
 
 const statCards = computed(() => [
@@ -87,6 +111,7 @@ const statCards = computed(() => [
   { icon: MenuIcon, count: stats.value.menu_count, label: "菜单数", color: "#e6a23c" },
   { icon: Key, count: stats.value.permission_count, label: "权限数", color: "#f56c6c" },
   { icon: OfficeBuilding, count: stats.value.department_count, label: "部门数", color: "#909399" },
+  { icon: Timer, count: stats.value.today_login_count, label: "今日登录", color: "#36cfc9" },
   { icon: Document, count: stats.value.log_today, label: "今日日志", color: "#b37feb" },
 ]);
 
@@ -96,21 +121,121 @@ function updateTime() {
   currentTime.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 }
 
+/** 暗色主题 ECharts 配色 */
+function chartTheme() {
+  if (!isDark.value) return {};
+  return {
+    backgroundColor: "transparent",
+    textStyle: { color: "#c8cad0" },
+    title: { textStyle: { color: "#e0e2e8" } },
+    tooltip: {
+      backgroundColor: "rgba(30,31,40,0.95)",
+      borderColor: "#3a3b45",
+      textStyle: { color: "#c8cad0" },
+    },
+  };
+}
+
+function axisTheme() {
+  if (!isDark.value) return {};
+  return {
+    axisLine: { lineStyle: { color: "#3a3b45" } },
+    axisTick: { lineStyle: { color: "#3a3b45" } },
+    axisLabel: { color: "#8b8d97" },
+    splitLine: { lineStyle: { color: "#2a2b35" } },
+  };
+}
+
+function initCharts() {
+  if (pieChartRef.value) {
+    pieChart = echarts.init(pieChartRef.value);
+    pieResize = new ResizeObserver(() => pieChart?.resize());
+    pieResize.observe(pieChartRef.value);
+  }
+  if (lineChartRef.value) {
+    lineChart = echarts.init(lineChartRef.value);
+    lineResize = new ResizeObserver(() => lineChart?.resize());
+    lineResize.observe(lineChartRef.value);
+  }
+}
+
+function updateCharts() {
+  if (pieChart && stats.value.dept_distribution?.length) {
+    const dark = isDark.value;
+    pieChart.setOption({
+      ...chartTheme(),
+      tooltip: { trigger: "item", ...chartTheme().tooltip },
+      legend: {
+        bottom: 0,
+        type: "scroll",
+        textStyle: { color: isDark.value ? "#c8cad0" : "#606266" },
+      },
+      series: [{
+        type: "pie",
+        radius: ["35%", "60%"],
+        center: ["50%", "45%"],
+        avoidLabelOverlap: true,
+        itemStyle: { borderRadius: 4, borderColor: dark ? "#1e1f28" : "#fff", borderWidth: 2 },
+        label: { show: false },
+        emphasis: {
+          label: { show: true, formatter: "{b}: {c} ({d}%)", color: dark ? "#c8cad0" : "#333" },
+        },
+        data: stats.value.dept_distribution.map((d) => ({ name: d.dept_name, value: d.user_count })),
+      }],
+    });
+  }
+  if (lineChart && stats.value.login_trend?.length) {
+    lineChart.setOption({
+      ...chartTheme(),
+      tooltip: { trigger: "axis", ...chartTheme().tooltip },
+      grid: { left: 40, right: 16, top: 16, bottom: 24 },
+      xAxis: {
+        type: "category",
+        data: stats.value.login_trend.map((d) => d.date.slice(5)),
+        ...axisTheme(),
+      },
+      yAxis: { type: "value", minInterval: 1, ...axisTheme() },
+      series: [{
+        type: "line",
+        smooth: true,
+        data: stats.value.login_trend.map((d) => d.count),
+        areaStyle: { opacity: 0.15 },
+        lineStyle: { width: 2 },
+        itemStyle: { color: "#409eff" },
+      }],
+    });
+  }
+}
+
 async function fetchStats() {
   loading.value = true;
   try {
     stats.value = await getDashboardStats();
+    await nextTick();
+    updateCharts();
   } catch { /* handled */ }
   finally { loading.value = false; }
 }
 
+/** 主题切换时重新渲染图表 */
+watch(isDark, () => {
+  nextTick(() => updateCharts());
+});
+
 onMounted(() => {
   updateTime();
   timer = setInterval(updateTime, 1000);
-  fetchStats();
+  requestAnimationFrame(() => {
+    initCharts();
+    fetchStats();
+  });
 });
 
 onUnmounted(() => {
+  pieResize?.disconnect();
+  lineResize?.disconnect();
+  pieChart?.dispose();
+  lineChart?.dispose();
   if (timer) clearInterval(timer);
 });
 </script>
@@ -137,5 +262,12 @@ onUnmounted(() => {
 
 .dark .welcome-header h2 { color: #e0e2e8; }
 .dark .stat-value { color: #e0e2e8; }
+.dark .time-text { color: #8b8d97; }
+.dark .stat-label { color: #8b8d97; }
+.dark .card-header { color: #c8cad0; }
+.dark .dashboard .el-card { background: #1e1f28; border-color: #2a2b35; }
+.dark .dashboard .el-card__header { border-bottom-color: #2a2b35; color: #c8cad0; }
+.dark .dashboard .el-table { --el-table-bg-color: #1a1b23; --el-table-tr-bg-color: #1a1b23; --el-table-header-bg-color: #1e1f28; --el-table-row-hover-bg-color: #25262f; --el-table-border-color: #2a2b35; --el-table-text-color: #c8cad0; --el-table-header-text-color: #8b8d97; }
+.dark .dashboard .el-tag { --el-tag-bg-color: rgba(64,158,255,0.15); --el-tag-border-color: transparent; --el-tag-text-color: #79b8f8; }
 
 </style>

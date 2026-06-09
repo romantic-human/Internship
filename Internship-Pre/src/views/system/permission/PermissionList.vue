@@ -29,6 +29,7 @@
       </el-form>
 
       <el-table :data="list" v-loading="loading" stripe @selection-change="onSelectionChange">
+        <template #empty><el-empty description="暂无数据" /></template>
         <el-table-column type="selection" width="50" />
         <el-table-column prop="permission_name" label="权限名称" min-width="160" />
         <el-table-column prop="permission_key" label="权限标识" min-width="180" />
@@ -48,14 +49,14 @@
           <template #default="{ row }">
             <el-button v-permission="'permission:edit'" link type="primary" @click="handleEdit(row)">编辑</el-button>
             <el-button link type="primary" @click="handleBindMenu(row)">绑定菜单</el-button>
-            <el-popconfirm v-permission="'permission:delete'" title="确定删除？" @confirm="handleDelete(row)">
+            <el-popconfirm v-if="authStore.hasPermission('permission:delete')" title="确定删除？" @confirm="handleDelete(row)">
               <template #reference><el-button link type="danger">删除</el-button></template>
             </el-popconfirm>
           </template>
         </el-table-column>
       </el-table>
-      <el-pagination v-if="total > pageSize" v-model:current-page="page" :page-size="pageSize" :page-sizes="[10, 20, 50, 100]" :total="total"
-        layout="total, sizes, prev, pager, next, jumper" @current-change="fetchList" @size-change="fetchList" class="mt-3" />
+      <el-pagination v-if="total > pageSize" v-model:current-page="page" v-model:page-size="pageSize" :page-sizes="[10, 20, 50, 100]" :total="total"
+        layout="total, sizes, prev, pager, next, jumper" @current-change="fetchList" @size-change="page=1;fetchList()" class="mt-3" />
     </el-card>
     <PermissionForm v-if="formVisible" :visible="formVisible" :form-data="currentFormData"
       @close="formVisible = false" @success="fetchList" />
@@ -92,15 +93,18 @@ import {
   type PermissionItem,
 } from "@/api/permission";
 import { getMenuTree, type MenuItem } from "@/api/menu";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import type { ElTree } from "element-plus";
+import { useAuthStore } from "@/store/auth";
 import PermissionForm from "./PermissionForm.vue";
+
+const authStore = useAuthStore();
 
 const loading = ref(false);
 const list = ref<PermissionItem[]>([]);
 const total = ref(0);
 const page = ref(1);
-const pageSize = 10;
+const pageSize = ref(10);
 const formVisible = ref(false);
 const currentFormData = ref<Partial<PermissionItem> | null>(null);
 const selectedIds = ref<number[]>([]);
@@ -119,7 +123,7 @@ const menuSaving = ref(false);
 async function fetchList() {
   loading.value = true;
   try {
-    const params: Record<string, any> = { page: page.value, pageSize };
+    const params: Record<string, any> = { page: page.value, pageSize: pageSize.value };
     if (filters.permission_name) params.permission_name = filters.permission_name;
     if (filters.status !== null) params.status = filters.status;
     const res = await getPermissionList(params);
@@ -145,32 +149,36 @@ function onSelectionChange(rows: PermissionItem[]) {
 async function handleBatchDelete() {
   if (!selectedIds.value.length) return;
   try {
+    await ElMessageBox.confirm(`确定删除选中的 ${selectedIds.value.length} 条权限？`, "提示");
     await batchDeletePermissions(selectedIds.value);
     ElMessage.success("批量删除成功");
     selectedIds.value = [];
     await fetchList();
-  } catch { /* handled by interceptor */ }
+  } catch { /* cancel */ }
 }
 
 async function handleExport() {
-  const blob = await exportPermissions() as unknown as Blob;
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "permissions.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-  ElMessage.success("导出成功");
+  try {
+    const blob = await exportPermissions() as unknown as Blob;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `权限列表_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success("导出成功");
+  } catch {
+    ElMessage.error("导出失败");
+  }
 }
 
 async function handleBindMenu(row: PermissionItem) {
   currentPermissionId.value = row.id;
   menuDialogVisible.value = true;
   menuTreeData.value = await getMenuTree();
-  nextTick(async () => {
-    const menuIds = await getPermissionMenus(row.id);
-    menuTreeRef.value?.setCheckedKeys(menuIds);
-  });
+  const menuIds = await getPermissionMenus(row.id);
+  await nextTick();
+  menuTreeRef.value?.setCheckedKeys(menuIds);
 }
 
 async function handleSaveBindMenu() {
@@ -189,3 +197,7 @@ async function handleDelete(row: PermissionItem) {
 }
 onMounted(fetchList);
 </script>
+<style scoped>
+.mb-2 { margin-bottom: 12px; }
+.mt-3 { margin-top: 16px; }
+</style>
