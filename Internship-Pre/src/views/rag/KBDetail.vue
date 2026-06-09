@@ -156,6 +156,7 @@ function statusType(status: number): string {
 }
 
 async function fetchData(silent = false) {
+  if (!kbId || isNaN(kbId)) return;
   if (!silent) loading.value = true;
   try {
     const res = await getDocumentList({
@@ -204,7 +205,11 @@ async function handleReprocess(id: number) {
   } catch { /* handled by interceptor */ }
 }
 
-onMounted(() => { fetchData(); startPolling(); });
+onMounted(() => {
+  if (!kbId || isNaN(kbId)) return;
+  fetchData();
+  startPolling();
+});
 onUnmounted(stopPolling);
 </script>
 
