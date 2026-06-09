@@ -5,18 +5,28 @@
         <div class="card-header">
           <span>部门管理</span>
           <div>
-            <el-input v-model="keyword" placeholder="部门名称" clearable style="width:200px;margin-right:8px" @input="onKeywordChange" />
             <el-button :disabled="selectedIds.length === 0" type="danger" @click="handleBatchDelete">批量删除</el-button>
-            <el-button @click="handleExport">导出</el-button>
+            <el-button type="success" @click="handleExport">导出</el-button>
             <el-button v-permission="'dept:add'" type="primary" @click="handleAdd">新增部门</el-button>
           </div>
         </div>
       </template>
+      <el-form inline class="mb-2">
+        <el-form-item label="部门名称">
+          <el-input v-model="keyword" placeholder="部门名称" clearable style="width:200px" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="fetchTree">查询</el-button>
+          <el-button @click="keyword='';fetchTree()">重置</el-button>
+        </el-form-item>
+      </el-form>
       <el-table
+        ref="tableRef"
         :data="filteredTree" row-key="id" default-expand-all
-        :tree-props="{ children: 'children' }" v-loading="loading"
-        @selection-change="(rows: any[]) => selectedIds = rows.map(r => r.id)"
+        :tree-props="{ children: 'children' }" v-loading="loading" stripe
+        @selection-change="(rows: DeptItem[]) => selectedIds = rows.map(r => r.id)"
       >
+        <template #empty><el-empty description="暂无数据" /></template>
         <el-table-column type="selection" width="45" />
         <el-table-column prop="dept_name" label="部门名称" min-width="200" />
         <el-table-column prop="leader" label="负责人" width="120" />
@@ -44,10 +54,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
-import { getDepartmentTree, deleteDepartment, updateDepartmentStatus, batchDeleteDepartments, exportDepartments, type DeptItem } from "@/api/department";
+import { ref, computed, onMounted, nextTick, watch } from "vue";
+import { getDepartmentTree, deleteDepartment, updateDepartmentStatus, batchDeleteDepartments, exportDepartments, batchSortDepartment, type DeptItem } from "@/api/department";
 import { ElMessage, ElMessageBox } from "element-plus";
 import DeptForm from "./DeptForm.vue";
+import Sortable from "sortablejs";
 
 const loading = ref(false);
 const treeData = ref<DeptItem[]>([]);
@@ -55,20 +66,22 @@ const formVisible = ref(false);
 const currentFormData = ref<Partial<DeptItem> | null>(null);
 const keyword = ref("");
 const selectedIds = ref<number[]>([]);
+const tableRef = ref();
 
-function filterTree(items: DeptItem[], kw: string): DeptItem[] {
-  return items.reduce<DeptItem[]>((acc, item) => {
-    const match = !kw || item.dept_name?.includes(kw);
-    const children = item.children ? filterTree(item.children, kw) : [];
-    if (match || children.length > 0) {
-      acc.push({ ...item, children });
-    }
-    return acc;
-  }, []);
-}
-const filteredTree = computed(() => keyword.value ? filterTree(treeData.value, keyword.value) : treeData.value);
-
-function onKeywordChange() { /* reactivity handles it */ }
+const filteredTree = computed(() => {
+  if (!keyword.value) return treeData.value;
+  function filter(items: DeptItem[]): DeptItem[] {
+    return items.reduce<DeptItem[]>((acc, item) => {
+      const match = item.dept_name?.includes(keyword.value);
+      const children = item.children ? filter(item.children) : [];
+      if (match || children.length > 0) {
+        acc.push({ ...item, children });
+      }
+      return acc;
+    }, []);
+  }
+  return filter(treeData.value);
+});
 
 async function fetchTree() {
   loading.value = true;
@@ -103,5 +116,47 @@ async function handleExport() {
     ElMessage.success("导出成功");
   } catch { ElMessage.error("导出失败"); }
 }
-onMounted(fetchTree);
+function initDragSort() {
+  nextTick(() => {
+    const el = tableRef.value?.$el?.querySelector('.el-table__body-wrapper tbody');
+    if (!el) return;
+    Sortable.create(el, {
+      handle: '.el-table__row',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      onEnd: async (evt: any) => {
+        if (evt.oldIndex === evt.newIndex) return;
+        const flatRows = tableRef.value?.data;
+        if (!flatRows) return;
+        const oldItem = flatRows[evt.oldIndex];
+        const newItem = flatRows[evt.newIndex];
+        if (oldItem?.parent_id !== newItem?.parent_id) {
+          ElMessage.warning('只能在同一层级内拖拽排序');
+          await fetchTree();
+          return;
+        }
+        const siblings = flatRows.filter((r: DeptItem) => r.parent_id === oldItem.parent_id);
+        const payload = siblings.map((item: DeptItem, idx: number) => ({
+          id: item.id,
+          sortOrder: idx,
+        }));
+        try {
+          await batchSortDepartment(payload);
+          ElMessage.success('排序更新成功');
+          await fetchTree();
+        } catch { /* handled by interceptor */ }
+      },
+    });
+  });
+}
+
+// Re-init drag sort when filtered data changes
+watch(filteredTree, () => { initDragSort(); });
+
+onMounted(() => {
+  fetchTree().then(initDragSort);
+});
 </script>
+<style scoped>
+.mb-2 { margin-bottom: 12px; }
+</style>

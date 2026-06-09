@@ -5,14 +5,22 @@
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <span>用户管理</span>
           <div>
-            <el-button type="success" @click="handleExport">导出 Excel</el-button>
+            <el-button
+              :disabled="selectedRows.length === 0"
+              type="danger"
+              @click="handleBatchDelete"
+            >批量删除{{ selectedRows.length ? ` (${selectedRows.length})` : '' }}</el-button>
+            <el-button type="success" @click="handleExport" :loading="exporting">导出用户</el-button>
+            <el-button type="info" @click="handleDownloadTemplate">下载模板</el-button>
             <el-upload
+              ref="uploadRef"
+              :auto-upload="false"
               :show-file-list="false"
               accept=".xlsx,.xls"
-              :before-upload="handleImport"
-              style="display:inline-block;margin:0 8px"
+              :on-change="handleImportChange"
+              style="display:inline-block"
             >
-              <el-button type="warning">批量导入用户</el-button>
+              <el-button type="warning" :loading="importing">批量导入用户</el-button>
             </el-upload>
             <el-button v-permission="'user:add'" type="primary" @click="handleAdd">新增用户</el-button>
           </div>
@@ -29,15 +37,45 @@
             <el-option label="禁用" :value="0" />
           </el-select>
         </el-form-item>
+        <el-form-item label="部门">
+          <el-tree-select
+            v-model="filters.department_id"
+            :data="deptOptions"
+            :props="{ label: 'dept_name', children: 'children', value: 'id' }"
+            placeholder="全部部门"
+            check-strictly
+            clearable
+            filterable
+            style="width:160px"
+          />
+        </el-form-item>
+        <el-form-item label="角色">
+          <el-select v-model="filters.role_id" placeholder="全部角色" clearable style="width:140px">
+            <el-option v-for="r in roleOptions" :key="r.id" :label="r.role_name" :value="r.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="注册时间">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始"
+            end-placeholder="结束"
+            value-format="YYYY-MM-DD"
+            style="width:220px"
+          />
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="page=1;fetchList()">查询</el-button>
-          <el-button @click="filters.username='';filters.status=null;page=1;fetchList()">重置</el-button>
+          <el-button @click="resetFilters">重置</el-button>
         </el-form-item>
       </el-form>
 
-      <el-table :data="list" v-loading="loading" stripe>
+      <el-table :data="list" v-loading="loading" stripe @selection-change="handleSelectionChange">
+        <template #empty><el-empty description="暂无数据" /></template>
         <el-table-column type="index" label="序号" width="60" align="center"
-          :index="(i:number) => (page - 1) * pageSize + i + 1" />
+          :index="(i: number) => (page - 1) * pageSize + i + 1" />
+        <el-table-column type="selection" width="45" />
         <el-table-column prop="username" label="用户名" width="120" />
         <el-table-column prop="real_name" label="姓名" width="100" />
         <el-table-column prop="email" label="邮箱" min-width="180" />
@@ -113,9 +151,14 @@ import {
   resetPassword,
   exportUsers,
   importUsers,
+  batchDeleteUsers,
+  downloadUserTemplate,
   type UserRecord,
 } from "@/api/user";
+import { getDepartmentTree, type DeptItem } from "@/api/department";
+import { getAllRoles, type RoleRecord } from "@/api/role";
 import { ElMessage, ElMessageBox } from "element-plus";
+import type { UploadFile } from "element-plus";
 import UserForm from "./UserForm.vue";
 
 const loading = ref(false);
@@ -125,9 +168,17 @@ const page = ref(1);
 const pageSize = ref(20);
 const formVisible = ref(false);
 const currentFormData = ref<Partial<UserRecord> | null>(null);
+const exporting = ref(false);
+const importing = ref(false);
+const selectedRows = ref<UserRecord[]>([]);
+const deptOptions = ref<DeptItem[]>([]);
+const roleOptions = ref<RoleRecord[]>([]);
+const dateRange = ref<[string, string] | null>(null);
 const filters = reactive({
   username: "",
   status: null as number | null,
+  department_id: null as number | null,
+  role_id: null as number | null,
 });
 
 async function fetchList() {
@@ -136,6 +187,12 @@ async function fetchList() {
     const params: Record<string, any> = { page: page.value, pageSize: pageSize.value };
     if (filters.username) params.username = filters.username;
     if (filters.status !== null) params.status = filters.status;
+    if (filters.department_id) params.department_id = filters.department_id;
+    if (filters.role_id) params.role_id = filters.role_id;
+    if (dateRange.value) {
+      params.start_date = dateRange.value[0];
+      params.end_date = dateRange.value[1];
+    }
     const res = await getUserList(params);
     list.value = res.records;
     total.value = res.total;
@@ -177,27 +234,94 @@ function handleResetPwd(row: UserRecord) {
   }).catch(() => {});
 }
 
-onMounted(fetchList);
+function handleSelectionChange(rows: UserRecord[]) {
+  selectedRows.value = rows;
+}
+
+async function handleBatchDelete() {
+  try {
+    await ElMessageBox.confirm(`确定删除选中的 ${selectedRows.value.length} 个用户？`, "批量删除", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+  } catch {
+    return;
+  }
+  const ids = selectedRows.value.map((r) => r.id);
+  await batchDeleteUsers(ids);
+  ElMessage.success("批量删除成功");
+  selectedRows.value = [];
+  await fetchList();
+}
 
 async function handleExport() {
+  exporting.value = true;
   try {
     const blob = await exportUsers() as unknown as Blob;
-    const url = URL.createObjectURL(blob);
+    const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "users.xlsx";
+    a.download = `用户列表_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
-    URL.revokeObjectURL(url);
+    window.URL.revokeObjectURL(url);
     ElMessage.success("导出成功");
-  } catch { /* handled by interceptor */ }
+  } finally {
+    exporting.value = false;
+  }
 }
 
-async function handleImport(file: File) {
+async function handleDownloadTemplate() {
   try {
-    const res = await importUsers(file);
-    ElMessage.success(`导入完成：成功 ${res.success} 条，跳过 ${res.skipped} 条`);
-    await fetchList();
-  } catch { /* handled by interceptor */ }
-  return false; // prevent el-upload default
+    const blob = await downloadUserTemplate() as unknown as Blob;
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "用户导入模板.xlsx";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch {
+    ElMessage.error("下载模板失败");
+  }
 }
+
+async function handleImportChange(uploadFile: UploadFile) {
+  if (!uploadFile.raw) return;
+  importing.value = true;
+  try {
+    await importUsers(uploadFile.raw);
+    ElMessage.success("导入成功");
+    await fetchList();
+  } catch {
+    ElMessage.error("导入失败");
+  } finally {
+    importing.value = false;
+  }
+}
+
+function resetFilters() {
+  filters.username = '';
+  filters.status = null;
+  filters.department_id = null;
+  filters.role_id = null;
+  dateRange.value = null;
+  page.value = 1;
+  fetchList();
+}
+
+async function loadFilterOptions() {
+  try {
+    deptOptions.value = await getDepartmentTree();
+    roleOptions.value = await getAllRoles();
+  } catch { /* ignore */ }
+}
+
+onMounted(() => {
+  loadFilterOptions();
+  fetchList();
+});
 </script>
+<style scoped>
+.mb-2 { margin-bottom: 12px; }
+.mt-3 { margin-top: 16px; }
+</style>

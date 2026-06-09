@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -11,6 +12,9 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
     permission_key = "dept:list"
+    permission_key_map = {
+        "batch": "dept:delete",
+    }
 
     def get_permissions(self):
         if self.action == "tree":
@@ -62,6 +66,9 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         if Department.objects.filter(parent=instance).exists():
             return APIResponse.error(message="存在子部门，无法删除")
+        from apps.user.models import User
+        if User.objects.filter(department=instance).exists():
+            return APIResponse.error(message="该部门下存在用户，无法删除")
         instance.delete()
         return APIResponse.success(message="删除成功")
 
@@ -112,35 +119,27 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         return APIResponse.success(message="排序更新成功")
 
     @action(detail=False, methods=["delete"], url_path="batch")
-    def batch_delete(self, request):
+    def batch(self, request):
         ids = request.data.get("ids", [])
         if not ids:
-            return APIResponse.error(message="请传入 id 列表")
-        has_orphan_children = Department.objects.filter(parent_id__in=ids).exclude(id__in=ids).exists()
-        if has_orphan_children:
+            return APIResponse.error(message="ids 不能为空")
+        if Department.objects.filter(parent_id__in=ids).exclude(id__in=ids).exists():
             return APIResponse.error(message="存在子部门不在删除列表中，无法批量删除")
-        deleted, _ = Department.objects.filter(id__in=ids).delete()
-        return APIResponse.success(message=f"成功删除 {deleted} 条")
+        from apps.user.models import User
+        if User.objects.filter(department_id__in=ids).exists():
+            return APIResponse.error(message="部分部门下存在用户，无法删除")
+        Department.objects.filter(id__in=ids).delete()
+        return APIResponse.success(message="批量删除成功")
 
-    @action(detail=False, methods=["get"], url_path="export")
+    @action(detail=False, methods=["get"])
     def export(self, request):
-        import openpyxl
+        import csv
         from django.http import HttpResponse
-        queryset = Department.objects.all().order_by("sort_order")[:10000]
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "部门列表"
-        headers = ["部门名称", "负责人", "联系电话", "邮箱", "状态", "排序", "创建时间"]
-        ws.append(headers)
+        queryset = Department.objects.all().order_by("sort_order")
+        response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
+        response["Content-Disposition"] = f"attachment; filename=departments_{timezone.now().strftime('%Y%m%d')}.csv"
+        writer = csv.writer(response)
+        writer.writerow(["部门名称", "负责人", "联系电话", "邮箱", "排序", "状态"])
         for d in queryset:
-            ws.append([
-                d.dept_name, d.leader, d.phone, d.email,
-                "启用" if d.status else "禁用", d.sort_order,
-                d.create_time.strftime("%Y-%m-%d %H:%M:%S") if d.create_time else "",
-            ])
-        response = HttpResponse(
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-        response["Content-Disposition"] = 'attachment; filename="departments.xlsx"'
-        wb.save(response)
+            writer.writerow([d.dept_name, d.leader or "", d.phone or "", d.email or "", d.sort_order, d.status])
         return response

@@ -12,7 +12,7 @@ SKIP_PATHS = (
     re.compile(r"^/static/"),
 )
 
-SKIP_METHODS = ("GET",)
+SKIP_METHODS = ()  # 不再跳过 GET，所有方法都记录
 
 SENSITIVE_PATTERNS = re.compile(r"password|token|secret|key|authorization", re.IGNORECASE)
 
@@ -45,34 +45,47 @@ class OperationLogMiddleware(MiddlewareMixin):
         path = request.path
         if any(p.match(path) for p in SKIP_PATHS):
             return response
-        if request.method in SKIP_METHODS:
+        # 跳过静态文件和媒体文件
+        if path.startswith("/media/") or path.startswith("/static/"):
             return response
 
         duration = int((time.time() - getattr(request, "_log_start_time", time.time())) * 1000)
 
         user = getattr(request, "user", None)
-        user_id = user.id if user and user.is_authenticated else None
         username = user.username if user and user.is_authenticated else ""
 
         parts = [p for p in path.split("/") if p]
         module = parts[1] if len(parts) > 1 else ""
 
         operation_map = {
+            "GET": "查询",
             "POST": "新增",
             "PUT": "更新",
             "DELETE": "删除",
         }
-        operation = operation_map.get(request.method, request.method)
+        # 登录接口特殊处理
+        if "login" in path and request.method == "POST":
+            operation = "登录"
+            module = "认证"
+            # 登录时 user 还未认证，从 body 中取 username
+            body = getattr(request, "_log_body", {})
+            username = body.get("username", username)
+        else:
+            operation = operation_map.get(request.method, request.method)
 
         request_params = ""
         if request.method in ("POST", "PUT"):
             body = getattr(request, "_log_body", {})
             request_params = json.dumps(sanitize_params(body), ensure_ascii=False)
+        elif request.method == "GET":
+            params = dict(request.GET)
+            request_params = json.dumps(sanitize_params(params), ensure_ascii=False) if params else ""
 
         response_body = ""
         if hasattr(response, "data"):
             try:
-                response_body = json.dumps(response.data, ensure_ascii=False)
+                sanitized = sanitize_params(response.data)
+                response_body = json.dumps(sanitized, ensure_ascii=False)
             except (TypeError, AttributeError):
                 response_body = str(getattr(response, "content", b""))
 

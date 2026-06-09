@@ -1,5 +1,5 @@
 """角色模块视图 — 参考《组织架构模块设计方案.md》第 5.3 节"""
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from django.db import transaction
 from utils.response import APIResponse
@@ -15,11 +15,22 @@ import csv
 import openpyxl
 from io import BytesIO
 from django.http import HttpResponse
+from rest_framework.permissions import IsAuthenticated
+from utils.permissions import HasPermission
 
 
 class RoleViewSet(viewsets.ModelViewSet):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
+    permission_key = "role:list"
+    permission_key_map = {
+        "menus": "role:assign",
+        "users": "role:assign",
+        "batch": "role:delete",
+    }
+
+    def get_permissions(self):
+        return [IsAuthenticated(), HasPermission()]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -34,7 +45,7 @@ class RoleViewSet(viewsets.ModelViewSet):
         if role_name:
             qs = qs.filter(role_name__icontains=role_name)
         if status_val is not None and status_val != "":
-            qs = qs.filter(status=status_val)
+            qs = qs.filter(status=int(status_val))
         return qs
 
     def list(self, request, *args, **kwargs):
@@ -61,6 +72,9 @@ class RoleViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        # 检查是否有关联用户
+        if UserRoleRelation.objects.filter(role=instance).exists():
+            return APIResponse.error(message="该角色下存在关联用户，无法删除")
         instance.delete()
         return APIResponse.success(message="删除成功")
 
@@ -70,6 +84,9 @@ class RoleViewSet(viewsets.ModelViewSet):
         ids = request.data.get("ids", [])
         if not ids:
             return APIResponse.error(message="ids 不能为空")
+        # 检查是否有关联用户
+        if UserRoleRelation.objects.filter(role_id__in=ids).exists():
+            return APIResponse.error(message="部分角色存在关联用户，无法批量删除")
         Role.objects.filter(id__in=ids).delete()
         return APIResponse.success(message="批量删除成功")
 
@@ -110,6 +127,24 @@ class RoleViewSet(viewsets.ModelViewSet):
             instances.append(Role(id=item_id, role_sort=item.get("sortOrder", 0)))
         Role.objects.bulk_update(instances, ["role_sort"])
         return APIResponse.success(message="批量排序成功")
+
+    @action(detail=False, methods=["get"], url_path="template")
+    def template(self, request):
+        """下载角色导入模板 — GET /api/role/template"""
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "角色导入模板"
+        headers = ["角色名称", "角色标识", "排序", "状态", "备注"]
+        ws.append(headers)
+        ws.append(["管理员", "admin", 0, "启用", "系统管理员角色"])
+        for col_idx, header in enumerate(headers, 1):
+            ws.cell(row=1, column=col_idx).font = openpyxl.styles.Font(bold=True)
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        response["Content-Disposition"] = "attachment; filename=role_template.xlsx"
+        wb.save(response)
+        return response
 
     @action(detail=False, methods=["get"], url_path="export")
     def export(self, request):

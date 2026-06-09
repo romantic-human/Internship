@@ -1,12 +1,13 @@
 """用户模块视图 — 参考《组织架构模块设计方案.md》第 5.2 节"""
 
 import os
+import uuid
 
 from django.conf import settings
-
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 
 from rest_framework.decorators import action
 
@@ -14,10 +15,10 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
+from django.http import HttpResponse
+
 from utils import APIResponse, HasPermission
-
-from .models import User
-
+from .models import User, UserRoleRelation
 from .serializers import (
 
     LoginSerializer,
@@ -27,9 +28,6 @@ from .serializers import (
     UserListSerializer,
 
     ChangePasswordSerializer,
-
-    ResetPasswordSerializer,
-
     RefreshTokenSerializer,
 
     UserCreateSerializer,
@@ -45,11 +43,56 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.select_related("department").prefetch_related("userrolerelation_set__role").all()
 
     serializer_class = UserSerializer
+    permission_key = "user:list"
+    permission_key_map = {
+        "batch": "user:delete",
+        "reset_password": "user:edit",
+    }
+
+    def get_permissions(self):
+        if self.action in ("login", "register", "refresh_token"):
+            return [AllowAny()]
+        return [IsAuthenticated(), HasPermission()]
 
     def get_serializer_class(self):
+        if self.action == "create":
+            return UserCreateSerializer
         if self.action == "list":
             return UserListSerializer
         return UserSerializer
+
+    def create(self, request, *args, **kwargs):
+        """新增用户 — 返回标准格式"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return APIResponse.success(data=serializer.data, message="新增成功")
+
+    def update(self, request, *args, **kwargs):
+        """编辑用户 — 返回标准格式"""
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        role_ids = request.data.get("role_ids")
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        if role_ids is not None and isinstance(role_ids, list):
+            with transaction.atomic():
+                instance.userrolerelation_set.exclude(role_id__in=role_ids).delete()
+                existing = set(instance.userrolerelation_set.values_list("role_id", flat=True))
+                new_ids = [rid for rid in role_ids if rid not in existing]
+                if new_ids:
+                    UserRoleRelation.objects.bulk_create(
+                        [UserRoleRelation(user=instance, role_id=rid) for rid in new_ids],
+                        ignore_conflicts=True,
+                    )
+        return APIResponse.success(data=serializer.data, message="更新成功")
+
+    def destroy(self, request, *args, **kwargs):
+        """删除用户 — 返回标准格式"""
+        instance = self.get_object()
+        instance.delete()
+        return APIResponse.success(message="删除成功")
 
     def list(self, request, *args, **kwargs):
         """用户列表（分页 + 搜索过滤）"""
@@ -57,12 +100,21 @@ class UserViewSet(viewsets.ModelViewSet):
         username = request.query_params.get("username", "").strip()
         status_val = request.query_params.get("status")
         department_id = request.query_params.get("department_id")
+        role_id = request.query_params.get("role_id")
+        start_date = request.query_params.get("start_date") or request.query_params.get("startDate")
+        end_date = request.query_params.get("end_date") or request.query_params.get("endDate")
         if username:
             queryset = queryset.filter(username__icontains=username)
         if status_val is not None and status_val != "":
             queryset = queryset.filter(status=int(status_val))
         if department_id:
             queryset = queryset.filter(department_id=int(department_id))
+        if role_id:
+            queryset = queryset.filter(userrolerelation__role_id=int(role_id)).distinct()
+        if start_date:
+            queryset = queryset.filter(create_time__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(create_time__lte=end_date)
         queryset = queryset.order_by("-create_time")
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -199,7 +251,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
             user = serializer.save()
 
-        except Exception:
+        except IntegrityError:
 
             return APIResponse.conflict(message="用户名已存在")
 
@@ -291,25 +343,19 @@ class UserViewSet(viewsets.ModelViewSet):
 
         """修改状态 — PUT /api/user/:id/status"""
 
-        try:
+        user = self.get_object()
 
-            user = self.get_object()
+        status_val = request.data.get("status")
 
-            status_val = request.data.get("status")
+        if status_val not in (0, 1):
 
-            if status_val not in (0, 1):
+            return APIResponse.error(message="状态值无效", code=2000, http_status=400)
 
-                return APIResponse.error(message="状态值无效", code=2000, http_status=400)
+        user.status = status_val
 
-            user.status = status_val
+        user.save(update_fields=["status"])
 
-            user.save(update_fields=["status"])
-
-            return APIResponse.success(message="状态更新成功")
-
-        except Exception:
-
-            return APIResponse.error(message="用户不存在", code=2004, http_status=404)
+        return APIResponse.success(message="状态更新成功")
 
     @action(detail=False, methods=["put"], url_path="reset-password")
     def reset_password(self, request):
@@ -323,7 +369,7 @@ class UserViewSet(viewsets.ModelViewSet):
         except User.DoesNotExist:
             return APIResponse.error(message="用户不存在", code=2004, http_status=404)
         user.set_password(new_password)
-        user.save(update_fields=["password"])
+        user.save(update_fields=["password", "update_time"])
         return APIResponse.success(message="密码已重置")
 
     @action(detail=False, methods=["delete"], url_path="batch")
@@ -388,33 +434,58 @@ class UserViewSet(viewsets.ModelViewSet):
 
         return APIResponse.success(message="密码修改成功")
 
+    @action(detail=False, methods=["get"], url_path="check-unique")
+    def check_unique(self, request):
+        """检查用户名/邮箱/手机号唯一性 — GET /api/user/check-unique?field=username&value=xxx&exclude_id=1"""
+        field = request.query_params.get("field", "")
+        value = request.query_params.get("value", "")
+        exclude_id = request.query_params.get("exclude_id")
+        if field not in ("username", "email", "telephone") or not value:
+            return APIResponse.error(message="参数错误")
+        qs = User.objects.filter(**{field: value})
+        if exclude_id:
+            qs = qs.exclude(id=int(exclude_id))
+        exists = qs.exists()
+        field_labels = {"username": "用户名", "email": "邮箱", "telephone": "手机号"}
+        if exists:
+            return APIResponse.success(data={"unique": False}, message=f"{field_labels[field]}已存在")
+        return APIResponse.success(data={"unique": True})
+
+    @action(detail=False, methods=["get"], url_path="template")
+    def template(self, request):
+        """下载用户导入模板 — GET /api/user/template"""
+        import openpyxl
+        from io import BytesIO
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "用户导入模板"
+        headers = ["用户名", "昵称", "真实姓名", "邮箱", "手机号", "性别", "状态"]
+        ws.append(headers)
+        ws.append(["zhangsan", "张三", "张三丰", "zhangsan@example.com", "13800138000", "男", "启用"])
+        for col_idx, header in enumerate(headers, 1):
+            ws.cell(row=1, column=col_idx).font = openpyxl.styles.Font(bold=True)
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        response["Content-Disposition"] = "attachment; filename=user_template.xlsx"
+        wb.save(response)
+        return response
+
     @action(detail=False, methods=["get"])
 
     def export(self, request):
 
         """导出用户 — GET /api/user/export"""
-        import openpyxl
+        import csv
         from django.http import HttpResponse
 
-        users = User.objects.select_related("department").all()[:10000]
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "用户列表"
-        headers = ["用户名", "昵称", "真实姓名", "邮箱", "手机号", "性别", "状态", "创建时间"]
-        ws.append(headers)
-        gender_map = {0: "未知", 1: "男", 2: "女"}
+        users = self.get_queryset().order_by("-create_time")
+        response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
+        response["Content-Disposition"] = f"attachment; filename=users_{timezone.now().strftime('%Y%m%d')}.csv"
+        writer = csv.writer(response)
+        writer.writerow(["用户名", "昵称", "邮箱", "手机号", "性别", "状态", "创建时间"])
         for u in users:
-            ws.append([
-                u.username, u.nickname, u.real_name, u.email, u.telephone,
-                gender_map.get(u.gender, "未知"),
-                "启用" if u.status else "禁用",
-                u.create_time.strftime("%Y-%m-%d %H:%M:%S") if u.create_time else "",
-            ])
-        response = HttpResponse(
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-        response["Content-Disposition"] = 'attachment; filename="users.xlsx"'
-        wb.save(response)
+            writer.writerow([u.username, u.nickname or "", u.email or "", u.telephone or "", u.get_gender_display() if hasattr(u, "gender") else "", u.status, u.create_time])
         return response
 
     @action(detail=False, methods=["post"], url_path="import")
@@ -560,13 +631,13 @@ class UserViewSet(viewsets.ModelViewSet):
 
             )
 
-        # 保存文件: media/avatars/<username><ext>
+        # 保存文件: media/avatars/<uuid><ext>
 
         avatar_dir = os.path.join(settings.MEDIA_ROOT, "avatars")
 
         os.makedirs(avatar_dir, exist_ok=True)
 
-        filename = f"{user.username}{ext}"
+        filename = f"{uuid.uuid4().hex}{ext}"
 
         filepath = os.path.join(avatar_dir, filename)
 

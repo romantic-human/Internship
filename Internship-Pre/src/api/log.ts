@@ -15,7 +15,19 @@ export interface LogItem {
   create_time: string;
 }
 
-export function getLogList(params: Record<string, any>): Promise<{ records: LogItem[]; total: number }> {
+export interface LogListParams {
+  page?: number;
+  pageSize?: number;
+  username?: string;
+  module?: string;
+  operation?: string;
+  method?: string;
+  status?: number;
+  startTime?: string;
+  endTime?: string;
+}
+
+export function getLogList(params: LogListParams): Promise<{ records: LogItem[]; total: number }> {
   return request.get("/log/", { params });
 }
 
@@ -23,10 +35,10 @@ export function getLogDetail(id: number): Promise<LogItem> {
   return request.get(`/log/${id}`);
 }
 
-export function clearLogs() {
+export function clearLogs(): Promise<void> {
   return request.delete("/log/clear");
 }
 
-export function exportLogs(params: Record<string, any>) {
+export function exportLogs(params?: LogListParams): Promise<Blob> {
   return request.get("/log/export", { params, responseType: "blob" });
 }

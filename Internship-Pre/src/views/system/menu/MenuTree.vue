@@ -18,23 +18,27 @@
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="fetchTree">查询</el-button>
+          <el-button @click="searchKey='';fetchTree()">重置</el-button>
         </el-form-item>
       </el-form>
 
       <el-table
+        ref="tableRef"
         :data="treeData"
         row-key="id"
         default-expand-all
         :tree-props="{ children: 'children' }"
         v-loading="loading"
+        stripe
         @selection-change="onSelectionChange"
       >
+        <template #empty><el-empty description="暂无数据" /></template>
         <el-table-column type="selection" width="50" reserve-selection />
         <el-table-column prop="menu_name" label="菜单名称" min-width="200" />
         <el-table-column prop="icon" label="图标" width="80" align="center">
           <template #default="{ row }">
             <el-icon v-if="row.icon">
-              <component :is="iconMap[row.icon]" />
+              <component :is="iconMap[row.icon] || MenuIcon" />
             </el-icon>
           </template>
         </el-table-column>
@@ -89,17 +93,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { getMenuTree, deleteMenu, updateMenuStatus, batchDeleteMenus, exportMenus, type MenuItem } from "@/api/menu";
-import { ElMessage } from "element-plus";
-import { markRaw, type Component } from "vue";
+import { ref, onMounted, nextTick } from "vue";
+import { getMenuTree, deleteMenu, updateMenuStatus, batchDeleteMenus, exportMenus, batchSortMenu, type MenuItem } from "@/api/menu";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { markRaw, shallowRef, type Component } from "vue";
 import * as ElementPlusIcons from "@element-plus/icons-vue";
 import MenuForm from "./MenuForm.vue";
+import Sortable from "sortablejs";
 
 const iconMap: Record<string, Component> = {};
 for (const [key, comp] of Object.entries(ElementPlusIcons)) {
   iconMap[key] = markRaw(comp);
 }
+const MenuIcon = shallowRef(ElementPlusIcons["Menu"]);
 const TYPE_MAP: Record<number, string> = { 0: "目录", 1: "菜单", 2: "按钮" };
 
 const loading = ref(false);
@@ -108,6 +114,7 @@ const formVisible = ref(false);
 const currentFormData = ref<Partial<MenuItem> | null>(null);
 const searchKey = ref("");
 const selectedIds = ref<number[]>([]);
+const tableRef = ref();
 
 function onSelectionChange(rows: MenuItem[]) {
   selectedIds.value = rows.map(r => r.id);
@@ -174,6 +181,13 @@ async function handleStatusChange(row: MenuItem, val: number) {
 async function handleBatchDelete() {
   if (!selectedIds.value.length) return;
   try {
+    await ElMessageBox.confirm(`确定删除选中的 ${selectedIds.value.length} 个菜单？`, "批量删除", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+  } catch { return; }
+  try {
     await batchDeleteMenus(selectedIds.value);
     ElMessage.success("批量删除成功");
     selectedIds.value = [];
@@ -194,5 +208,46 @@ async function handleExport() {
   } catch { /* handled by interceptor */ }
 }
 
-onMounted(fetchTree);
+function initDragSort() {
+  nextTick(() => {
+    const el = tableRef.value?.$el?.querySelector('.el-table__body-wrapper tbody');
+    if (!el) return;
+    Sortable.create(el, {
+      handle: '.el-table__row',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      onEnd: async (evt: any) => {
+        if (evt.oldIndex === evt.newIndex) return;
+        const flatRows = tableRef.value?.data;
+        if (!flatRows) return;
+        const oldItem = flatRows[evt.oldIndex];
+        const newItem = flatRows[evt.newIndex];
+        // Only reorder within same parent level
+        if (oldItem?.parent_id !== newItem?.parent_id) {
+          ElMessage.warning('只能在同一层级内拖拽排序');
+          await fetchTree();
+          return;
+        }
+        const siblings = flatRows.filter((r: MenuItem) => r.parent_id === oldItem.parent_id);
+        const payload = siblings.map((item: MenuItem, idx: number) => ({
+          id: item.id,
+          sortOrder: idx,
+        }));
+        try {
+          await batchSortMenu(payload);
+          ElMessage.success('排序更新成功');
+          await fetchTree();
+        } catch { /* handled by interceptor */ }
+      },
+    });
+  });
+}
+
+onMounted(() => {
+  fetchTree().then(initDragSort);
+});
 </script>
+<style scoped>
+.mb-2 { margin-bottom: 12px; }
+.mt-3 { margin-top: 16px; }
+</style>

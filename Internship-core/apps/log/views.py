@@ -13,6 +13,9 @@ class OperationLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = OperationLog.objects.all()
     serializer_class = OperationLogSerializer
     permission_key = "log:list"
+    permission_key_map = {
+        "clear": "log:delete",
+    }
 
     def get_permissions(self):
         return [IsAuthenticated(), HasPermission()]
@@ -22,14 +25,14 @@ class OperationLogViewSet(viewsets.ReadOnlyModelViewSet):
             return OperationLogListSerializer
         return OperationLogSerializer
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
+    def _apply_filters(self, request, queryset):
         username = request.query_params.get("username")
         module = request.query_params.get("module")
         operation = request.query_params.get("operation")
+        method = request.query_params.get("method")
         log_status = request.query_params.get("status")
-        start_time = request.query_params.get("startTime")
-        end_time = request.query_params.get("endTime")
+        start_time = request.query_params.get("startTime") or request.query_params.get("start_date") or request.query_params.get("startDate")
+        end_time = request.query_params.get("endTime") or request.query_params.get("end_date") or request.query_params.get("endDate")
 
         if username:
             queryset = queryset.filter(username__icontains=username)
@@ -37,13 +40,19 @@ class OperationLogViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(module__icontains=module)
         if operation:
             queryset = queryset.filter(operation__icontains=operation)
-        if log_status is not None:
+        if method:
+            queryset = queryset.filter(method=method)
+        if log_status is not None and log_status != "":
             queryset = queryset.filter(status=log_status)
         if start_time:
             queryset = queryset.filter(create_time__gte=start_time)
         if end_time:
             queryset = queryset.filter(create_time__lte=end_time)
+        return queryset
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        queryset = self._apply_filters(request, queryset)
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -68,7 +77,8 @@ class OperationLogViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="export")
     def export(self, request):
-        queryset = self.filter_queryset(self.get_queryset())[:10000]
+        queryset = self.filter_queryset(self.get_queryset())
+        queryset = self._apply_filters(request, queryset)[:10000]
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "操作日志"
