@@ -60,6 +60,8 @@ const whiteList = ["/login"];
 
 let dynamicRoutesLoading: Promise<void> | null = null;
 
+let regenerationAttempted = false;
+
 router.beforeEach(async (to) => {
   document.title = to.meta.title ? `${to.meta.title} - 管理系统` : "管理系统";
   const authStore = useAuthStore();
@@ -67,16 +69,20 @@ router.beforeEach(async (to) => {
   if (whiteList.includes(to.path)) return true;
   if (!authStore.token) return "/login";
 
-  // HMR/刷新后动态路由可能丢失 → 强制重新生成
-  const hasRoute = router.getRoutes().some(r => r.path === to.path);
-  if (!authStore.dynamicRoutesLoaded || !hasRoute) {
+  // HMR/刷新后动态路由可能丢失 → 强制重新生成（最多一次）
+  const routeExists = router.getRoutes().some(r => r.path === to.path) || to.matched.length > 0;
+  if (!authStore.dynamicRoutesLoaded || (!routeExists && !regenerationAttempted)) {
+    regenerationAttempted = true;
     if (!dynamicRoutesLoading) {
       dynamicRoutesLoading = authStore.generateDynamicRoutes(true).finally(() => {
         dynamicRoutesLoading = null;
       });
     }
     await dynamicRoutesLoading;
-    return to.path === "/dashboard" ? true : to.path;
+    if (!router.getRoutes().some(r => r.path === to.path)) {
+      return "/dashboard";
+    }
+    return to.path;
   }
   return true;
 });

@@ -212,7 +212,8 @@ class DocumentViewSet(viewsets.GenericViewSet):
 
 class ChatView(APIView):
     """RAG 问答接口"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasPermission]
+    permission_key = "rag:chat"
 
     def post(self, request, kb_id):
         serializer = ChatRequestSerializer(data=request.data)
@@ -266,7 +267,7 @@ class ChatView(APIView):
                 "tokens_used": llm_result["tokens_used"],
             })
 
-        except Exception as e:
+        except (ValueError, RuntimeError, ConnectionError) as e:
             logger.exception("问答处理失败")
             return APIResponse.error(message=f"问答处理失败: {str(e)}", code=5000, http_status=500)
 
@@ -319,7 +320,7 @@ class ChatStreamView(APIView):
                 yield f"data: {json.dumps({'type': 'sources', 'content': sources})}\n\n"
                 yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
-            except Exception as e:
+            except (ValueError, RuntimeError, ConnectionError) as e:
                 logger.exception("流式问答处理失败")
                 yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
                 yield f"data: {json.dumps({'type': 'done'})}\n\n"
