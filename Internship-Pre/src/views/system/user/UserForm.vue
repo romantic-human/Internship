@@ -136,8 +136,6 @@ const rules = {
       },
     },
   ],
-  username: [{ required: true, message: "请输入用户名", trigger: "blur" }],
-  email: [{ type: "email", message: "请输入正确邮箱", trigger: "blur" }],
   password: [{ min: 6, message: "密码最少6位", trigger: "blur" }],
 };
 

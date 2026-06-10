@@ -17,6 +17,9 @@ export interface DashboardStats {
     execution_time: number;
     create_time: string;
   }[];
+  today_login_count?: number;
+  dept_distribution?: Array<{ dept_name: string; user_count: number }>;
+  login_trend?: Array<{ date: string; count: number }>;
 }
 
 export function getDashboardStats(): Promise<DashboardStats> {
