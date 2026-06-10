@@ -18,6 +18,7 @@
           <h3 style="margin: 0 0 0 12px">{{ kbName }}</h3>
         </div>
         <el-upload
+          v-permission="'rag:doc:upload'"
           :before-upload="handleBeforeUpload"
           :show-file-list="false"
           accept=".pdf,.txt,.md,.docx"
@@ -29,11 +30,12 @@
       </div>
 
       <el-table :data="tableData" v-loading="loading" stripe border>
+        <template #empty><el-empty description="暂无数据" /></template>
         <el-table-column type="index" label="序号" width="60" align="center" :index="(i: number) => (currentPage - 1) * pageSize + i + 1" />
         <el-table-column prop="file_name" label="文件名" min-width="200" show-overflow-tooltip />
         <el-table-column prop="file_type" label="类型" width="70" align="center">
           <template #default="{ row }">
-            <el-tag size="small">{{ row.file_type.toUpperCase() }}</el-tag>
+            <el-tag size="small">{{ (row.file_type || '').toUpperCase() }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="file_size" label="大小" width="100" align="center">
@@ -63,7 +65,7 @@
             </el-button>
             <el-popconfirm title="确认删除此文档？" @confirm="handleDelete(row.id)">
               <template #reference>
-                <el-button type="danger" link size="small">
+                <el-button type="danger" link size="small" v-permission="'rag:doc:delete'">
                   <el-icon><Delete /></el-icon>
                 </el-button>
               </template>
@@ -79,7 +81,7 @@
         :total="total"
         layout="total, sizes, prev, pager, next, jumper"
         style="margin-top: 16px; justify-content: flex-end"
-        @size-change="fetchData"
+        @size-change="currentPage = 1; fetchData()"
         @current-change="fetchData"
       />
     </el-card>
@@ -165,15 +167,23 @@ async function handleBeforeUpload(file: File) {
 }
 
 async function handleDelete(id: number) {
-  await deleteDocument(id);
-  ElMessage.success("删除成功");
-  fetchData();
+  try {
+    await deleteDocument(id);
+    ElMessage.success("删除成功");
+    fetchData();
+  } catch {
+    // handled by interceptor
+  }
 }
 
 async function handleReprocess(row: Document) {
-  await reprocessDocument(row.id);
-  ElMessage.success("正在重新处理");
-  fetchData();
+  try {
+    await reprocessDocument(row.id);
+    ElMessage.success("正在重新处理");
+    fetchData();
+  } catch {
+    // handled by interceptor
+  }
 }
 
 onMounted(fetchData);

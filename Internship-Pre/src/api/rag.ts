@@ -118,7 +118,6 @@ export function chatWithKBStream(
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-      let finished = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -134,8 +133,6 @@ export function chatWithKBStream(
                 onToken(data.content);
               } else if (data.type === "sources") {
                 onSources(data.content);
-              } else if (data.type === "done") {
-                // 由 while 循环结束后的 onDone() 统一处理
               } else if (data.type === "error") {
                 onError(data.content);
               }
@@ -145,10 +142,7 @@ export function chatWithKBStream(
           }
         }
       }
-      if (!finished) {
-        finished = true;
-        onDone();
-      }
+      onDone();
     })
     .catch((err) => {
       if (err.name !== "AbortError") {
@@ -159,8 +153,3 @@ export function chatWithKBStream(
   return controller;
 }
 
-export function getDocumentPreviewUrl(id: number): string {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
-  const token = localStorage.getItem("access_token") || "";
-  return `${baseUrl}/rag/documents/${id}/preview?token=${encodeURIComponent(token)}`;
-}

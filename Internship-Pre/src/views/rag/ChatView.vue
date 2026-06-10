@@ -126,7 +126,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watch } from "vue";
+import { ref, nextTick, watch, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { ArrowLeft, Delete, ChatDotRound, Loading } from "@element-plus/icons-vue";
@@ -240,6 +240,10 @@ function handleSendStream() {
     },
   );
 }
+
+onUnmounted(() => {
+  abortController.value?.abort();
+});
 
 function clearHistory() {
   messages.value = [];

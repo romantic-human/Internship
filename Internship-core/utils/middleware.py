@@ -14,7 +14,7 @@ SKIP_PATHS = (
 
 SKIP_METHODS = ()  # 不再跳过 GET，所有方法都记录
 
-SENSITIVE_PATTERNS = re.compile(r"password|token|secret|key|authorization", re.IGNORECASE)
+SENSITIVE_PATTERNS = re.compile(r"password|token|secret|key|authorization|access|refresh", re.IGNORECASE)
 
 
 def sanitize_params(params):

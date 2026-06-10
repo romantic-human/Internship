@@ -126,7 +126,7 @@ const componentMap: Record<string, () => Promise<any>> = {
   "system/department/DeptTree": () => import("@/views/system/department/DeptTree.vue"),
   "system/permission/PermissionList": () => import("@/views/system/permission/PermissionList.vue"),
   "system/log/LogList": () => import("@/views/system/log/LogList.vue"),
-  "system/config/ConfigList": () => import("@/views/system/config/ConfigPanel.vue"),
+  "system/config/ConfigList": () => import("@/views/system/config/ConfigList.vue"),
   "system/config/ConfigPanel": () => import("@/views/system/config/ConfigPanel.vue"),
   "system/config/ConfigAdvanced": () => import("@/views/system/config/ConfigList.vue"),
   "system/dict/DictList": () => import("@/views/system/dict/DictList.vue"),
