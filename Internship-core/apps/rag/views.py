@@ -1,9 +1,11 @@
 """RAG 知识库模块视图"""
+import json
 import os
 import threading
 import logging
 
 from django.conf import settings
+from django.http import StreamingHttpResponse
 from rest_framework import viewsets, status as http_status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -210,7 +212,8 @@ class DocumentViewSet(viewsets.GenericViewSet):
 
 class ChatView(APIView):
     """RAG 问答接口"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasPermission]
+    permission_key = "rag:chat"
 
     def post(self, request, kb_id):
         serializer = ChatRequestSerializer(data=request.data)
@@ -267,3 +270,65 @@ class ChatView(APIView):
         except Exception as e:
             logger.exception("问答处理失败")
             return APIResponse.error(message=f"问答处理失败: {str(e)}", code=5000, http_status=500)
+
+
+class ChatStreamView(APIView):
+    """RAG 流式问答接口（SSE）"""
+    permission_classes = [IsAuthenticated, HasPermission]
+    permission_key = "rag:chat"
+
+    def post(self, request, kb_id):
+        serializer = ChatRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        question = serializer.validated_data["question"]
+
+        try:
+            kb = KnowledgeBase.objects.get(id=kb_id, status=1)
+        except KnowledgeBase.DoesNotExist:
+            return APIResponse.error(message="知识库不存在或已禁用", code=2004, http_status=404)
+
+        def event_stream():
+            try:
+                query_embedding = LLMService.generate_query_embedding(question)
+                results = VectorStoreService.search(
+                    kb_id=kb_id,
+                    query_embedding=query_embedding,
+                    top_k=settings.RAG_TOP_K,
+                )
+
+                if not results:
+                    yield f"data: {json.dumps({'type': 'answer', 'content': '根据现有知识库未找到相关信息。'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'sources', 'content': []})}\n\n"
+                    yield f"data: {json.dumps({'type': 'done'})}\n\n"
+                    return
+
+                sources = []
+                for r in results:
+                    meta = r.get("metadata", {})
+                    relevance = max(0, 1 - r.get("distance", 0))
+                    sources.append({
+                        "document_id": meta.get("doc_id", 0),
+                        "document_name": meta.get("file_name", "未知"),
+                        "chunk_index": meta.get("chunk_index", 0),
+                        "content": r.get("content", "")[:200],
+                        "relevance_score": round(relevance, 4),
+                    })
+
+                for sse_data in LLMService.chat_stream(question, results):
+                    yield sse_data
+
+                yield f"data: {json.dumps({'type': 'sources', 'content': sources})}\n\n"
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+            except Exception as e:
+                logger.exception("流式问答处理失败")
+                yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+        response = StreamingHttpResponse(
+            streaming_content=event_stream(),
+            content_type="text/event-stream",
+        )
+        response["Cache-Control"] = "no-cache"
+        response["X-Accel-Buffering"] = "no"
+        return response

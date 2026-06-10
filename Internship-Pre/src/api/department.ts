@@ -31,31 +31,25 @@ export function updateDepartment(id: number, data: Partial<DeptItem>): Promise<D
 }
 
 export function deleteDepartment(id: number): Promise<void> {
-export function deleteDepartment(id: number): Promise<any> {
   return request.delete(`/department/${id}`);
 }
 
 export function updateDepartmentStatus(id: number, status: number): Promise<void> {
-export function updateDepartmentStatus(id: number, status: number): Promise<any> {
   return request.put(`/department/${id}/status`, { status });
 }
 
 export function updateDepartmentSort(id: number, sortOrder: number): Promise<void> {
-export function updateDepartmentSort(id: number, sortOrder: number): Promise<any> {
   return request.put(`/department/${id}/sort`, { sortOrder });
 }
 
 export function batchSortDepartment(data: { id: number; sortOrder: number }[]): Promise<void> {
-export function batchSortDepartment(data: { id: number; sortOrder: number }[]): Promise<any> {
   return request.post("/department/batch-sort", data);
 }
 
 export function batchDeleteDepartments(ids: number[]): Promise<void> {
-export function batchDeleteDepartments(ids: number[]): Promise<any> {
   return request.delete("/department/batch", { data: { ids } });
 }
 
 export function exportDepartments(): Promise<Blob> {
   return request.get("/department/export", { responseType: "blob" });
-
 }

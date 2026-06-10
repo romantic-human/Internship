@@ -28,7 +28,6 @@ export interface LogListParams {
 }
 
 export function getLogList(params: LogListParams): Promise<{ records: LogItem[]; total: number }> {
-export function getLogList(params: Record<string, any>): Promise<{ records: LogItem[]; total: number }> {
   return request.get("/log/", { params });
 }
 
@@ -37,11 +36,9 @@ export function getLogDetail(id: number): Promise<LogItem> {
 }
 
 export function clearLogs(): Promise<void> {
-export function clearLogs(): Promise<any> {
   return request.delete("/log/clear");
 }
 
 export function exportLogs(params?: LogListParams): Promise<Blob> {
-export function exportLogs(params: Record<string, any>): Promise<Blob> {
   return request.get("/log/export", { params, responseType: "blob" });
 }

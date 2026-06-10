@@ -18,7 +18,6 @@ export function getPanelConfig(): Promise<PanelConfig> {
 
 /** 批量保存面板配置 */
 export function savePanelConfig(data: Partial<PanelConfig>): Promise<void> {
-export function savePanelConfig(data: Partial<PanelConfig>): Promise<any> {
   return request.post("/config/panel-save", data);
 }
 
