@@ -24,9 +24,17 @@ class RoleViewSet(viewsets.ModelViewSet):
     serializer_class = RoleSerializer
     permission_key = "role:list"
     permission_key_map = {
+        "create": "role:add",
+        "update": "role:edit",
+        "destroy": "role:delete",
+        "batch": "role:delete",
+        "status": "role:edit",
+        "sort": "role:edit",
+        "batch_sort": "role:edit",
         "menus": "role:assign",
         "users": "role:assign",
-        "batch": "role:delete",
+        "export": "role:export",
+        "import": "role:import",
     }
 
     def get_permissions(self):
@@ -104,14 +112,14 @@ class RoleViewSet(viewsets.ModelViewSet):
         if status_val not in (0, 1):
             return APIResponse.error(message="状态值无效")
         instance.status = status_val
-        instance.save()
+        instance.save(update_fields=["status", "update_time"])
         return APIResponse.success(message="状态更新成功")
 
     @action(detail=True, methods=["put"], url_path="sort")
     def sort(self, request, pk=None):
         instance = self.get_object()
         instance.role_sort = request.data.get("sortOrder", 0)
-        instance.save()
+        instance.save(update_fields=["role_sort", "update_time"])
         return APIResponse.success(message="排序更新成功")
 
     @action(detail=False, methods=["post"], url_path="batch-sort")

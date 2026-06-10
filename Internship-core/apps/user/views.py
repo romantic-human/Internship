@@ -45,8 +45,17 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_key = "user:list"
     permission_key_map = {
+        "create": "user:add",
+        "update": "user:edit",
+        "destroy": "user:delete",
         "batch": "user:delete",
+        "status": "user:edit",
         "reset_password": "user:edit",
+        "update_password": "user:edit",
+        "avatar": "user:edit",
+        "profile": "user:edit",
+        "export": "user:export",
+        "import": "user:import",
     }
 
     def get_permissions(self):
@@ -569,7 +578,7 @@ class UserViewSet(viewsets.ModelViewSet):
                         user.set_password("123456")
                         user.save(update_fields=["password"])
                     success += 1
-                except Exception as e:
+                except (IntegrityError, ValueError) as e:
                     skipped += 1
                     errors.append(f"第{idx}行：{str(e)}")
 

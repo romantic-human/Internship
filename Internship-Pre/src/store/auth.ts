@@ -134,6 +134,9 @@ const componentMap: Record<string, () => Promise<any>> = {
   "rag/KBList": () => import("@/views/rag/KBList.vue"),
   "rag/KBDetail": () => import("@/views/rag/KBDetail.vue"),
   "rag/ChatView": () => import("@/views/rag/ChatView.vue"),
+  "nl2sql/QueryView": () => import("@/views/nl2sql/QueryView.vue"),
+  "nl2sql/HistoryList": () => import("@/views/nl2sql/HistoryList.vue"),
+  "nl2sql/DataSourceList": () => import("@/views/nl2sql/DataSourceList.vue"),
 };
 
 function getComponent(componentPath: string) {

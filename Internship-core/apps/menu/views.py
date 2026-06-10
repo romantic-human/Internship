@@ -13,6 +13,15 @@ class MenuViewSet(viewsets.ModelViewSet):
     queryset = Menu.objects.all()
     serializer_class = MenuSerializer
     permission_key = "menu:list"
+    permission_key_map = {
+        "create": "menu:add",
+        "update": "menu:edit",
+        "destroy": "menu:delete",
+        "batch": "menu:delete",
+        "status": "menu:edit",
+        "sort": "menu:edit",
+        "batch_sort": "menu:edit",
+    }
 
     def get_permissions(self):
         if self.action in ("tree", "options"):
@@ -104,7 +113,7 @@ class MenuViewSet(viewsets.ModelViewSet):
         if status_val not in (0, 1):
             return APIResponse.error(message="状态值无效")
         instance.status = status_val
-        instance.save()
+        instance.save(update_fields=["status", "update_time"])
         return APIResponse.success(message="状态更新成功")
 
     @action(detail=True, methods=["put"], url_path="sort")
@@ -112,7 +121,7 @@ class MenuViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         sort_order = request.data.get("sortOrder", 0)
         instance.sort_order = sort_order
-        instance.save()
+        instance.save(update_fields=["sort_order", "update_time"])
         return APIResponse.success(message="排序更新成功")
 
     @action(detail=False, methods=["post"], url_path="batch-sort")

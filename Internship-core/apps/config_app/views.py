@@ -2,6 +2,7 @@ import os
 import uuid
 
 from django.conf import settings
+from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -26,9 +27,18 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
     queryset = SystemConfig.objects.all()
     serializer_class = SystemConfigSerializer
     permission_key = "config:list"
+    permission_key_map = {
+        "create": "config:add",
+        "update": "config:edit",
+        "destroy": "config:delete",
+        "batch": "config:delete",
+        "sort": "config:edit",
+        "batch_sort": "config:edit",
+        "panel_save": "config:edit",
+    }
 
     def get_permissions(self):
-        if self.action in ("by_key", "panel_get", "panel_save"):
+        if self.action in ("by_key", "panel_get"):
             return [IsAuthenticated()]
         return [IsAuthenticated(), HasPermission()]
 
@@ -79,7 +89,7 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
     def sort(self, request, pk=None):
         instance = self.get_object()
         instance.sort_order = request.data.get("sortOrder", 0)
-        instance.save()
+        instance.save(update_fields=["sort_order", "update_time"])
         return APIResponse.success(message="排序更新成功")
 
     @action(detail=False, methods=["post"], url_path="batch-sort")
@@ -108,22 +118,24 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["post"], url_path="panel-save")
     def panel_save(self, request):
         payload = request.data
-        for key, value in payload.items():
-            if key not in PANEL_DEFAULTS:
-                continue
-            obj, created = SystemConfig.objects.get_or_create(
-                config_key=key,
-                defaults={"config_name": key, "config_value": str(value), "config_type": 0, "status": 1},
-            )
-            if not created:
-                obj.config_value = str(value)
-                obj.save(update_fields=["config_value", "update_time"])
+        with transaction.atomic():
+            for key, value in payload.items():
+                if key not in PANEL_DEFAULTS:
+                    continue
+                obj, created = SystemConfig.objects.get_or_create(
+                    config_key=key,
+                    defaults={"config_name": key, "config_value": str(value), "config_type": 0, "status": 1},
+                )
+                if not created:
+                    obj.config_value = str(value)
+                    obj.save(update_fields=["config_value", "update_time"])
         return APIResponse.success(message="配置保存成功")
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, HasPermission])
 def upload_image(request):
+    upload_image.permission_key = "config:edit"
     file = request.FILES.get("file")
     if not file:
         return APIResponse.error(message="请选择文件", code=2000, http_status=400)

@@ -40,6 +40,25 @@ const staticRoutes: RouteRecordRaw[] = [
     component: () => import("@/views/rag/ChatView.vue"),
     meta: { title: "AI 问答" },
   },
+  // NL2SQL 静态路由
+  {
+    path: "/nl2sql/query",
+    name: "NL2SQLQuery",
+    component: () => import("@/views/nl2sql/QueryView.vue"),
+    meta: { title: "自然语言查询" },
+  },
+  {
+    path: "/nl2sql/history",
+    name: "NL2SQLHistory",
+    component: () => import("@/views/nl2sql/HistoryList.vue"),
+    meta: { title: "查询历史" },
+  },
+  {
+    path: "/nl2sql/datasource",
+    name: "NL2SQLDataSource",
+    component: () => import("@/views/nl2sql/DataSourceList.vue"),
+    meta: { title: "数据源管理" },
+  },
   {
     path: "/",
     redirect: "/dashboard",

@@ -14,7 +14,9 @@ class OperationLogViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = OperationLogSerializer
     permission_key = "log:list"
     permission_key_map = {
+        "destroy": "log:delete",
         "clear": "log:delete",
+        "export": "log:export",
     }
 
     def get_permissions(self):

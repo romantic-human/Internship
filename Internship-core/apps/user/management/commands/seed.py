@@ -60,7 +60,23 @@ class Command(BaseCommand):
         log_m = self._m(sys_m, "操作日志", 1, "Document", 6, "/system/log", "system/log/LogList")
         config_m = self._m(sys_m, "系统配置", 1, "Tools", 7, "/system/config", "system/config/ConfigList")
 
-        self.stdout.write(f"  [OK] 菜单树: 7 个一级菜单 + 12 个按钮")
+        # ── NL2SQL ─────────────────────────────────────────
+        nl2sql_m = self._m(None, "自然语言查询", 0, "Connection", 2)
+
+        query_m = self._m(nl2sql_m, "SQL 查询", 1, "Connection", 0, "/nl2sql/query", "nl2sql/QueryView")
+        self._m(query_m, "执行查询", 2, "", 0, permission="nl2sql:query")
+        self._m(query_m, "导出结果", 2, "", 1, permission="nl2sql:export")
+
+        hist_m = self._m(nl2sql_m, "查询历史", 1, "Document", 1, "/nl2sql/history", "nl2sql/HistoryList")
+        self._m(hist_m, "查询历史列表", 2, "", 0, permission="nl2sql:list")
+        self._m(hist_m, "删除查询记录", 2, "", 1, permission="nl2sql:delete")
+
+        ds_m = self._m(nl2sql_m, "数据源管理", 1, "Tools", 2, "/nl2sql/datasource", "nl2sql/DataSourceList")
+        self._m(ds_m, "新增数据源", 2, "", 0, permission="nl2sql:add")
+        self._m(ds_m, "编辑数据源", 2, "", 1, permission="nl2sql:edit")
+        self._m(ds_m, "删除数据源", 2, "", 2, permission="nl2sql:delete")
+
+        self.stdout.write(f"  [OK] 菜单树: 7 个一级菜单 + 12 个按钮 + NL2SQL 菜单")
 
         # ── 3. 权限 ────────────────────────────────────────
         perm_map = {
@@ -80,6 +96,11 @@ class Command(BaseCommand):
             "log:export": ("日志导出", log_m),
             "config:list": ("配置查询", config_m), "config:add": ("配置新增", config_m),
             "config:edit": ("配置编辑", config_m),
+            # NL2SQL
+            "nl2sql:query": ("查询执行", query_m), "nl2sql:export": ("查询导出", query_m),
+            "nl2sql:list": ("历史查询", hist_m), "nl2sql:delete": ("历史删除", hist_m),
+            "nl2sql:add": ("数据源新增", ds_m), "nl2sql:edit": ("数据源编辑", ds_m),
+            "nl2sql:delete": ("数据源删除", ds_m),
         }
         for key, (name, menu) in perm_map.items():
             perm, _ = Permission.objects.get_or_create(

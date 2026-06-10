@@ -26,6 +26,7 @@ urlpatterns = [
     path("api/dashboard/stats/", include("apps.dashboard.urls")),
     path("api/dict/", include("apps.dict.urls")),
     path("api/rag/", include("apps.rag.urls")),
+    path("api/nl2sql/", include("apps.nl2sql.urls")),
 ]
 
 # 开发环境提供 media 文件服务

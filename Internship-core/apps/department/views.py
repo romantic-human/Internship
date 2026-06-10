@@ -13,7 +13,13 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     serializer_class = DepartmentSerializer
     permission_key = "dept:list"
     permission_key_map = {
+        "create": "dept:add",
+        "update": "dept:edit",
+        "destroy": "dept:delete",
         "batch": "dept:delete",
+        "status": "dept:edit",
+        "sort": "dept:edit",
+        "batch_sort": "dept:edit",
     }
 
     def get_permissions(self):
@@ -94,14 +100,14 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         if status_val not in (0, 1):
             return APIResponse.error(message="状态值无效")
         instance.status = status_val
-        instance.save()
+        instance.save(update_fields=["status", "update_time"])
         return APIResponse.success(message="状态更新成功")
 
     @action(detail=True, methods=["put"], url_path="sort")
     def sort(self, request, pk=None):
         instance = self.get_object()
         instance.sort_order = request.data.get("sortOrder", 0)
-        instance.save()
+        instance.save(update_fields=["sort_order", "update_time"])
         return APIResponse.success(message="排序更新成功")
 
     @action(detail=False, methods=["post"], url_path="batch-sort")
@@ -128,7 +134,6 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         from apps.user.models import User
         if User.objects.filter(department_id__in=ids).exists():
             return APIResponse.error(message="部分部门下存在用户，无法删除")
-            return APIResponse.error(message="存在子部门，无法删除")
         Department.objects.filter(id__in=ids).delete()
         return APIResponse.success(message="批量删除成功")
 
