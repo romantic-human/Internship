@@ -24,6 +24,7 @@ urlpatterns = [
     path("api/log/", include("apps.log.urls")),
     path("api/config/", include("apps.config_app.urls")),
     path("api/dashboard/stats/", include("apps.dashboard.urls")),
+    path("api/dict/", include("apps.dict.urls")),
     path("api/rag/", include("apps.rag.urls")),
 ]
 

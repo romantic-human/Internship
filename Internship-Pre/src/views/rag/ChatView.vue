@@ -1,6 +1,15 @@
 <template>
   <div class="chat-container">
-    <el-card shadow="never" class="chat-card">
+    <!-- 未选择知识库时的引导提示 -->
+    <div v-if="!validKb" class="empty-state" style="padding:80px 0;text-align:center">
+      <el-icon :size="64" color="#c0c4cc"><ChatDotRound /></el-icon>
+      <p style="font-size:16px;color:#606266;margin:16px 0 8px">AI 智能问答</p>
+      <p style="color:#909399;margin-bottom:20px">请先前往知识库列表，选择一个知识库后点击"问答"按钮</p>
+      <el-button type="primary" @click="router.push('/rag/kb-list')">前往知识库列表</el-button>
+    </div>
+
+    <!-- 已选择知识库时的对话区域 -->
+    <el-card v-else shadow="never" class="chat-card">
       <div class="card-header">
         <div class="header-left">
           <el-button @click="$router.push('/rag/kb-list')">
@@ -129,8 +138,9 @@ const kbId = Number(route.query.id);
 const kbName = String(route.query.name || "知识库");
 
 if (!kbId || isNaN(kbId)) {
-  router.replace("/rag/kb-list");
+  // 不跳转，显示引导提示
 }
+const validKb = !!kbId && !isNaN(kbId);
 
 interface Message {
   role: "user" | "assistant";
