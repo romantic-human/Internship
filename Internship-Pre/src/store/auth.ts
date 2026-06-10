@@ -60,8 +60,8 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   /** 动态生成路由（根据菜单树） */
-  async function generateDynamicRoutes() {
-    if (dynamicRoutesLoaded.value) return;
+  async function generateDynamicRoutes(force = false) {
+    if (!force && dynamicRoutesLoaded.value) return;
     try {
       const menus = await getMenuTree();
       menuTree.value = menus;

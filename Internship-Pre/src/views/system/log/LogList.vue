@@ -107,7 +107,6 @@ function resetFilters() {
   page.value = 1;
   fetchList();
 }
-const filters = ref<Record<string, any>>({});
 const dateRange = ref<[string, string] | null>(null);
 const detailVisible = ref(false);
 const detailData = ref("");

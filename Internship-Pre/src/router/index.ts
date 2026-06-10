@@ -21,6 +21,25 @@ const staticRoutes: RouteRecordRaw[] = [
     component: () => import("@/views/system/profile/Profile.vue"),
     meta: { title: "个人中心" },
   },
+  // RAG 静态路由（同时支持动态路由，双重保障）
+  {
+    path: "/rag/kb-list",
+    name: "KBList",
+    component: () => import("@/views/rag/KBList.vue"),
+    meta: { title: "知识库管理" },
+  },
+  {
+    path: "/rag/kb-detail",
+    name: "KBDetail",
+    component: () => import("@/views/rag/KBDetail.vue"),
+    meta: { title: "知识库详情" },
+  },
+  {
+    path: "/rag/chat",
+    name: "ChatView",
+    component: () => import("@/views/rag/ChatView.vue"),
+    meta: { title: "AI 问答" },
+  },
   {
     path: "/",
     redirect: "/dashboard",
@@ -48,17 +67,18 @@ router.beforeEach(async (to) => {
   if (whiteList.includes(to.path)) return true;
   if (!authStore.token) return "/login";
 
-  // 刷新后动态路由丢失 → 重新加载
-  if (!authStore.dynamicRoutesLoaded) {
+  // HMR/刷新后动态路由可能丢失 → 强制重新生成
+  const hasRoute = router.getRoutes().some(r => r.path === to.path);
+  if (!authStore.dynamicRoutesLoaded || !hasRoute) {
     if (!dynamicRoutesLoading) {
-      dynamicRoutesLoading = authStore.generateDynamicRoutes().finally(() => {
+      dynamicRoutesLoading = authStore.generateDynamicRoutes(true).finally(() => {
         dynamicRoutesLoading = null;
       });
     }
     await dynamicRoutesLoading;
-    // 路由加载完毕后，用实际路径重新导航
     return to.path === "/dashboard" ? true : to.path;
   }
+  return true;
 });
 
 export default router;

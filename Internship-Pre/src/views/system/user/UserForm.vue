@@ -61,7 +61,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from "vue";
 import { createUser, updateUser, getUserDetail, checkUnique, type UserRecord } from "@/api/user";
-import { createUser, updateUser, getUserDetail, type UserRecord } from "@/api/user";
 import { getDepartmentTree, type DeptItem } from "@/api/department";
 import { getAllRoles, type RoleRecord } from "@/api/role";
 import { ElMessage } from "element-plus";
