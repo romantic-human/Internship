@@ -86,7 +86,7 @@ import {
   Fold, Expand, ArrowDown, User, SwitchButton,
   House, Setting, Document, Tools, Key, OfficeBuilding,
   Menu as MenuIcon, Moon, Sunny, UserFilled,
-  Collection, Notebook, ChatDotRound, FolderOpened, Connection,
+  Collection, Notebook, ChatDotRound, FolderOpened, Connection, Reading, TrendCharts, Avatar, Bell,
 } from "@element-plus/icons-vue";
 import { useAppStore } from "@/store/app";
 import { useAuthStore } from "@/store/auth";
@@ -110,7 +110,8 @@ const iconMap: Record<string, Component> = {
   Menu: markRaw(MenuIcon), Moon: markRaw(Moon), Sunny: markRaw(Sunny),
   Collection: markRaw(Collection), Notebook: markRaw(Notebook),
   ChatDotRound: markRaw(ChatDotRound), FolderOpened: markRaw(FolderOpened),
-  Connection: markRaw(Connection),
+  Connection: markRaw(Connection), Reading: markRaw(Reading), TrendCharts: markRaw(TrendCharts),
+  Avatar: markRaw(Avatar), Bell: markRaw(Bell),
 };
 
 function resolveIcon(iconName: string) {

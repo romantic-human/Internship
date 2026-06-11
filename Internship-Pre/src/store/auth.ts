@@ -137,6 +137,12 @@ const componentMap: Record<string, () => Promise<any>> = {
   "nl2sql/QueryView": () => import("@/views/nl2sql/QueryView.vue"),
   "nl2sql/HistoryList": () => import("@/views/nl2sql/HistoryList.vue"),
   "nl2sql/DataSourceList": () => import("@/views/nl2sql/DataSourceList.vue"),
+  // 学生中心
+  "student/StudentList": () => import("@/views/student/StudentList.vue"),
+  "student/ScoreList": () => import("@/views/student/ScoreList.vue"),
+  // 用户中心
+  "user-center/ProfileView": () => import("@/views/user-center/ProfileView.vue"),
+  "user-center/NotificationList": () => import("@/views/user-center/NotificationList.vue"),
 };
 
 function getComponent(componentPath: string) {
