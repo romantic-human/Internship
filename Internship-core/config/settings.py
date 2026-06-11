@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     # RAG
     "apps.rag",
     "apps.nl2sql",
+    "apps.student",
+    "apps.notification",
 ]
 
 MIDDLEWARE = [
