@@ -491,10 +491,11 @@ class UserViewSet(viewsets.ModelViewSet):
         users = self.get_queryset().order_by("-create_time")
         response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
         response["Content-Disposition"] = f"attachment; filename=users_{timezone.now().strftime('%Y%m%d')}.csv"
+        response.write(b'\xef\xbb\xbf')
         writer = csv.writer(response)
         writer.writerow(["用户名", "昵称", "邮箱", "手机号", "性别", "状态", "创建时间"])
         for u in users:
-            writer.writerow([u.username, u.nickname or "", u.email or "", u.telephone or "", u.get_gender_display() if hasattr(u, "gender") else "", u.status, u.create_time])
+            writer.writerow([u.username, u.nickname or "", u.email or "", u.telephone or "", {0: "未知", 1: "男", 2: "女"}.get(u.gender, "未知"), "启用" if u.status == 1 else "禁用", u.create_time])
         return response
 
     @action(detail=False, methods=["post"], url_path="import")
@@ -575,7 +576,7 @@ class UserViewSet(viewsets.ModelViewSet):
                         }
                     )
                     if created:
-                        user.set_password("123456")
+                        user.set_password("Admin@123")
                         user.save(update_fields=["password"])
                     success += 1
                 except (IntegrityError, ValueError) as e:

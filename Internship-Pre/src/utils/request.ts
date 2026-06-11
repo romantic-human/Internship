@@ -1,6 +1,7 @@
 import axios, { type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 import { ElMessage } from "element-plus";
 import { useAuthStore } from "@/store/auth";
+import router from "@/router";
 
 function getToken(): string {
   return localStorage.getItem("access_token") || "";
@@ -99,6 +100,7 @@ request.interceptors.response.use(
 
     if (data?.code === 3003) {
       ElMessage.error("无操作权限");
+      router.push("/403");
     } else if (status !== 401) {
       ElMessage.error(data?.message || `请求错误 ${status}`);
     }
