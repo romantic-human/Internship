@@ -128,7 +128,7 @@ const componentMap: Record<string, () => Promise<any>> = {
   "system/log/LogList": () => import("@/views/system/log/LogList.vue"),
   "system/config/ConfigList": () => import("@/views/system/config/ConfigList.vue"),
   "system/config/ConfigPanel": () => import("@/views/system/config/ConfigPanel.vue"),
-  "system/config/ConfigAdvanced": () => import("@/views/system/config/ConfigList.vue"),
+  "system/config/ConfigAdvanced": () => import("@/views/system/config/ConfigPanel.vue"),
   "system/dict/DictList": () => import("@/views/system/dict/DictList.vue"),
   // RAG 知识库
   "rag/KBList": () => import("@/views/rag/KBList.vue"),
@@ -141,7 +141,7 @@ const componentMap: Record<string, () => Promise<any>> = {
   "student/StudentList": () => import("@/views/student/StudentList.vue"),
   "student/ScoreList": () => import("@/views/student/ScoreList.vue"),
   // 用户中心
-  "user-center/ProfileView": () => import("@/views/user-center/ProfileView.vue"),
+  "user-center/ProfileView": () => import("@/views/system/profile/Profile.vue"),
   "user-center/NotificationList": () => import("@/views/user-center/NotificationList.vue"),
 };
 

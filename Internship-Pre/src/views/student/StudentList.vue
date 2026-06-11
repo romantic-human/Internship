@@ -5,8 +5,9 @@
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <span>学生管理</span>
           <div>
-            <el-button type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
-            <el-button type="success" @click="handleExport">导出</el-button>
+            <el-button v-permission="'student:delete'" type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
+            <el-button v-permission="'student:export'" type="success" @click="handleExport">导出</el-button>
+            <el-button v-permission="'student:import'" @click="handleImport">导入</el-button>
             <el-button v-permission="'student:add'" type="primary" @click="handleAdd">新增学生</el-button>
           </div>
         </div>
@@ -77,6 +78,8 @@
       />
     </el-card>
 
+    <input ref="fileInputRef" type="file" accept=".xlsx,.xls" style="display:none" @change="handleImportChange" />
+
     <StudentForm
       v-if="formVisible"
       :visible="formVisible"
@@ -95,6 +98,7 @@ import {
   deleteStudent,
   batchDeleteStudents,
   exportStudents,
+  importStudents,
   type StudentRecord,
 } from "@/api/student";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -109,6 +113,7 @@ const pageSize = ref(10);
 const formVisible = ref(false);
 const currentFormData = ref<Partial<StudentRecord> | null>(null);
 const selectedIds = ref<number[]>([]);
+const fileInputRef = ref<HTMLInputElement | null>(null);
 
 const genderMap: Record<number, string> = { 0: "未知", 1: "男", 2: "女" };
 const statusMap: Record<number, string> = { 0: "休学", 1: "在读", 2: "毕业" };
@@ -154,9 +159,11 @@ function handleScore(row: StudentRecord) {
 }
 
 async function handleDelete(row: StudentRecord) {
-  await deleteStudent(row.id);
-  ElMessage.success("删除成功");
-  await fetchList();
+  try {
+    await deleteStudent(row.id);
+    ElMessage.success("删除成功");
+    await fetchList();
+  } catch { /* handled */ }
 }
 
 function onSelectionChange(rows: StudentRecord[]) {
@@ -187,6 +194,31 @@ async function handleExport() {
   } catch {
     ElMessage.error("导出失败");
   }
+}
+
+async function handleImport() {
+  try {
+    await ElMessageBox.confirm("请选择 Excel 文件（.xlsx）导入学生数据。", "导入学生", {
+      confirmButtonText: "选择文件",
+      cancelButtonText: "取消",
+      type: "info",
+    });
+    fileInputRef.value?.click();
+  } catch { /* cancel */ }
+}
+
+async function handleImportChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  try {
+    await importStudents(file);
+    ElMessage.success("导入成功");
+    await fetchList();
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.message || "导入失败");
+  }
+  input.value = "";
 }
 
 onMounted(fetchList);

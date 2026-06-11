@@ -56,6 +56,16 @@ export function exportStudents(): Promise<Blob> {
   return request.get("/student/info/export", { responseType: "blob" });
 }
 
+export function downloadStudentTemplate(): Promise<Blob> {
+  return request.get("/student/info/template", { responseType: "blob" });
+}
+
+export function importStudents(file: File): Promise<void> {
+  const form = new FormData();
+  form.append("file", file);
+  return request.post("/student/info/import", form);
+}
+
 /* ── 学生成绩 ────────────────────────────────────────── */
 
 export interface ScoreRecord {
@@ -102,4 +112,14 @@ export function batchDeleteScores(ids: number[]): Promise<void> {
 
 export function exportScores(): Promise<Blob> {
   return request.get("/student/score/export", { responseType: "blob" });
+}
+
+export function downloadScoreTemplate(): Promise<Blob> {
+  return request.get("/student/score/template", { responseType: "blob" });
+}
+
+export function importScores(file: File): Promise<void> {
+  const form = new FormData();
+  form.append("file", file);
+  return request.post("/student/score/import", form);
 }

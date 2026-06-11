@@ -17,6 +17,7 @@ export interface ConfigListParams {
   page?: number;
   pageSize?: number;
   config_name?: string;
+  config_key?: string;
 }
 
 export function getConfigList(params: ConfigListParams): Promise<{ records: ConfigItem[]; total: number }> {
@@ -57,4 +58,14 @@ export function batchDeleteConfigs(ids: number[]): Promise<void> {
 
 export function exportConfigs(): Promise<Blob> {
   return request.get("/config/export", { responseType: "blob" });
+}
+
+export function downloadConfigTemplate(): Promise<Blob> {
+  return request.get("/config/template", { responseType: "blob" });
+}
+
+export function importConfigs(file: File): Promise<void> {
+  const form = new FormData();
+  form.append("file", file);
+  return request.post("/config/import", form);
 }

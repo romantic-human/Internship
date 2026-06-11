@@ -12,3 +12,10 @@ class NotificationSerializer(serializers.ModelSerializer):
             "id", "title", "content", "notification_type", "type_display",
             "is_read", "extra_data", "create_time", "read_time",
         ]
+
+
+class CreateNotificationSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=128)
+    content = serializers.CharField(required=False, allow_blank=True, default="")
+    notification_type = serializers.IntegerField(default=0)
+    target_user_ids = serializers.ListField(child=serializers.IntegerField(), required=False)
