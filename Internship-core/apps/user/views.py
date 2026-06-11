@@ -362,7 +362,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
         user.status = status_val
 
-        user.save(update_fields=["status"])
+        user.save(update_fields=["status", "update_time"])
 
         return APIResponse.success(message="状态更新成功")
 
@@ -439,7 +439,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
         user.set_password(serializer.validated_data["new_password"])
 
-        user.save(update_fields=["password"])
+        user.save(update_fields=["password", "update_time"])
 
         return APIResponse.success(message="密码修改成功")
 
@@ -577,7 +577,7 @@ class UserViewSet(viewsets.ModelViewSet):
                     )
                     if created:
                         user.set_password("Admin@123")
-                        user.save(update_fields=["password"])
+                        user.save(update_fields=["password", "update_time"])
                     success += 1
                 except (IntegrityError, ValueError) as e:
                     skipped += 1
@@ -663,7 +663,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
         user.avatar = url
 
-        user.save(update_fields=["avatar"])
+        user.save(update_fields=["avatar", "update_time"])
 
         return APIResponse.success(
 
