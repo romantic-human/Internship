@@ -6,7 +6,11 @@ from .models import StudentInfo, StudentScore
 class StudentInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentInfo
-        fields = "__all__"
+        fields = [
+            "id", "student_no", "name", "gender", "class_name", "major",
+            "college", "phone", "email", "enrollment_year", "status",
+            "remark", "create_time", "update_time",
+        ]
 
 
 class StudentScoreSerializer(serializers.ModelSerializer):
@@ -15,10 +19,15 @@ class StudentScoreSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StudentScore
-        fields = "__all__"
+        fields = [
+            "id", "student", "student_name", "student_no", "course_name",
+            "score", "semester", "credit", "remark", "create_time", "update_time",
+        ]
 
 
 class StudentScoreCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentScore
-        fields = "__all__"
+        fields = [
+            "id", "student", "course_name", "score", "semester", "credit", "remark",
+        ]

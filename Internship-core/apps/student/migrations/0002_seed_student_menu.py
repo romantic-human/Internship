@@ -34,6 +34,7 @@ def seed_student_menu(apps, schema_editor):
         ("新增学生", "student:add", 0),
         ("编辑学生", "student:edit", 1),
         ("删除学生", "student:delete", 2),
+        ("导入学生", "student:import", 3),
     ]
     for name, perm, sort in btns_stu:
         btn, _ = Menu.objects.get_or_create(
@@ -59,6 +60,7 @@ def seed_student_menu(apps, schema_editor):
         ("新增成绩", "score:add", 0),
         ("编辑成绩", "score:edit", 1),
         ("删除成绩", "score:delete", 2),
+        ("导入成绩", "score:import", 3),
     ]
     for name, perm, sort in btns_score:
         Menu.objects.get_or_create(
@@ -77,7 +79,7 @@ def seed_student_menu(apps, schema_editor):
         "student:export": "学生导出", "student:import": "学生导入",
         "score:list": "成绩查询", "score:add": "成绩新增",
         "score:edit": "成绩编辑", "score:delete": "成绩删除",
-        "score:export": "成绩导出",
+        "score:export": "成绩导出", "score:import": "成绩导入",
     }
     # 菜单→权限映射（用于关联）
     menu_perm_map = {
@@ -86,7 +88,7 @@ def seed_student_menu(apps, schema_editor):
         "student:export": stu_list_m, "student:import": stu_list_m,
         "score:list": score_m, "score:add": score_m,
         "score:edit": score_m, "score:delete": score_m,
-        "score:export": score_m,
+        "score:export": score_m, "score:import": score_m,
     }
     for key, name in perm_map.items():
         perm, _ = Permission.objects.get_or_create(
@@ -101,8 +103,8 @@ def seed_student_menu(apps, schema_editor):
     if admin_role:
         for menu in Menu.objects.filter(
             menu_name__in=["学生中心", "学生列表", "成绩管理",
-                           "新增学生", "编辑学生", "删除学生",
-                           "新增成绩", "编辑成绩", "删除成绩"]
+                           "新增学生", "编辑学生", "删除学生", "导入学生",
+                           "新增成绩", "编辑成绩", "删除成绩", "导入成绩"]
         ):
             RoleMenuRelation.objects.get_or_create(role=admin_role, menu=menu)
 
@@ -115,14 +117,15 @@ def reverse_seed(apps, schema_editor):
     perm_keys = [
         "student:list", "student:add", "student:edit", "student:delete",
         "student:export", "student:import",
-        "score:list", "score:add", "score:edit", "score:delete", "score:export",
+        "score:list", "score:add", "score:edit", "score:delete",
+        "score:export", "score:import",
     ]
     Permission.objects.filter(permission_key__in=perm_keys).delete()
 
     menu_names = [
         "学生中心", "学生列表", "成绩管理",
-        "新增学生", "编辑学生", "删除学生",
-        "新增成绩", "编辑成绩", "删除成绩",
+        "新增学生", "编辑学生", "删除学生", "导入学生",
+        "新增成绩", "编辑成绩", "删除成绩", "导入成绩",
     ]
     Menu.objects.filter(menu_name__in=menu_names).delete()
 

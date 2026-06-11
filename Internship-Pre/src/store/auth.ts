@@ -128,7 +128,7 @@ const componentMap: Record<string, () => Promise<any>> = {
   "system/log/LogList": () => import("@/views/system/log/LogList.vue"),
   "system/config/ConfigList": () => import("@/views/system/config/ConfigList.vue"),
   "system/config/ConfigPanel": () => import("@/views/system/config/ConfigPanel.vue"),
-  "system/config/ConfigAdvanced": () => import("@/views/system/config/ConfigList.vue"),
+  "system/config/ConfigAdvanced": () => import("@/views/system/config/ConfigPanel.vue"),
   "system/dict/DictList": () => import("@/views/system/dict/DictList.vue"),
   // RAG 知识库
   "rag/KBList": () => import("@/views/rag/KBList.vue"),

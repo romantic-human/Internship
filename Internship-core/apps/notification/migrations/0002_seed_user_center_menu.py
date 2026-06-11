@@ -43,6 +43,7 @@ def seed_user_center_menu(apps, schema_editor):
     btns = [
         ("删除通知", "notification:delete", 0, notif_m),
         ("全部已读", "notification:read-all", 1, notif_m),
+        ("创建通知", "notification:create", 2, notif_m),
     ]
     for name, perm, sort, parent in btns:
         Menu.objects.get_or_create(
@@ -57,6 +58,7 @@ def seed_user_center_menu(apps, schema_editor):
     # ── 权限 ──
     perm_map = {
         "notification:list": ("通知查询", notif_m),
+        "notification:create": ("通知创建", notif_m),
         "notification:delete": ("通知删除", notif_m),
         "notification:read-all": ("全部已读", notif_m),
     }
@@ -71,7 +73,7 @@ def seed_user_center_menu(apps, schema_editor):
     admin_role = Role.objects.filter(role_key="admin").first()
     if admin_role:
         for menu in Menu.objects.filter(
-            menu_name__in=["用户中心", "个人资料", "消息通知", "删除通知", "全部已读"]
+            menu_name__in=["用户中心", "个人资料", "消息通知", "删除通知", "全部已读", "创建通知"]
         ):
             RoleMenuRelation.objects.get_or_create(role=admin_role, menu=menu)
 
@@ -80,10 +82,10 @@ def reverse_seed(apps, schema_editor):
     Menu = apps.get_model("menu", "Menu")
     Permission = apps.get_model("permission", "Permission")
 
-    perm_keys = ["notification:list", "notification:delete", "notification:read-all"]
+    perm_keys = ["notification:list", "notification:create", "notification:delete", "notification:read-all"]
     Permission.objects.filter(permission_key__in=perm_keys).delete()
 
-    menu_names = ["用户中心", "个人资料", "消息通知", "删除通知", "全部已读"]
+    menu_names = ["用户中心", "个人资料", "消息通知", "删除通知", "全部已读", "创建通知"]
     Menu.objects.filter(menu_name__in=menu_names).delete()
 
 

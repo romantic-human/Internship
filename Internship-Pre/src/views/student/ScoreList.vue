@@ -5,8 +5,9 @@
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <span>成绩管理 <el-tag v-if="studentName" type="info" style="margin-left:8px">{{ studentName }}</el-tag></span>
           <div>
-            <el-button type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
-            <el-button type="success" @click="handleExport">导出</el-button>
+            <el-button v-permission="'score:delete'" type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
+            <el-button v-permission="'score:export'" type="success" @click="handleExport">导出</el-button>
+            <el-button v-permission="'score:import'" @click="handleImport">导入</el-button>
             <el-button v-permission="'score:add'" type="primary" @click="handleAdd">新增成绩</el-button>
           </div>
         </div>
@@ -59,6 +60,8 @@
       />
     </el-card>
 
+    <input ref="fileInputRef" type="file" accept=".xlsx,.xls" style="display:none" @change="handleImportChange" />
+
     <ScoreForm
       v-if="formVisible"
       :visible="formVisible"
@@ -78,6 +81,7 @@ import {
   deleteScore,
   batchDeleteScores,
   exportScores,
+  importScores,
   type ScoreRecord,
 } from "@/api/student";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -100,6 +104,7 @@ const filters = reactive({
   course_name: "",
   semester: "",
 });
+const fileInputRef = ref<HTMLInputElement | null>(null);
 
 async function fetchList() {
   loading.value = true;
@@ -127,9 +132,11 @@ function handleEdit(row: ScoreRecord) {
 }
 
 async function handleDelete(row: ScoreRecord) {
-  await deleteScore(row.id);
-  ElMessage.success("删除成功");
-  await fetchList();
+  try {
+    await deleteScore(row.id);
+    ElMessage.success("删除成功");
+    await fetchList();
+  } catch { /* handled */ }
 }
 
 function onSelectionChange(rows: ScoreRecord[]) {
@@ -160,6 +167,31 @@ async function handleExport() {
   } catch {
     ElMessage.error("导出失败");
   }
+}
+
+async function handleImport() {
+  try {
+    await ElMessageBox.confirm("请选择 Excel 文件（.xlsx）导入成绩数据。", "导入成绩", {
+      confirmButtonText: "选择文件",
+      cancelButtonText: "取消",
+      type: "info",
+    });
+    fileInputRef.value?.click();
+  } catch { /* cancel */ }
+}
+
+async function handleImportChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  try {
+    await importScores(file);
+    ElMessage.success("导入成功");
+    await fetchList();
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.message || "导入失败");
+  }
+  input.value = "";
 }
 
 onMounted(fetchList);
