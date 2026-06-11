@@ -141,7 +141,7 @@ const componentMap: Record<string, () => Promise<any>> = {
   "student/StudentList": () => import("@/views/student/StudentList.vue"),
   "student/ScoreList": () => import("@/views/student/ScoreList.vue"),
   // 用户中心
-  "user-center/ProfileView": () => import("@/views/user-center/ProfileView.vue"),
+  "user-center/ProfileView": () => import("@/views/system/profile/Profile.vue"),
   "user-center/NotificationList": () => import("@/views/user-center/NotificationList.vue"),
 };
 

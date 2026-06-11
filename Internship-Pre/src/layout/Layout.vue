@@ -43,6 +43,7 @@
           <el-icon size="18"><Fold v-if="!sidebarCollapsed" /><Expand v-else /></el-icon>
         </el-button>
         <div class="header-right">
+          <ClockWidget />
           <el-tooltip :content="isDark ? '切换亮色模式' : '切换暗色模式'" placement="bottom">
             <el-icon class="theme-btn" @click="handleToggleTheme">
               <Moon v-if="!isDark" />
@@ -68,6 +69,7 @@
           </el-dropdown>
         </div>
       </el-header>
+      <TabsNav />
       <el-main class="layout-content">
         <router-view v-slot="{ Component }">
           <transition name="fade-slide" mode="out-in">
@@ -91,6 +93,8 @@ import {
 import { useAppStore } from "@/store/app";
 import { useAuthStore } from "@/store/auth";
 import type { MenuItem } from "@/api/menu";
+import TabsNav from "@/components/TabsNav.vue";
+import ClockWidget from "@/components/ClockWidget.vue";
 const router = useRouter();
 const route = useRoute();
 const appStore = useAppStore();
