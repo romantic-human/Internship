@@ -6,4 +6,4 @@ from .models import Permission
 class PermissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Permission
-        fields = "__all__"
+        fields = ["id", "permission_name", "permission_key", "status", "create_time", "update_time"]

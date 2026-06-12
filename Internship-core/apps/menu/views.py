@@ -1,5 +1,6 @@
 import openpyxl
 from django.http import HttpResponse
+from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -135,7 +136,10 @@ class MenuViewSet(viewsets.ModelViewSet):
             if not item_id:
                 return APIResponse.error(message="每项需要 id 字段")
             instances.append(Menu(id=item_id, sort_order=item.get("sortOrder", 0)))
-        Menu.objects.bulk_update(instances, ["sort_order"])
+        now = timezone.now()
+        for inst in instances:
+            inst.update_time = now
+        Menu.objects.bulk_update(instances, ["sort_order", "update_time"])
         return APIResponse.success(message="排序更新成功")
 
     @action(detail=False, methods=["delete"], url_path="batch")

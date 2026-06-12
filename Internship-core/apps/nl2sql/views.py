@@ -142,7 +142,7 @@ class QueryHistoryViewSet(viewsets.GenericViewSet):
         if instance.user != request.user and not request.user.is_superuser:
             return APIResponse.error(message="无权操作他人记录", code=3003, http_status=403)
         instance.is_favorite = 1 if not instance.is_favorite else 0
-        instance.save(update_fields=["is_favorite"])
+        instance.save(update_fields=["is_favorite", "update_time"])
         return APIResponse.success(data={"is_favorite": instance.is_favorite}, message="操作成功")
 
 
