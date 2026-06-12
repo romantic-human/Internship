@@ -19,6 +19,7 @@ class DictTypeViewSet(viewsets.ModelViewSet):
         "update": "dict:type:edit",
         "destroy": "dict:type:delete",
         "batch": "dict:type:delete",
+        "status": "dict:type:edit",
     }
 
     def get_permissions(self):
@@ -75,7 +76,7 @@ class DictTypeViewSet(viewsets.ModelViewSet):
         if status_val not in (0, 1):
             return APIResponse.error(message="状态值无效")
         instance.status = status_val
-        instance.save()
+        instance.save(update_fields=["status", "update_time"])
         return APIResponse.success(message="状态更新成功")
 
     @action(detail=False, methods=["delete"], url_path="batch")
@@ -170,6 +171,7 @@ class DictDataViewSet(viewsets.ModelViewSet):
         "update": "dict:data:edit",
         "destroy": "dict:data:delete",
         "batch": "dict:data:delete",
+        "status": "dict:data:edit",
     }
 
     def get_permissions(self):
@@ -232,7 +234,7 @@ class DictDataViewSet(viewsets.ModelViewSet):
         if status_val not in (0, 1):
             return APIResponse.error(message="状态值无效")
         instance.status = status_val
-        instance.save()
+        instance.save(update_fields=["status", "update_time"])
         return APIResponse.success(message="状态更新成功")
 
     @action(detail=False, methods=["delete"], url_path="batch")

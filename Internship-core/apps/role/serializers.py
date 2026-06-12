@@ -6,7 +6,7 @@ from .models import Role
 class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
-        fields = "__all__"
+        fields = ["id", "role_name", "role_key", "role_sort", "status", "remark", "create_time", "update_time"]
 
 
 class AssignMenuSerializer(serializers.Serializer):

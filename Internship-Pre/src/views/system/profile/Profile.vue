@@ -186,8 +186,7 @@ function resetProfileForm() {
 }
 
 async function saveProfile() {
-  const valid = await infoFormRef.value?.validate().catch(() => false);
-  if (!valid) return;
+  try { await infoFormRef.value?.validate(); } catch { return; }
 
   infoSaving.value = true;
   try {
@@ -246,8 +245,7 @@ function resetPasswordForm() {
 }
 
 async function handleChangePassword() {
-  const valid = await pwdFormRef.value?.validate().catch(() => false);
-  if (!valid) return;
+  try { await pwdFormRef.value?.validate(); } catch { return; }
 
   pwdSaving.value = true;
   try {
