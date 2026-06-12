@@ -39,7 +39,6 @@ export function getUserProfile(): Promise<{
 }
 
 export function updateUserProfile(data: Partial<{ nickname: string; real_name: string; email: string; telephone: string; gender: number }>): Promise<void> {
-export function updateUserProfile(data: Record<string, any>): Promise<any> {
   return request.put("/user/profile", data);
 }
 
@@ -47,7 +46,6 @@ export function updatePassword(data: {
   old_password: string;
   new_password: string;
 }): Promise<void> {
-}): Promise<any> {
   return request.put("/user/update-password", data);
 }
 
@@ -95,7 +93,6 @@ export interface ImportResult {
 }
 
 export function getUserList(params: UserListParams): Promise<{ records: UserRecord[]; total: number }> {
-export function getUserList(params: Record<string, any>): Promise<{ records: UserRecord[]; total: number }> {
   return request.get("/user/", { params });
 }
 
@@ -112,22 +109,18 @@ export function updateUser(id: number, data: Partial<UserRecord>): Promise<UserR
 }
 
 export function deleteUser(id: number): Promise<void> {
-export function deleteUser(id: number): Promise<any> {
   return request.delete(`/user/${id}`);
 }
 
 export function batchDeleteUsers(ids: number[]): Promise<void> {
-export function batchDeleteUsers(ids: number[]): Promise<any> {
   return request.delete("/user/batch", { data: { ids } });
 }
 
 export function updateUserStatus(id: number, status: number): Promise<void> {
-export function updateUserStatus(id: number, status: number): Promise<any> {
   return request.put(`/user/${id}/status`, { status });
 }
 
 export function resetPassword(data: { userId: number; password?: string }): Promise<void> {
-export function resetPassword(data: { userId: number; password?: string }): Promise<any> {
   return request.put("/user/reset-password", data);
 }
 
@@ -141,12 +134,10 @@ export function downloadUserTemplate(): Promise<Blob> {
 }
 
 export function exportUsers(params?: UserListParams): Promise<Blob> {
-export function exportUsers(params?: Record<string, any>): Promise<Blob> {
   return request.get("/user/export", { params, responseType: "blob" });
 }
 
 export function importUsers(file: File): Promise<ImportResult> {
-export function importUsers(file: File): Promise<{ success: number; skipped: number; errors: string[] }> {
   const formData = new FormData();
   formData.append("file", file);
   return request.post("/user/import", formData, {

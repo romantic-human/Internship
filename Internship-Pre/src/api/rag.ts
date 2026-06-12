@@ -15,23 +15,23 @@ export interface KnowledgeBase {
 }
 
 export function getKnowledgeBaseList(params?: Record<string, any>): Promise<{ records: KnowledgeBase[]; total: number }> {
-  return request.get("/rag/kb/", { params });
+  return request.get("/rag/kb", { params });
 }
 
 export function getKnowledgeBase(id: number): Promise<KnowledgeBase> {
-  return request.get(`/rag/kb/${id}/`);
+  return request.get(`/rag/kb/${id}`);
 }
 
 export function createKnowledgeBase(data: Partial<KnowledgeBase>): Promise<KnowledgeBase> {
-  return request.post("/rag/kb/", data);
+  return request.post("/rag/kb", data);
 }
 
 export function updateKnowledgeBase(id: number, data: Partial<KnowledgeBase>): Promise<KnowledgeBase> {
-  return request.put(`/rag/kb/${id}/`, data);
+  return request.put(`/rag/kb/${id}`, data);
 }
 
 export function deleteKnowledgeBase(id: number): Promise<void> {
-  return request.delete(`/rag/kb/${id}/`);
+  return request.delete(`/rag/kb/${id}`);
 }
 
 // ── 文档 ─────────────────────────────────────────────
@@ -50,26 +50,26 @@ export interface Document {
 }
 
 export function getDocumentList(params?: Record<string, any>): Promise<{ records: Document[]; total: number }> {
-  return request.get("/rag/documents/", { params });
+  return request.get("/rag/documents", { params });
 }
 
 export function getDocument(id: number): Promise<Document> {
-  return request.get(`/rag/documents/${id}/`);
+  return request.get(`/rag/documents/${id}`);
 }
 
 export function deleteDocument(id: number): Promise<void> {
-  return request.delete(`/rag/documents/${id}/`);
+  return request.delete(`/rag/documents/${id}`);
 }
 
 export function reprocessDocument(id: number): Promise<Document> {
-  return request.post(`/rag/documents/${id}/reprocess/`);
+  return request.post(`/rag/documents/${id}/reprocess`);
 }
 
 export function uploadDocument(knowledgeBaseId: number, file: File): Promise<Document> {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("knowledge_base_id", String(knowledgeBaseId));
-  return request.post("/rag/documents/upload/", formData, {
+  return request.post("/rag/documents/upload", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 }
@@ -90,7 +90,7 @@ export interface ChatResponse {
 }
 
 export function chatWithKB(kbId: number, question: string): Promise<ChatResponse> {
-  return request.post(`/rag/kb/${kbId}/chat/`, { question });
+  return request.post(`/rag/kb/${kbId}/chat`, { question });
 }
 
 export function chatWithKBStream(
@@ -105,7 +105,7 @@ export function chatWithKBStream(
   const baseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
   const token = localStorage.getItem("access_token") || "";
 
-  fetch(`${baseUrl}/rag/kb/${kbId}/chat-stream/`, {
+  fetch(`${baseUrl}/rag/kb/${kbId}/chat-stream`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -118,7 +118,6 @@ export function chatWithKBStream(
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-      let finished = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -134,8 +133,6 @@ export function chatWithKBStream(
                 onToken(data.content);
               } else if (data.type === "sources") {
                 onSources(data.content);
-              } else if (data.type === "done") {
-                // 由 while 循环结束后的 onDone() 统一处理
               } else if (data.type === "error") {
                 onError(data.content);
               }
@@ -145,10 +142,7 @@ export function chatWithKBStream(
           }
         }
       }
-      if (!finished) {
-        finished = true;
-        onDone();
-      }
+      onDone();
     })
     .catch((err) => {
       if (err.name !== "AbortError") {
@@ -159,8 +153,3 @@ export function chatWithKBStream(
   return controller;
 }
 
-export function getDocumentPreviewUrl(id: number): string {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
-  const token = localStorage.getItem("access_token") || "";
-  return `${baseUrl}/rag/documents/${id}/preview/`;
-}

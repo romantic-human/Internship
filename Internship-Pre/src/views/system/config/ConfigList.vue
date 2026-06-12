@@ -6,7 +6,8 @@
           <span>系统配置</span>
           <div>
             <el-button :disabled="selectedIds.length === 0" type="danger" @click="handleBatchDelete">批量删除</el-button>
-            <el-button type="success" @click="handleExport">导出</el-button>
+            <el-button v-permission="'config:export'" type="success" @click="handleExport">导出</el-button>
+            <el-button v-permission="'config:add'" @click="handleImport">导入</el-button>
             <el-button v-permission="'config:add'" type="primary" @click="handleAdd">新增配置</el-button>
           </div>
         </div>
@@ -53,6 +54,7 @@
       <el-pagination v-if="total > pageSize" v-model:current-page="page" v-model:page-size="pageSize" :page-sizes="[10, 20, 50, 100]" :total="total"
         layout="total, sizes, prev, pager, next, jumper" @current-change="fetchList" @size-change="page=1;fetchList()" class="mt-3" />
     </el-card>
+    <input ref="fileInputRef" type="file" accept=".xlsx,.xls" style="display:none" @change="handleImportChange" />
     <ConfigForm v-if="formVisible" :visible="formVisible" :form-data="currentFormData"
       @close="formVisible = false" @success="fetchList" />
   </div>
@@ -60,7 +62,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { getConfigList, deleteConfig, updateConfigStatus, batchDeleteConfigs, exportConfigs, type ConfigItem } from "@/api/config";
+import { getConfigList, deleteConfig, updateConfigStatus, batchDeleteConfigs, exportConfigs, importConfigs, type ConfigItem } from "@/api/config";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useAuthStore } from "@/store/auth";
 import ConfigForm from "./ConfigForm.vue";
@@ -77,11 +79,17 @@ const formVisible = ref(false);
 const currentFormData = ref<Partial<ConfigItem> | null>(null);
 const filters = ref({ config_name: "", config_key: "" });
 const selectedIds = ref<number[]>([]);
+const fileInputRef = ref<HTMLInputElement | null>(null);
 
 async function fetchList() {
   loading.value = true;
   try {
-    const res = await getConfigList({ page: page.value, pageSize: pageSize.value });
+    const res = await getConfigList({
+      page: page.value,
+      pageSize: pageSize.value,
+      config_name: filters.value.config_name || undefined,
+      config_key: filters.value.config_key || undefined,
+    });
     list.value = res.records;
     total.value = res.total;
   } finally { loading.value = false; }
@@ -89,7 +97,9 @@ async function fetchList() {
 function handleAdd() { currentFormData.value = null; formVisible.value = true; }
 function handleEdit(row: ConfigItem) { currentFormData.value = { ...row }; formVisible.value = true; }
 async function handleDelete(row: ConfigItem) {
-  await deleteConfig(row.id); ElMessage.success("删除成功"); await fetchList();
+  try {
+    await deleteConfig(row.id); ElMessage.success("删除成功"); await fetchList();
+  } catch { /* handled */ }
 }
 async function handleStatusChange(row: ConfigItem, val: number) {
   await updateConfigStatus(row.id, val);
@@ -116,6 +126,29 @@ async function handleExport() {
     window.URL.revokeObjectURL(url);
     ElMessage.success("导出成功");
   } catch { ElMessage.error("导出失败"); }
+}
+async function handleImport() {
+  try {
+    await ElMessageBox.confirm("请选择 Excel 文件（.xlsx）导入配置数据。", "导入配置", {
+      confirmButtonText: "选择文件",
+      cancelButtonText: "取消",
+      type: "info",
+    });
+    fileInputRef.value?.click();
+  } catch { /* cancel */ }
+}
+async function handleImportChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  try {
+    await importConfigs(file);
+    ElMessage.success("导入成功");
+    await fetchList();
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.message || "导入失败");
+  }
+  input.value = "";
 }
 onMounted(fetchList);
 </script>

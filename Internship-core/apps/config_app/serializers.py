@@ -6,4 +6,7 @@ from .models import SystemConfig
 class SystemConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = SystemConfig
-        fields = "__all__"
+        fields = [
+            "id", "config_name", "config_key", "config_value", "config_type",
+            "remark", "status", "sort_order", "create_time", "update_time",
+        ]

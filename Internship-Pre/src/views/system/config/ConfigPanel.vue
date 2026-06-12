@@ -22,13 +22,13 @@
                 action="#"
                 :auto-upload="false"
                 :show-file-list="false"
-                accept=".jpg,.jpeg,.png,.svg"
+                accept=".jpg,.jpeg,.png,.webp"
                 :on-change="handleLogoChange"
               >
                 <img v-if="form['system.logo']" :src="form['system.logo']" class="logo-preview" />
                 <el-icon v-else class="logo-placeholder"><Plus /></el-icon>
               </el-upload>
-              <div class="upload-tip">推荐尺寸：128 × 128px，支持 JPG/PNG/SVG</div>
+              <div class="upload-tip">推荐尺寸：128 × 128px，支持 JPG/PNG/WebP，不超过 2MB</div>
             </el-form-item>
           </el-form>
         </div>
@@ -145,8 +145,18 @@ async function handleSave() {
 
 async function handleLogoChange(uploadFile: UploadFile) {
   if (!uploadFile.raw) return;
+  const raw = uploadFile.raw;
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+  if (!allowedTypes.includes(raw.type)) {
+    ElMessage.error("仅允许上传 JPG/PNG/WebP 格式的图片");
+    return;
+  }
+  if (raw.size > 2 * 1024 * 1024) {
+    ElMessage.error("图片大小不能超过 2MB");
+    return;
+  }
   try {
-    const res = await uploadImage(uploadFile.raw);
+    const res = await uploadImage(raw);
     form["system.logo"] = res.url;
     ElMessage.success("Logo 上传成功");
   } catch {

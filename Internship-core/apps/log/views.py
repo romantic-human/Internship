@@ -1,6 +1,8 @@
-import openpyxl
+﻿import openpyxl
 from django.http import HttpResponse
 from rest_framework import viewsets
+from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, DestroyModelMixin
+from rest_framework.viewsets import GenericViewSet
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from utils.response import APIResponse
@@ -9,7 +11,7 @@ from .models import OperationLog
 from .serializers import OperationLogSerializer, OperationLogListSerializer
 
 
-class OperationLogViewSet(viewsets.ReadOnlyModelViewSet):
+class OperationLogViewSet(ListModelMixin, RetrieveModelMixin, DestroyModelMixin, GenericViewSet):
     queryset = OperationLog.objects.all()
     serializer_class = OperationLogSerializer
     permission_key = "log:list"

@@ -10,17 +10,19 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.0",
+    "@types/sortablejs": "^1.15.9",
     "axios": "^1.6.0",
     "echarts": "^6.1.0",
     "element-plus": "^2.5.0",
     "pinia": "^2.1.0",
+    "sortablejs": "^1.15.7",
     "vue": "^3.4.0",
     "vue-router": "^4.3.0",
-    "@types/sortablejs": "^1.15.9",
-    "sortablejs": "^1.15.7"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/xlsx": "^0.0.35",
     "@typescript-eslint/eslint-plugin": "^8.61.0",
     "@typescript-eslint/parser": "^8.61.0",
     "@vitejs/plugin-vue": "^5.0.0",

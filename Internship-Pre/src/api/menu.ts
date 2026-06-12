@@ -1,4 +1,4 @@
-import request from "@/utils/request";
+﻿import request from "@/utils/request";
 
 export interface MenuItem {
   id: number;
@@ -23,17 +23,10 @@ export interface MenuListParams {
 }
 
 export function getMenuTree(params?: MenuListParams): Promise<MenuItem[]> {
-export function getMenuTree(params?: Record<string, any>): Promise<MenuItem[]> {
   return request.get("/menu/tree", { params });
 }
 
-export function getMenuOptions(): Promise<MenuItem[]> {
-  return request.get("/menu/options");
-}
 
-export function getMenuDetail(id: number): Promise<MenuItem> {
-  return request.get(`/menu/${id}`);
-}
 
 export function createMenu(data: Partial<MenuItem>): Promise<MenuItem> {
   return request.post("/menu/", data);
@@ -44,30 +37,34 @@ export function updateMenu(id: number, data: Partial<MenuItem>): Promise<MenuIte
 }
 
 export function deleteMenu(id: number): Promise<void> {
-export function deleteMenu(id: number): Promise<any> {
   return request.delete(`/menu/${id}`);
 }
 
 export function updateMenuStatus(id: number, status: number): Promise<void> {
-export function updateMenuStatus(id: number, status: number): Promise<any> {
   return request.put(`/menu/${id}/status`, { status });
 }
 
-export function updateMenuSort(id: number, sortOrder: number): Promise<void> {
-export function updateMenuSort(id: number, sortOrder: number): Promise<any> {
-  return request.put(`/menu/${id}/sort`, { sortOrder });
-}
 
 export function batchSortMenu(data: { id: number; sortOrder: number }[]): Promise<void> {
-export function batchSortMenu(data: { id: number; sortOrder: number }[]): Promise<any> {
   return request.post("/menu/batch-sort", data);
 }
 
 export function batchDeleteMenus(ids: number[]): Promise<void> {
-export function batchDeleteMenus(ids: number[]): Promise<any> {
   return request.delete("/menu/batch", { data: { ids } });
 }
 
 export function exportMenus(): Promise<Blob> {
   return request.get("/menu/export", { responseType: "blob" });
+}
+
+export function downloadMenuTemplate(): Promise<Blob> {
+  return request.get("/menu/template", { responseType: "blob" });
+}
+
+export function importMenus(file: File): Promise<{ success: number; skipped: number; errors: string[] }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return request.post("/menu/import-menus", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 }

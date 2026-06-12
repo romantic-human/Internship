@@ -1,6 +1,15 @@
 <template>
   <div class="page-container">
-    <el-card shadow="never">
+    <!-- 未选择知识库时的引导提示 -->
+    <div v-if="!validKb" class="empty-state" style="padding:80px 0;text-align:center">
+      <el-icon :size="64" color="#c0c4cc"><FolderOpened /></el-icon>
+      <p style="font-size:16px;color:#606266;margin:16px 0 8px">文档管理</p>
+      <p style="color:#909399;margin-bottom:20px">请先前往知识库列表，选择一个知识库后点击"管理"按钮进入文档管理</p>
+      <el-button type="primary" @click="router.push('/rag/kb-list')">前往知识库列表</el-button>
+    </div>
+
+    <!-- 已选择知识库时的正常内容 -->
+    <el-card v-else shadow="never">
       <div class="card-header">
         <div class="header-left">
           <el-button @click="$router.push('/rag/kb-list')">
@@ -9,6 +18,7 @@
           <h3 style="margin: 0 0 0 12px">{{ kbName }}</h3>
         </div>
         <el-upload
+          v-permission="'rag:doc:upload'"
           :before-upload="handleBeforeUpload"
           :show-file-list="false"
           accept=".pdf,.txt,.md,.docx"
@@ -20,11 +30,12 @@
       </div>
 
       <el-table :data="tableData" v-loading="loading" stripe border>
+        <template #empty><el-empty description="暂无数据" /></template>
         <el-table-column type="index" label="序号" width="60" align="center" :index="(i: number) => (currentPage - 1) * pageSize + i + 1" />
         <el-table-column prop="file_name" label="文件名" min-width="200" show-overflow-tooltip />
         <el-table-column prop="file_type" label="类型" width="70" align="center">
           <template #default="{ row }">
-            <el-tag size="small">{{ row.file_type.toUpperCase() }}</el-tag>
+            <el-tag size="small">{{ (row.file_type || '').toUpperCase() }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="file_size" label="大小" width="100" align="center">
@@ -54,7 +65,7 @@
             </el-button>
             <el-popconfirm title="确认删除此文档？" @confirm="handleDelete(row.id)">
               <template #reference>
-                <el-button type="danger" link size="small">
+                <el-button type="danger" link size="small" v-permission="'rag:doc:delete'">
                   <el-icon><Delete /></el-icon>
                 </el-button>
               </template>
@@ -70,7 +81,7 @@
         :total="total"
         layout="total, sizes, prev, pager, next, jumper"
         style="margin-top: 16px; justify-content: flex-end"
-        @size-change="fetchData"
+        @size-change="currentPage = 1; fetchData()"
         @current-change="fetchData"
       />
     </el-card>
@@ -81,7 +92,7 @@
 import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { ArrowLeft, UploadFilled, Delete, RefreshRight } from "@element-plus/icons-vue";
+import { ArrowLeft, UploadFilled, Delete, RefreshRight, FolderOpened } from "@element-plus/icons-vue";
 import {
   getDocumentList,
   uploadDocument,
@@ -96,10 +107,7 @@ const kbId = Number(route.query.id);
 const kbName = String(route.query.name || "知识库");
 const validKb = !isNaN(kbId) && kbId > 0;
 
-// 没有选择知识库时跳转到知识库列表
-if (!validKb) {
-  router.replace("/rag/kb-list");
-}
+// 没有选择知识库时显示引导提示（不跳转）
 
 const loading = ref(false);
 const uploading = ref(false);
@@ -159,15 +167,23 @@ async function handleBeforeUpload(file: File) {
 }
 
 async function handleDelete(id: number) {
-  await deleteDocument(id);
-  ElMessage.success("删除成功");
-  fetchData();
+  try {
+    await deleteDocument(id);
+    ElMessage.success("删除成功");
+    fetchData();
+  } catch {
+    // handled by interceptor
+  }
 }
 
 async function handleReprocess(row: Document) {
-  await reprocessDocument(row.id);
-  ElMessage.success("正在重新处理");
-  fetchData();
+  try {
+    await reprocessDocument(row.id);
+    ElMessage.success("正在重新处理");
+    fetchData();
+  } catch {
+    // handled by interceptor
+  }
 }
 
 onMounted(fetchData);

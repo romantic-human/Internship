@@ -78,7 +78,7 @@ import { ref, onMounted, onUnmounted, computed, nextTick, watch } from "vue";
 import { useAuthStore } from "@/store/auth";
 import { useAppStore } from "@/store/app";
 import { getDashboardStats, type DashboardStats } from "@/api/dashboard";
-import { User, Menu as MenuIcon, Key, OfficeBuilding, Document, Setting, Refresh, Timer } from "@element-plus/icons-vue";
+import { User, Menu as MenuIcon, Key, OfficeBuilding, Document, Setting, Refresh, Timer, Reading, Bell } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
 import { formatDate } from "@/utils/format";
 
@@ -99,6 +99,7 @@ let lineResize: ResizeObserver | null = null;
 const stats = ref<DashboardStats>({
   user_count: 0, role_count: 0, menu_count: 0,
   permission_count: 0, department_count: 0,
+  student_count: 0, notification_count: 0,
   today_login_count: 0,
   log_today: 0, log_week: 0, log_month: 0, recent_logs: [],
   dept_distribution: [],
@@ -111,8 +112,10 @@ const statCards = computed(() => [
   { icon: MenuIcon, count: stats.value.menu_count, label: "菜单数", color: "#e6a23c" },
   { icon: Key, count: stats.value.permission_count, label: "权限数", color: "#f56c6c" },
   { icon: OfficeBuilding, count: stats.value.department_count, label: "部门数", color: "#909399" },
-  { icon: Timer, count: stats.value.today_login_count, label: "今日登录", color: "#36cfc9" },
-  { icon: Document, count: stats.value.log_today, label: "今日日志", color: "#b37feb" },
+  { icon: Reading, count: stats.value.student_count, label: "学生数", color: "#36cfc9" },
+  { icon: Timer, count: stats.value.today_login_count, label: "今日登录", color: "#b37feb" },
+  { icon: Bell, count: stats.value.notification_count, label: "未读通知", color: "#ff85c0" },
+  { icon: Document, count: stats.value.log_today, label: "今日日志", color: "#597ef7" },
 ]);
 
 function updateTime() {
@@ -183,6 +186,8 @@ function updateCharts() {
         data: stats.value.dept_distribution.map((d) => ({ name: d.dept_name, value: d.user_count })),
       }],
     });
+  } else if (pieChart) {
+    pieChart.clear();
   }
   if (lineChart && stats.value.login_trend?.length) {
     lineChart.setOption({
@@ -204,6 +209,8 @@ function updateCharts() {
         itemStyle: { color: "#409eff" },
       }],
     });
+  } else if (lineChart) {
+    lineChart.clear();
   }
 }
 

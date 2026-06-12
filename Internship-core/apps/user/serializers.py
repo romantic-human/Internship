@@ -18,9 +18,6 @@ class UserSerializer(serializers.ModelSerializer):
             "gender", "avatar", "department_id", "status", "is_superuser",
             "last_login", "create_time", "update_time", "role_ids",
         ]
-        extra_kwargs = {
-            "password": {"write_only": True},
-        }
 
     def get_role_ids(self, obj) -> list[int]:
         return [r.role_id for r in obj.userrolerelation_set.all()]
@@ -70,10 +67,6 @@ class ChangePasswordSerializer(serializers.Serializer):
         return value
 
 
-class ResetPasswordSerializer(serializers.Serializer):
-    user_id = serializers.IntegerField(required=True)
-
-
 class RefreshTokenSerializer(serializers.Serializer):
     """刷新 Token — 校验 refresh_token 是否存在"""
     refresh = serializers.CharField(required=True)
@@ -81,7 +74,7 @@ class RefreshTokenSerializer(serializers.Serializer):
 
 class UserCreateSerializer(serializers.ModelSerializer):
     """创建用户（注册用）"""
-    password = serializers.CharField(write_only=True, required=False, default="123456")
+    password = serializers.CharField(write_only=True, required=False, default="Admin@123")
     department_id = serializers.PrimaryKeyRelatedField(
         source="department",
         queryset=User._meta.get_field("department").related_model.objects.all(),
@@ -101,7 +94,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         role_ids = validated_data.pop("role_ids", [])
-        password = validated_data.pop("password", "123456")
+        password = validated_data.pop("password", "Admin@123")
         user = User(**validated_data)
         user.set_password(password)
         user.save()

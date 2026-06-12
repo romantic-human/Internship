@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="log-page">
     <el-card>
       <template #header>
@@ -32,7 +32,6 @@
             <el-option label="DELETE" value="DELETE" />
           </el-select>
         </el-form-item>
-        <el-form-item label="操作类型"><el-input v-model="filters.operation" placeholder="操作类型" clearable style="width:140px" /></el-form-item>
         <el-form-item label="状态">
           <el-select v-model="filters.status" placeholder="全部" clearable style="width:100px">
             <el-option label="成功" :value="1" /><el-option label="失败" :value="0" />
@@ -52,7 +51,6 @@
         <el-form-item>
           <el-button type="primary" @click="page=1;fetchList()">查询</el-button>
           <el-button @click="resetFilters">重置</el-button>
-          <el-button @click="filters={};dateRange=null;page=1;fetchList()">重置</el-button>
         </el-form-item>
       </el-form>
       <el-table :data="list" v-loading="loading" stripe>
@@ -107,7 +105,6 @@ function resetFilters() {
   page.value = 1;
   fetchList();
 }
-const filters = ref<Record<string, any>>({});
 const dateRange = ref<[string, string] | null>(null);
 const detailVisible = ref(false);
 const detailData = ref("");

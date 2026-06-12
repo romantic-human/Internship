@@ -2,6 +2,7 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from django.db import transaction
+from django.utils import timezone as tz
 from utils.response import APIResponse
 from .models import Role, RoleMenuRelation
 from .serializers import (
@@ -24,9 +25,17 @@ class RoleViewSet(viewsets.ModelViewSet):
     serializer_class = RoleSerializer
     permission_key = "role:list"
     permission_key_map = {
+        "create": "role:add",
+        "update": "role:edit",
+        "destroy": "role:delete",
+        "batch": "role:delete",
+        "status": "role:edit",
+        "sort": "role:edit",
+        "batch_sort": "role:edit",
         "menus": "role:assign",
         "users": "role:assign",
-        "batch": "role:delete",
+        "export": "role:export",
+        "import": "role:import",
     }
 
     def get_permissions(self):
@@ -104,14 +113,14 @@ class RoleViewSet(viewsets.ModelViewSet):
         if status_val not in (0, 1):
             return APIResponse.error(message="状态值无效")
         instance.status = status_val
-        instance.save()
+        instance.save(update_fields=["status", "update_time"])
         return APIResponse.success(message="状态更新成功")
 
     @action(detail=True, methods=["put"], url_path="sort")
     def sort(self, request, pk=None):
         instance = self.get_object()
         instance.role_sort = request.data.get("sortOrder", 0)
-        instance.save()
+        instance.save(update_fields=["role_sort", "update_time"])
         return APIResponse.success(message="排序更新成功")
 
     @action(detail=False, methods=["post"], url_path="batch-sort")
@@ -119,13 +128,20 @@ class RoleViewSet(viewsets.ModelViewSet):
         data = request.data
         if not isinstance(data, list):
             return APIResponse.error(message="请传入列表")
-        instances = []
+        ids = [item.get("id") for item in data if item.get("id")]
+        if not ids:
+            return APIResponse.error(message="每项需要 id 字段")
+        # 查询已存在的角色
+        existing_roles = {r.id: r for r in Role.objects.filter(id__in=ids)}
+        missing = [str(item_id) for item_id in ids if item_id not in existing_roles]
+        if missing:
+            return APIResponse.error(message=f"角色 ID {', '.join(missing)} 不存在")
         for item in data:
             item_id = item.get("id")
-            if not item_id:
-                return APIResponse.error(message="每项需要 id 字段")
-            instances.append(Role(id=item_id, role_sort=item.get("sortOrder", 0)))
-        Role.objects.bulk_update(instances, ["role_sort"])
+            if item_id in existing_roles:
+                existing_roles[item_id].role_sort = item.get("sortOrder", 0)
+                existing_roles[item_id].update_time = tz.now()
+        Role.objects.bulk_update(existing_roles.values(), ["role_sort", "update_time"])
         return APIResponse.success(message="批量排序成功")
 
     @action(detail=False, methods=["get"], url_path="template")

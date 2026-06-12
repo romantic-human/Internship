@@ -1,10 +1,11 @@
-import openpyxl
+﻿import openpyxl
 from django.http import HttpResponse
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from utils.response import APIResponse
 from utils.permissions import HasPermission
+from utils.excel import ExcelHandler
 from .models import Menu
 from .serializers import MenuSerializer, MenuTreeSerializer
 
@@ -13,6 +14,9 @@ class MenuViewSet(viewsets.ModelViewSet):
     queryset = Menu.objects.all()
     serializer_class = MenuSerializer
     permission_key = "menu:list"
+    permission_key_map = {
+        "batch": "menu:delete",
+    }
 
     def get_permissions(self):
         if self.action in ("tree", "options"):
@@ -76,10 +80,7 @@ class MenuViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="tree")
     def tree(self, request):
-        menu_name = request.query_params.get("menu_name", "")
-        qs = Menu.objects.all()
-        if menu_name:
-            qs = qs.filter(menu_name__icontains=menu_name)
+        qs = self.get_queryset()
         all_menus = list(qs.order_by("sort_order"))
         parent_map = {}
         for m in all_menus:
@@ -136,7 +137,7 @@ class MenuViewSet(viewsets.ModelViewSet):
         if not ids:
             return APIResponse.error(message="ids 不能为空")
         # 检查是否有子菜单
-        has_children = Menu.objects.filter(parent_id__in=ids).exists()
+        has_children = Menu.objects.filter(parent_id__in=ids).exclude(id__in=ids).exists()
         if has_children:
             return APIResponse.error(message="所选菜单中存在子菜单，无法批量删除")
         Menu.objects.filter(id__in=ids).delete()
@@ -144,23 +145,73 @@ class MenuViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="export")
     def export(self, request):
-        """导出菜单"""
+        """\u5bfc\u51fa\u83dc\u5355"""
         menus = list(Menu.objects.all().order_by("sort_order"))
+        type_map = {0: "\u76ee\u5f55", 1: "\u83dc\u5355", 2: "\u6309\u94ae"}
+        headers = ["ID", "\u83dc\u5355\u540d\u79f0", "\u7c7b\u578b", "\u8def\u7531\u8def\u5f84", "\u7ec4\u4ef6", "\u56fe\u6807", "\u6743\u9650\u6807\u8bc6", "\u6392\u5e8f", "\u72b6\u6001"]
+        rows = [
+            [m.id, m.menu_name, type_map.get(m.menu_type, "\u672a\u77e5"),
+             m.path, m.component, m.icon, m.permission,
+             m.sort_order, "\u542f\u7528" if m.status else "\u7981\u7528"]
+            for m in menus
+        ]
+        from datetime import datetime
+        date_str = datetime.now().strftime("%Y%m%d")
+        return ExcelHandler.export_to_response(headers, rows, f"menus_{date_str}.xlsx", "\u83dc\u5355\u7ba1\u7406")
+
+    @action(detail=False, methods=["get"], url_path="template")
+    def template(self, request):
+        """下载菜单导入模板"""
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = "菜单管理"
-        headers = ["ID", "菜单名称", "类型", "路由路径", "组件", "图标", "权限标识", "排序", "状态"]
+        ws.title = "菜单导入模板"
+        headers = ["菜单名称", "类型(0目录/1菜单/2按钮)", "父菜单名称", "路由路径", "组件", "图标", "权限标识", "排序"]
         ws.append(headers)
-        type_map = {0: "目录", 1: "菜单", 2: "按钮"}
-        for m in menus:
-            ws.append([
-                m.id, m.menu_name, type_map.get(m.menu_type, "未知"),
-                m.path, m.component, m.icon, m.permission,
-                m.sort_order, "启用" if m.status else "禁用",
-            ])
+        ws.append(["系统管理", "0", "", "", "Setting", "", "", "0"])
+        ws.append(["用户管理", "1", "系统管理", "/system/user", "system/user/UserList", "User", "user:list", "1"])
         response = HttpResponse(
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
-        response["Content-Disposition"] = 'attachment; filename="menus.xlsx"'
+        response["Content-Disposition"] = 'attachment; filename="menu_template.xlsx"'
         wb.save(response)
         return response
+
+    @action(detail=False, methods=["post"], url_path="import-menus")
+    def import_menus(self, request):
+        """导入菜单"""
+        file = request.FILES.get("file")
+        if not file:
+            return APIResponse.error(message="请上传文件")
+        try:
+            wb = openpyxl.load_workbook(file)
+            ws = wb.active
+        except Exception:
+            return APIResponse.error(message="文件格式错误")
+        rows = list(ws.iter_rows(min_row=2, values_only=True))
+        if not rows:
+            return APIResponse.error(message="文件内容为空")
+        success, skipped, errors = 0, 0, []
+        all_menus = {m.menu_name: m for m in Menu.objects.all()}
+        for idx, row in enumerate(rows, start=2):
+            menu_name = str(row[0]).strip() if row[0] else ""
+            menu_type = int(row[1]) if row[1] is not None else 0
+            parent_name = str(row[2]).strip() if row[2] else ""
+            path = str(row[3]).strip() if row[3] else ""
+            component = str(row[4]).strip() if row[4] else ""
+            icon = str(row[5]).strip() if row[5] else ""
+            permission = str(row[6]).strip() if row[6] else ""
+            sort_order = int(row[7]) if row[7] is not None else 0
+            if not menu_name:
+                errors.append(f"第{idx}行: 菜单名称为空")
+                continue
+            if menu_name in all_menus:
+                skipped += 1
+                continue
+            parent = all_menus.get(parent_name) if parent_name else None
+            Menu.objects.create(
+                menu_name=menu_name, menu_type=menu_type, parent=parent,
+                path=path, component=component, icon=icon,
+                permission=permission, sort_order=sort_order,
+            )
+            success += 1
+        return APIResponse.success(data={"success": success, "skipped": skipped, "errors": errors})

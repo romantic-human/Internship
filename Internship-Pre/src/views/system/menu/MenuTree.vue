@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="menu-tree-page">
     <el-card>
       <template #header>
@@ -7,6 +7,8 @@
           <div>
             <el-button type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
             <el-button type="success" @click="handleExport">导出</el-button>
+            <el-button @click="handleDownloadTemplate">下载模板</el-button>
+            <el-button type="warning" @click="importDialogVisible = true">导入</el-button>
             <el-button v-permission="'menu:add'" type="primary" @click="handleAdd">新增菜单</el-button>
           </div>
         </div>
@@ -89,14 +91,24 @@
       @close="formVisible = false"
       @success="fetchTree"
     />
+
+    <el-dialog v-model="importDialogVisible" title="导入菜单" width="500px">
+      <el-upload drag :auto-upload="false" accept=".xlsx,.xls" :limit="1" :on-change="handleImportFile" :file-list="importFileList">
+        <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
+        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+        <template #tip><div class="el-upload__tip">仅支持 .xlsx / .xls 文件</div></template>
+      </el-upload>
+      <template #footer>
+        <el-button @click="importDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="importLoading" @click="handleImport">确认导入</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from "vue";
 import { getMenuTree, deleteMenu, updateMenuStatus, batchDeleteMenus, exportMenus, batchSortMenu, type MenuItem } from "@/api/menu";
-import { ref, onMounted } from "vue";
-import { getMenuTree, deleteMenu, updateMenuStatus, batchDeleteMenus, exportMenus, type MenuItem } from "@/api/menu";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { markRaw, shallowRef, type Component } from "vue";
 import * as ElementPlusIcons from "@element-plus/icons-vue";
@@ -248,9 +260,38 @@ function initDragSort() {
 onMounted(() => {
   fetchTree().then(initDragSort);
 });
-onMounted(fetchTree);
+
+const importDialogVisible = ref(false);
+const importLoading = ref(false);
+const importFileList = ref<any[]>([]);
+
+function handleImportFile(file: any) {
+  importFileList.value = [file];
+}
+
+async function handleImport() {
+  if (!importFileList.value.length) { ElMessage.warning("请先选择文件"); return; }
+  importLoading.value = true;
+  try {
+    const res = await importMenus(importFileList.value[0].raw);
+    ElMessage.success("导入完成: 成功" + res.success + "条, 跳过" + res.skipped + "条");
+    importDialogVisible.value = false;
+    importFileList.value = [];
+    await fetchTree();
+  } catch { /* handled */ } finally { importLoading.value = false; }
+}
+
+async function handleDownloadTemplate() {
+  try {
+    const blob = await downloadMenuTemplate() as unknown as Blob;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "menu_template.xlsx"; a.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success("模板下载成功");
+  } catch { /* handled */ }
+}
 </script>
+
 <style scoped>
-.mb-2 { margin-bottom: 12px; }
-.mt-3 { margin-top: 16px; }
 </style>

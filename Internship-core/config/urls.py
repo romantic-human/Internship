@@ -1,4 +1,4 @@
-"""
+﻿"""
 URL configuration for Internship project.
 """
 from django.conf import settings
@@ -23,7 +23,12 @@ urlpatterns = [
     path("api/department/", include("apps.department.urls")),
     path("api/log/", include("apps.log.urls")),
     path("api/config/", include("apps.config_app.urls")),
+    path("api/dict/", include("apps.dict.urls")),
+    path("api/nl2sql/", include("apps.nl2sql.urls")),
+    path("api/student/", include("apps.student.urls")),
+    path("api/notification/", include("apps.notification.urls")),
     path("api/dashboard/stats/", include("apps.dashboard.urls")),
+    path("api/rag/", include("apps.rag.urls")),
 ]
 
 # 开发环境提供 media 文件服务

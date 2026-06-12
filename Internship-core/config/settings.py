@@ -1,4 +1,4 @@
-"""
+﻿"""
 Django settings for Internship project.
 """
 import os
@@ -39,6 +39,10 @@ INSTALLED_APPS = [
     "apps.log",
     "apps.config_app",
     "apps.dashboard",
+    "apps.dict",
+    "apps.nl2sql",
+    "apps.student",
+    "apps.notification",
     # RAG
     "apps.rag",
 ]

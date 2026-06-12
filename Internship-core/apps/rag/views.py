@@ -1,9 +1,12 @@
 """RAG 知识库模块视图"""
+import json
 import os
 import threading
 import logging
 
 from django.conf import settings
+from django.db import close_old_connections
+from django.http import StreamingHttpResponse
 from rest_framework import viewsets, status as http_status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -26,9 +29,14 @@ logger = logging.getLogger(__name__)
 
 class KnowledgeBaseViewSet(viewsets.ModelViewSet):
     """知识库 CRUD"""
-    queryset = KnowledgeBase.objects.all()
+    queryset = KnowledgeBase.objects.select_related("creator").all()
     serializer_class = KnowledgeBaseSerializer
     permission_key = "rag:kb:list"
+    permission_key_map = {
+        "create": "rag:kb:add",
+        "update": "rag:kb:edit",
+        "destroy": "rag:kb:delete",
+    }
 
     def get_permissions(self):
         if self.action in ("list", "retrieve"):
@@ -64,13 +72,17 @@ class KnowledgeBaseViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         kb_id = instance.id
-        # 删除 ChromaDB collection
-        VectorStoreService.delete_collection(kb_id)
-        # 删除物理文件
-        for doc in instance.documents.all():
+        try:
+            VectorStoreService.delete_collection(kb_id)
+        except Exception as e:
+            logger.warning("ChromaDB cleanup failed for kb %s: %s", kb_id, e)
+        for doc in instance.documents.only("file_path").iterator():
             abs_path = os.path.join(settings.MEDIA_ROOT, doc.file_path)
-            if os.path.exists(abs_path):
-                os.remove(abs_path)
+            try:
+                if os.path.exists(abs_path):
+                    os.remove(abs_path)
+            except OSError as e:
+                logger.warning("删除文件失败 %s: %s", abs_path, e)
         # ORM 级联删除
         instance.delete()
         return APIResponse.success(message="删除成功")
@@ -81,6 +93,11 @@ class DocumentViewSet(viewsets.GenericViewSet):
     queryset = Document.objects.select_related("knowledge_base").all()
     serializer_class = DocumentSerializer
     permission_key = "rag:doc:list"
+    permission_key_map = {
+        "destroy": "rag:doc:delete",
+        "upload": "rag:doc:upload",
+        "reprocess": "rag:doc:upload",
+    }
 
     def get_permissions(self):
         if self.action in ("list", "retrieve"):
@@ -112,16 +129,18 @@ class DocumentViewSet(viewsets.GenericViewSet):
         instance = self.get_object()
         kb_id = instance.knowledge_base_id
         doc_id = instance.id
-        # 删除 ChromaDB 向量
-        VectorStoreService.delete_by_document(kb_id, doc_id)
-        # 删除物理文件
+        try:
+            VectorStoreService.delete_by_document(kb_id, doc_id)
+        except Exception as e:
+            logger.warning("ChromaDB cleanup failed for doc %s: %s", doc_id, e)
         abs_path = os.path.join(settings.MEDIA_ROOT, instance.file_path)
         if os.path.exists(abs_path):
-            os.remove(abs_path)
-        # ORM 级联删除 chunks
+            try:
+                os.remove(abs_path)
+            except OSError as e:
+                logger.warning("File deletion failed %s: %s", abs_path, e)
         instance.delete()
-        # 更新知识库统计
-        kb = KnowledgeBase.objects.get(id=kb_id)
+        kb = instance.knowledge_base
         kb.doc_count = kb.documents.filter(status=Document.Status.COMPLETED).count()
         kb.chunk_count = DocumentChunk.objects.filter(document__knowledge_base=kb).count()
         kb.save(update_fields=["doc_count", "chunk_count", "update_time"])
@@ -161,7 +180,8 @@ class DocumentViewSet(viewsets.GenericViewSet):
         # 保存文件
         upload_dir = os.path.join(settings.MEDIA_ROOT, "rag_docs", str(kb_id))
         os.makedirs(upload_dir, exist_ok=True)
-        filename = f"{os.urandom(8).hex()}_{file.name}"
+        safe_name = os.path.basename(file.name).replace("/", "_").replace("\\", "_")
+        filename = f"{os.urandom(8).hex()}_{safe_name}"
         file_path = os.path.join("rag_docs", str(kb_id), filename)
         abs_path = os.path.join(settings.MEDIA_ROOT, file_path)
         with open(abs_path, "wb") as f:
@@ -179,6 +199,7 @@ class DocumentViewSet(viewsets.GenericViewSet):
         )
 
         # 后台线程处理
+        close_old_connections()
         threading.Thread(
             target=DocumentProcessor.process_document,
             args=(doc.id,),
@@ -193,12 +214,13 @@ class DocumentViewSet(viewsets.GenericViewSet):
         doc = self.get_object()
         if doc.status != Document.Status.FAILED:
             return APIResponse.error(message="只能重新处理失败的文档", code=2000, http_status=400)
-        # 清理旧数据
-        doc.chunks.all().delete()
+        # 清理旧数据（ChromDB + ORM）
+        VectorStoreService.delete_by_document(doc.knowledge_base_id, doc.id)
+        DocumentChunk.objects.filter(document=doc).delete()
         doc.status = Document.Status.PENDING
         doc.error_message = ""
         doc.save(update_fields=["status", "error_message", "update_time"])
-        # 重新处理
+        close_old_connections()
         threading.Thread(
             target=DocumentProcessor.process_document,
             args=(doc.id,),
@@ -210,7 +232,8 @@ class DocumentViewSet(viewsets.GenericViewSet):
 
 class ChatView(APIView):
     """RAG 问答接口"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasPermission]
+    permission_key = "rag:chat"
 
     def post(self, request, kb_id):
         serializer = ChatRequestSerializer(data=request.data)
@@ -267,3 +290,65 @@ class ChatView(APIView):
         except Exception as e:
             logger.exception("问答处理失败")
             return APIResponse.error(message=f"问答处理失败: {str(e)}", code=5000, http_status=500)
+
+
+class ChatStreamView(APIView):
+    """RAG 流式问答接口（SSE）"""
+    permission_classes = [IsAuthenticated, HasPermission]
+    permission_key = "rag:chat"
+
+    def post(self, request, kb_id):
+        serializer = ChatRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        question = serializer.validated_data["question"]
+
+        try:
+            kb = KnowledgeBase.objects.get(id=kb_id, status=1)
+        except KnowledgeBase.DoesNotExist:
+            return APIResponse.error(message="知识库不存在或已禁用", code=2004, http_status=404)
+
+        def event_stream():
+            try:
+                query_embedding = LLMService.generate_query_embedding(question)
+                results = VectorStoreService.search(
+                    kb_id=kb_id,
+                    query_embedding=query_embedding,
+                    top_k=settings.RAG_TOP_K,
+                )
+
+                if not results:
+                    yield f"data: {json.dumps({'type': 'answer', 'content': '根据现有知识库未找到相关信息。'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'sources', 'content': []})}\n\n"
+                    yield f"data: {json.dumps({'type': 'done'})}\n\n"
+                    return
+
+                sources = []
+                for r in results:
+                    meta = r.get("metadata", {})
+                    relevance = max(0, 1 - r.get("distance", 0))
+                    sources.append({
+                        "document_id": meta.get("doc_id", 0),
+                        "document_name": meta.get("file_name", "未知"),
+                        "chunk_index": meta.get("chunk_index", 0),
+                        "content": r.get("content", "")[:200],
+                        "relevance_score": round(relevance, 4),
+                    })
+
+                for sse_data in LLMService.chat_stream(question, results):
+                    yield sse_data
+
+                yield f"data: {json.dumps({'type': 'sources', 'content': sources})}\n\n"
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+            except Exception as e:
+                logger.exception("流式问答处理失败")
+                yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+        response = StreamingHttpResponse(
+            streaming_content=event_stream(),
+            content_type="text/event-stream",
+        )
+        response["Cache-Control"] = "no-cache"
+        response["X-Accel-Buffering"] = "no"
+        return response

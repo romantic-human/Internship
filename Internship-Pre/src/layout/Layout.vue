@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <el-container class="layout-container">
     <el-aside :width="sidebarCollapsed ? '64px' : '220px'" class="layout-aside">
       <div class="logo" :style="{ width: sidebarCollapsed ? '64px' : '220px' }">
@@ -68,6 +68,7 @@
           </el-dropdown>
         </div>
       </el-header>
+      <TabsNav />
       <el-main class="layout-content">
         <router-view v-slot="{ Component }">
           <transition name="fade-slide" mode="out-in">
@@ -86,10 +87,12 @@ import {
   Fold, Expand, ArrowDown, User, SwitchButton,
   House, Setting, Document, Tools, Key, OfficeBuilding,
   Menu as MenuIcon, Moon, Sunny, UserFilled,
+  Monitor, Collection, Notebook, ChatDotRound, FolderOpened, Connection, Reading, TrendCharts, Avatar, Bell,
 } from "@element-plus/icons-vue";
 import { useAppStore } from "@/store/app";
 import { useAuthStore } from "@/store/auth";
 import type { MenuItem } from "@/api/menu";
+import TabsNav from "@/components/TabsNav.vue";
 const router = useRouter();
 const route = useRoute();
 const appStore = useAppStore();
@@ -106,7 +109,11 @@ const iconMap: Record<string, Component> = {
   UserFilled: markRaw(UserFilled), Document: markRaw(Document),
   Tools: markRaw(Tools), Key: markRaw(Key),
   Office: markRaw(OfficeBuilding), OfficeBuilding: markRaw(OfficeBuilding),
-  Menu: markRaw(MenuIcon), Moon: markRaw(Moon), Sunny: markRaw(Sunny),
+  Menu: markRaw(MenuIcon), Moon: markRaw(Moon), Sunny: markRaw(Sunny), Monitor: markRaw(Monitor),
+  Collection: markRaw(Collection), Notebook: markRaw(Notebook),
+  ChatDotRound: markRaw(ChatDotRound), FolderOpened: markRaw(FolderOpened),
+  Connection: markRaw(Connection), Reading: markRaw(Reading), TrendCharts: markRaw(TrendCharts),
+  Avatar: markRaw(Avatar), Bell: markRaw(Bell),
 };
 
 function resolveIcon(iconName: string) {

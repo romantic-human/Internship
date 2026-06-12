@@ -1,4 +1,4 @@
-"""
+﻿"""
 种子数据生成命令
 用法: python manage.py seed
 
@@ -60,9 +60,50 @@ class Command(BaseCommand):
         log_m = self._m(sys_m, "操作日志", 1, "Document", 6, "/system/log", "system/log/LogList")
         config_m = self._m(sys_m, "系统配置", 1, "Tools", 7, "/system/config", "system/config/ConfigList")
 
-        self.stdout.write(f"  [OK] 菜单树: 7 个一级菜单 + 12 个按钮")
+        dict_m = self._m(sys_m, "数据字典", 1, "Notebook", 8, "/system/dict", "system/dict/DictList")
+        self._m(dict_m, "新增字典类型", 2, "", 0, permission="dict:type:add")
+        self._m(dict_m, "编辑字典类型", 2, "", 1, permission="dict:type:edit")
+        self._m(dict_m, "删除字典类型", 2, "", 2, permission="dict:type:delete")
+
+        # ── NL2SQL ─────────────────────────────────────────
+        nl2sql_m = self._m(None, "自然语言查询", 0, "Connection", 2)
+
+        query_m = self._m(nl2sql_m, "SQL 查询", 1, "Connection", 0, "/nl2sql/query", "nl2sql/QueryView")
+        self._m(query_m, "执行查询", 2, "", 0, permission="nl2sql:query")
+        self._m(query_m, "导出结果", 2, "", 1, permission="nl2sql:export")
+
+        hist_m = self._m(nl2sql_m, "查询历史", 1, "Document", 1, "/nl2sql/history", "nl2sql/HistoryList")
+        self._m(hist_m, "查询历史列表", 2, "", 0, permission="nl2sql:list")
+        self._m(hist_m, "删除查询记录", 2, "", 1, permission="nl2sql:delete")
+
+        ds_m = self._m(nl2sql_m, "数据源管理", 1, "Tools", 2, "/nl2sql/datasource", "nl2sql/DataSourceList")
+        self._m(ds_m, "新增数据源", 2, "", 0, permission="nl2sql:add")
+        self._m(ds_m, "编辑数据源", 2, "", 1, permission="nl2sql:edit")
+        self._m(ds_m, "删除数据源", 2, "", 2, permission="nl2sql:delete")
+
+
+        # --- RAG 知识库 ---
+        rag_m = self._m(None, "知识库管理", 0, "Collection", 3)
+
+        kb_m = self._m(rag_m, "知识库列表", 1, "FolderOpened", 0, "/rag/kb-list", "rag/KBList")
+        self._m(kb_m, "新增知识库", 2, "", 0, permission="rag:add")
+        self._m(kb_m, "编辑知识库", 2, "", 1, permission="rag:edit")
+        self._m(kb_m, "删除知识库", 2, "", 2, permission="rag:delete")
+
+        doc_m = self._m(rag_m, "文档管理", 1, "Document", 1, "/rag/kb-detail", "rag/KBDetail")
+        self._m(doc_m, "上传文档", 2, "", 0, permission="rag:upload")
+        self._m(doc_m, "删除文档", 2, "", 1, permission="rag:doc-delete")
+
+        chat_m = self._m(rag_m, "AI 问答", 1, "ChatDotRound", 2, "/rag/chat", "rag/ChatView")
+        self._m(chat_m, "发送问答", 2, "", 0, permission="rag:chat")
+
+        self.stdout.write(f"  [OK] 菜单树: 系统管理 + NL2SQL + RAG知识库 + 学生管理 + 用户中心")
 
         # ── 3. 权限 ────────────────────────────────────────
+        # 从数据库获取已有的父菜单（由 data migration 创建）
+        stu_list_m = Menu.objects.filter(menu_name="学生列表").first()
+        score_m = Menu.objects.filter(menu_name="成绩管理").first()
+        notif_m = Menu.objects.filter(menu_name="消息通知").first()
         perm_map = {
             "user:list": ("用户查询", user_m), "user:add": ("用户新增", user_m),
             "user:edit": ("用户编辑", user_m), "user:delete": ("用户删除", user_m),
@@ -79,8 +120,31 @@ class Command(BaseCommand):
             "log:list": ("日志查询", log_m), "log:delete": ("日志清空", log_m),
             "log:export": ("日志导出", log_m),
             "config:list": ("配置查询", config_m), "config:add": ("配置新增", config_m),
-            "config:edit": ("配置编辑", config_m),
+            "config:edit": ("配置编辑", config_m), "config:delete": ("配置删除", config_m),
+            "config:export": ("配置导出", config_m),
+            # 数据字典
+            "dict:type:list": ("字典类型查询", dict_m), "dict:type:add": ("字典类型新增", dict_m),
+            "dict:type:edit": ("字典类型编辑", dict_m), "dict:type:delete": ("字典类型删除", dict_m),
+            "dict:data:list": ("字典数据查询", dict_m), "dict:data:add": ("字典数据新增", dict_m),
+            "dict:data:edit": ("字典数据编辑", dict_m), "dict:data:delete": ("字典数据删除", dict_m),
+            # NL2SQL
+            "nl2sql:query": ("查询执行", query_m), "nl2sql:export": ("查询导出", query_m),
+            "nl2sql:list": ("历史查询", hist_m), "nl2sql:delete": ("历史删除", hist_m),
+            "nl2sql:add": ("数据源新增", ds_m), "nl2sql:edit": ("数据源编辑", ds_m),
+            "nl2sql:delete": ("数据源删除", ds_m),
+            # RAG
+            "rag:list": ("知识库查询", kb_m), "rag:add": ("知识库新增", kb_m),
+            "rag:edit": ("知识库编辑", kb_m), "rag:delete": ("知识库删除", kb_m),
+            "rag:upload": ("文档上传", doc_m), "rag:doc-delete": ("文档删除", doc_m),
+            "rag:chat": ("AI问答", chat_m),
         }
+        # 补充从 data migration 创建的菜单的权限
+        if stu_list_m:
+            perm_map["student:import"] = ("学生导入", stu_list_m)
+        if score_m:
+            perm_map["score:import"] = ("成绩导入", score_m)
+        if notif_m:
+            perm_map["notification:create"] = ("通知创建", notif_m)
         for key, (name, menu) in perm_map.items():
             perm, _ = Permission.objects.get_or_create(
                 permission_key=key, defaults={"permission_name": name, "status": 1},
