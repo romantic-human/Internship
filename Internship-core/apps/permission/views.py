@@ -1,11 +1,13 @@
-from django.db import transaction
+﻿from django.db import transaction
 import csv
+import openpyxl
 from django.http import HttpResponse
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from utils.response import APIResponse
 from utils.permissions import HasPermission
+from utils.excel import ExcelHandler
 from .models import Permission, MenuPermissionRelation
 from .serializers import PermissionSerializer
 
@@ -15,14 +17,7 @@ class PermissionViewSet(viewsets.ModelViewSet):
     serializer_class = PermissionSerializer
     permission_key = "permission:list"
     permission_key_map = {
-        "create": "permission:add",
-        "update": "permission:edit",
-        "destroy": "permission:delete",
         "batch": "permission:delete",
-        "status": "permission:edit",
-        "sort": "permission:edit",
-        "batch_sort": "permission:edit",
-        "menus": "permission:edit",
     }
 
     def get_permissions(self):
@@ -35,7 +30,7 @@ class PermissionViewSet(viewsets.ModelViewSet):
         if name:
             qs = qs.filter(permission_name__icontains=name)
         if status_val is not None and status_val != "":
-            qs = qs.filter(status=status_val)
+            qs = qs.filter(status=int(status_val))
         return qs
 
     def create(self, request, *args, **kwargs):
@@ -79,7 +74,9 @@ class PermissionViewSet(viewsets.ModelViewSet):
                 permission=instance
             ).values_list("menu_id", flat=True)
             return APIResponse.success(data=list(menu_ids))
-        menu_ids = request.data.get("menuIds", [])
+        menu_ids = request.data.get("menuIds")
+        if not isinstance(menu_ids, list):
+            return APIResponse.error(message="menuIds 必须是数组")
         with transaction.atomic():
             MenuPermissionRelation.objects.filter(permission=instance).delete()
             if menu_ids:
@@ -98,15 +95,17 @@ class PermissionViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="export")
     def export(self, request):
-        """导出权限 — GET /api/permission/export"""
-        response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
-        response["Content-Disposition"] = 'attachment; filename="permissions.csv"'
-        writer = csv.writer(response)
-        writer.writerow(["ID", "权限名称", "权限标识", "排序", "状态", "创建时间"])
+        """\u5bfc\u51fa\u6743\u9650"""
+        from datetime import datetime
         perms = self.get_queryset().order_by("sort_order")
-        for p in perms:
-            writer.writerow([p.id, p.permission_name, p.permission_key, p.sort_order, "启用" if p.status else "禁用", p.create_time])
-        return response
+        headers = ["ID", "\u6743\u9650\u540d\u79f0", "\u6743\u9650\u6807\u8bc6", "\u6392\u5e8f", "\u72b6\u6001", "\u521b\u5efa\u65f6\u95f4"]
+        rows = [
+            [p.id, p.permission_name, p.permission_key, p.sort_order,
+             "\u542f\u7528" if p.status else "\u7981\u7528", str(p.create_time)]
+            for p in perms
+        ]
+        date_str = datetime.now().strftime("%Y%m%d")
+        return ExcelHandler.export_to_response(headers, rows, f"permissions_{date_str}.xlsx", "\u6743\u9650\u5217\u8868")
 
     @action(detail=True, methods=["put"], url_path="status")
     def status(self, request, pk=None):
@@ -116,14 +115,14 @@ class PermissionViewSet(viewsets.ModelViewSet):
         if status_val not in (0, 1):
             return APIResponse.error(message="状态值无效")
         instance.status = status_val
-        instance.save(update_fields=["status", "update_time"])
+        instance.save()
         return APIResponse.success(message="状态更新成功")
 
     @action(detail=True, methods=["put"], url_path="sort")
     def sort(self, request, pk=None):
         instance = self.get_object()
         instance.sort_order = request.data.get("sortOrder", 0)
-        instance.save(update_fields=["sort_order", "update_time"])
+        instance.save()
         return APIResponse.success(message="排序更新成功")
 
     @action(detail=False, methods=["post"], url_path="batch-sort")
@@ -139,3 +138,54 @@ class PermissionViewSet(viewsets.ModelViewSet):
             instances.append(Permission(id=item_id, sort_order=item.get("sortOrder", 0)))
         Permission.objects.bulk_update(instances, ["sort_order"])
         return APIResponse.success(message="排序更新成功")
+
+    @action(detail=False, methods=["get"], url_path="template")
+    def template(self, request):
+        """\u4e0b\u8f7d\u6743\u9650\u5bfc\u5165\u6a21\u677f"""
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "\u6743\u9650\u5bfc\u5165\u6a21\u677f"
+        headers = ["\u6743\u9650\u540d\u79f0", "\u6743\u9650\u6807\u8bc6", "\u6392\u5e8f", "\u72b6\u6001(1\u542f\u7528/0\u7981\u7528)"]
+        ws.append(headers)
+        ws.append(["\u7528\u6237\u67e5\u8be2", "user:list", "0", "1"])
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = 'attachment; filename="permission_template.xlsx"'
+        wb.save(response)
+        return response
+
+    @action(detail=False, methods=["post"], url_path="import-permissions")
+    def import_permissions(self, request):
+        """\u5bfc\u5165\u6743\u9650"""
+        file = request.FILES.get("file")
+        if not file:
+            return APIResponse.error(message="\u8bf7\u4e0a\u4f20\u6587\u4ef6")
+        try:
+            wb = openpyxl.load_workbook(file)
+            ws = wb.active
+        except Exception:
+            return APIResponse.error(message="\u6587\u4ef6\u683c\u5f0f\u9519\u8bef")
+        rows = list(ws.iter_rows(min_row=2, values_only=True))
+        if not rows:
+            return APIResponse.error(message="\u6587\u4ef6\u5185\u5bb9\u4e3a\u7a7a")
+        success, skipped, errors = 0, 0, []
+        existing_keys = set(Permission.objects.values_list("permission_key", flat=True))
+        for idx, row in enumerate(rows, start=2):
+            perm_name = str(row[0]).strip() if row[0] else ""
+            perm_key = str(row[1]).strip() if row[1] else ""
+            sort_order = int(row[2]) if row[2] is not None else 0
+            status = int(row[3]) if row[3] is not None else 1
+            if not perm_key:
+                errors.append(f"\u7b2c{idx}\u884c: \u6743\u9650\u6807\u8bc6\u4e3a\u7a7a")
+                continue
+            if perm_key in existing_keys:
+                skipped += 1
+                continue
+            Permission.objects.create(
+                permission_name=perm_name, permission_key=perm_key,
+                sort_order=sort_order, status=status,
+            )
+            existing_keys.add(perm_key)
+            success += 1
+        return APIResponse.success(data={"success": success, "skipped": skipped, "errors": errors})

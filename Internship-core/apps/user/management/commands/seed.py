@@ -1,4 +1,4 @@
-"""
+﻿"""
 种子数据生成命令
 用法: python manage.py seed
 
@@ -81,7 +81,23 @@ class Command(BaseCommand):
         self._m(ds_m, "编辑数据源", 2, "", 1, permission="nl2sql:edit")
         self._m(ds_m, "删除数据源", 2, "", 2, permission="nl2sql:delete")
 
-        self.stdout.write(f"  [OK] 菜单树: 7 个一级菜单 + 12 个按钮 + 数据字典 + NL2SQL 菜单")
+
+        # --- RAG 知识库 ---
+        rag_m = self._m(None, "知识库管理", 0, "Collection", 3)
+
+        kb_m = self._m(rag_m, "知识库列表", 1, "FolderOpened", 0, "/rag/kb-list", "rag/KBList")
+        self._m(kb_m, "新增知识库", 2, "", 0, permission="rag:add")
+        self._m(kb_m, "编辑知识库", 2, "", 1, permission="rag:edit")
+        self._m(kb_m, "删除知识库", 2, "", 2, permission="rag:delete")
+
+        doc_m = self._m(rag_m, "文档管理", 1, "Document", 1, "/rag/kb-detail", "rag/KBDetail")
+        self._m(doc_m, "上传文档", 2, "", 0, permission="rag:upload")
+        self._m(doc_m, "删除文档", 2, "", 1, permission="rag:doc-delete")
+
+        chat_m = self._m(rag_m, "AI 问答", 1, "ChatDotRound", 2, "/rag/chat", "rag/ChatView")
+        self._m(chat_m, "发送问答", 2, "", 0, permission="rag:chat")
+
+        self.stdout.write(f"  [OK] 菜单树: 系统管理 + NL2SQL + RAG知识库 + 学生管理 + 用户中心")
 
         # ── 3. 权限 ────────────────────────────────────────
         # 从数据库获取已有的父菜单（由 data migration 创建）
@@ -116,6 +132,11 @@ class Command(BaseCommand):
             "nl2sql:list": ("历史查询", hist_m), "nl2sql:delete": ("历史删除", hist_m),
             "nl2sql:add": ("数据源新增", ds_m), "nl2sql:edit": ("数据源编辑", ds_m),
             "nl2sql:delete": ("数据源删除", ds_m),
+            # RAG
+            "rag:list": ("知识库查询", kb_m), "rag:add": ("知识库新增", kb_m),
+            "rag:edit": ("知识库编辑", kb_m), "rag:delete": ("知识库删除", kb_m),
+            "rag:upload": ("文档上传", doc_m), "rag:doc-delete": ("文档删除", doc_m),
+            "rag:chat": ("AI问答", chat_m),
         }
         # 补充从 data migration 创建的菜单的权限
         if stu_list_m:

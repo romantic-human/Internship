@@ -18,9 +18,6 @@ export function getDepartmentTree(): Promise<DeptItem[]> {
   return request.get("/department/tree");
 }
 
-export function getDepartmentDetail(id: number): Promise<DeptItem> {
-  return request.get(`/department/${id}`);
-}
 
 export function createDepartment(data: Partial<DeptItem>): Promise<DeptItem> {
   return request.post("/department/", data);
@@ -38,9 +35,6 @@ export function updateDepartmentStatus(id: number, status: number): Promise<void
   return request.put(`/department/${id}/status`, { status });
 }
 
-export function updateDepartmentSort(id: number, sortOrder: number): Promise<void> {
-  return request.put(`/department/${id}/sort`, { sortOrder });
-}
 
 export function batchSortDepartment(data: { id: number; sortOrder: number }[]): Promise<void> {
   return request.post("/department/batch-sort", data);
@@ -52,4 +46,17 @@ export function batchDeleteDepartments(ids: number[]): Promise<void> {
 
 export function exportDepartments(): Promise<Blob> {
   return request.get("/department/export", { responseType: "blob" });
+}
+
+
+export function downloadDepartmentTemplate(): Promise<Blob> {
+  return request.get("/department/template", { responseType: "blob" });
+}
+
+export function importDepartments(file: File): Promise<{ success: number; skipped: number; errors: string[] }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return request.post("/department/import-departments", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 }

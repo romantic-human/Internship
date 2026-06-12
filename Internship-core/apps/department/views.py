@@ -1,9 +1,12 @@
+import openpyxl
 from django.utils import timezone
+from django.http import HttpResponse
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from utils.response import APIResponse
 from utils.permissions import HasPermission
+from utils.excel import ExcelHandler
 from .models import Department
 from .serializers import DepartmentSerializer, DepartmentTreeSerializer
 
@@ -13,13 +16,7 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     serializer_class = DepartmentSerializer
     permission_key = "dept:list"
     permission_key_map = {
-        "create": "dept:add",
-        "update": "dept:edit",
-        "destroy": "dept:delete",
         "batch": "dept:delete",
-        "status": "dept:edit",
-        "sort": "dept:edit",
-        "batch_sort": "dept:edit",
     }
 
     def get_permissions(self):
@@ -100,14 +97,14 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         if status_val not in (0, 1):
             return APIResponse.error(message="状态值无效")
         instance.status = status_val
-        instance.save(update_fields=["status", "update_time"])
+        instance.save()
         return APIResponse.success(message="状态更新成功")
 
     @action(detail=True, methods=["put"], url_path="sort")
     def sort(self, request, pk=None):
         instance = self.get_object()
         instance.sort_order = request.data.get("sortOrder", 0)
-        instance.save(update_fields=["sort_order", "update_time"])
+        instance.save()
         return APIResponse.success(message="排序更新成功")
 
     @action(detail=False, methods=["post"], url_path="batch-sort")
@@ -139,13 +136,66 @@ class DepartmentViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def export(self, request):
-        import csv
-        from django.http import HttpResponse
+        """\u5bfc\u51fa\u90e8\u95e8"""
+        from datetime import datetime
         queryset = Department.objects.all().order_by("sort_order")
-        response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
-        response["Content-Disposition"] = f"attachment; filename=departments_{timezone.now().strftime('%Y%m%d')}.csv"
-        writer = csv.writer(response)
-        writer.writerow(["部门名称", "负责人", "联系电话", "邮箱", "排序", "状态"])
-        for d in queryset:
-            writer.writerow([d.dept_name, d.leader or "", d.phone or "", d.email or "", d.sort_order, d.status])
+        headers = ["\u90e8\u95e8\u540d\u79f0", "\u8d1f\u8d23\u4eba", "\u8054\u7cfb\u7535\u8bdd", "\u90ae\u7bb1", "\u6392\u5e8f", "\u72b6\u6001"]
+        rows = [
+            [d.dept_name, d.leader or "", d.phone or "", d.email or "", d.sort_order, d.status]
+            for d in queryset
+        ]
+        date_str = datetime.now().strftime("%Y%m%d")
+        return ExcelHandler.export_to_response(headers, rows, f"departments_{date_str}.xlsx", "\u90e8\u95e8\u5217\u8868")
+
+    @action(detail=False, methods=["get"], url_path="template")
+    def template(self, request):
+        """\u4e0b\u8f7d\u90e8\u95e8\u5bfc\u5165\u6a21\u677f"""
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "\u90e8\u95e8\u5bfc\u5165\u6a21\u677f"
+        headers = ["\u90e8\u95e8\u540d\u79f0", "\u7236\u90e8\u95e8\u540d\u79f0", "\u8d1f\u8d23\u4eba", "\u8054\u7cfb\u7535\u8bdd", "\u90ae\u7bb1", "\u6392\u5e8f"]
+        ws.append(headers)
+        ws.append(["\u6280\u672f\u90e8", "\u603b\u516c\u53f8", "\u5f20\u4e09", "13800000000", "tech@example.com", "10"])
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = 'attachment; filename="department_template.xlsx"'
+        wb.save(response)
         return response
+
+    @action(detail=False, methods=["post"], url_path="import-departments")
+    def import_departments(self, request):
+        """\u5bfc\u5165\u90e8\u95e8"""
+        file = request.FILES.get("file")
+        if not file:
+            return APIResponse.error(message="\u8bf7\u4e0a\u4f20\u6587\u4ef6")
+        try:
+            wb = openpyxl.load_workbook(file)
+            ws = wb.active
+        except Exception:
+            return APIResponse.error(message="\u6587\u4ef6\u683c\u5f0f\u9519\u8bef")
+        rows = list(ws.iter_rows(min_row=2, values_only=True))
+        if not rows:
+            return APIResponse.error(message="\u6587\u4ef6\u5185\u5bb9\u4e3a\u7a7a")
+        success, skipped, errors = 0, 0, []
+        all_depts = {d.dept_name: d for d in Department.objects.all()}
+        for idx, row in enumerate(rows, start=2):
+            dept_name = str(row[0]).strip() if row[0] else ""
+            parent_name = str(row[1]).strip() if row[1] else ""
+            leader = str(row[2]).strip() if row[2] else ""
+            phone = str(row[3]).strip() if row[3] else ""
+            email = str(row[4]).strip() if row[4] else ""
+            sort_order = int(row[5]) if row[5] is not None else 0
+            if not dept_name:
+                errors.append(f"\u7b2c{idx}\u884c: \u90e8\u95e8\u540d\u79f0\u4e3a\u7a7a")
+                continue
+            if dept_name in all_depts:
+                skipped += 1
+                continue
+            parent = all_depts.get(parent_name) if parent_name else None
+            Department.objects.create(
+                dept_name=dept_name, parent=parent, leader=leader,
+                phone=phone, email=email, sort_order=sort_order, status=1,
+            )
+            success += 1
+        return APIResponse.success(data={"success": success, "skipped": skipped, "errors": errors})

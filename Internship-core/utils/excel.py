@@ -51,3 +51,35 @@ class ExcelHandler:
                 continue
             rows.append(list(row))
         return rows
+
+    @staticmethod
+    def export_to_response(headers, rows, filename="export.xlsx", sheet_name="Sheet1"):
+        """Export data to an HttpResponse for download."""
+        from django.http import HttpResponse
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = sheet_name
+        font = Font(name="微软雅黑", size=11)
+        align = Alignment(horizontal="center", vertical="center")
+        thin = Side(style="thin")
+        border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+        ws.append(headers)
+        for cell in ws[1]:
+            cell.font = Font(name="微软雅黑", size=11, bold=True)
+            cell.alignment = align
+            cell.border = border
+
+        for row in rows:
+            ws.append(row)
+            for cell in ws[ws.max_row]:
+                cell.font = font
+                cell.alignment = align
+                cell.border = border
+
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        wb.save(response)
+        return response

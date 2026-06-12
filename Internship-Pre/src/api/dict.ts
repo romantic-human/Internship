@@ -109,3 +109,28 @@ export function updateDictDataStatus(id: number, status: number): Promise<void> 
 export function getDictDataByType(dictType: string): Promise<DictData[]> {
   return request.get(`/dict/data/type/${dictType}`);
 }
+
+
+export function downloadDictTypeTemplate(): Promise<Blob> {
+  return request.get("/dict/type/template", { responseType: "blob" });
+}
+
+export function importDictTypes(file: File): Promise<{ success: number; skipped: number; errors: string[] }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return request.post("/dict/type/import-types", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+}
+
+export function downloadDictDataTemplate(): Promise<Blob> {
+  return request.get("/dict/data/data-template", { responseType: "blob" });
+}
+
+export function importDictData(file: File): Promise<{ success: number; skipped: number; errors: string[] }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return request.post("/dict/data/import-data", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+}

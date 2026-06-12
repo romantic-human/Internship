@@ -1,4 +1,4 @@
-import { defineStore } from "pinia";
+﻿import { defineStore } from "pinia";
 import { ref } from "vue";
 import { login as loginApi } from "@/api/user";
 import { getMenuTree, type MenuItem } from "@/api/menu";
@@ -60,8 +60,8 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   /** 动态生成路由（根据菜单树） */
-  async function generateDynamicRoutes(force = false) {
-    if (!force && dynamicRoutesLoaded.value) return;
+  async function generateDynamicRoutes() {
+    if (dynamicRoutesLoaded.value) return;
     try {
       const menus = await getMenuTree();
       menuTree.value = menus;
@@ -128,57 +128,44 @@ const componentMap: Record<string, () => Promise<any>> = {
   "system/log/LogList": () => import("@/views/system/log/LogList.vue"),
   "system/config/ConfigList": () => import("@/views/system/config/ConfigList.vue"),
   "system/config/ConfigPanel": () => import("@/views/system/config/ConfigPanel.vue"),
-  "system/config/ConfigAdvanced": () => import("@/views/system/config/ConfigPanel.vue"),
+  "system/config/ConfigAdvanced": () => import("@/views/system/config/ConfigList.vue"),
   "system/dict/DictList": () => import("@/views/system/dict/DictList.vue"),
+  // NL2SQL
+  "nl2sql/QueryView": () => import("@/views/nl2sql/QueryView.vue"),
+  "nl2sql/HistoryList": () => import("@/views/nl2sql/HistoryList.vue"),
+  "nl2sql/DataSourceList": () => import("@/views/nl2sql/DataSourceList.vue"),
   // RAG 知识库
   "rag/KBList": () => import("@/views/rag/KBList.vue"),
   "rag/KBDetail": () => import("@/views/rag/KBDetail.vue"),
   "rag/ChatView": () => import("@/views/rag/ChatView.vue"),
-  "nl2sql/QueryView": () => import("@/views/nl2sql/QueryView.vue"),
-  "nl2sql/HistoryList": () => import("@/views/nl2sql/HistoryList.vue"),
-  "nl2sql/DataSourceList": () => import("@/views/nl2sql/DataSourceList.vue"),
   // 学生中心
   "student/StudentList": () => import("@/views/student/StudentList.vue"),
   "student/ScoreList": () => import("@/views/student/ScoreList.vue"),
   // 用户中心
-  "user-center/ProfileView": () => import("@/views/system/profile/Profile.vue"),
+  "user-center/ProfileView": () => import("@/views/user-center/ProfileView.vue"),
   "user-center/NotificationList": () => import("@/views/user-center/NotificationList.vue"),
 };
 
 function getComponent(componentPath: string) {
   if (componentMap[componentPath]) return componentMap[componentPath];
-  // fallback: 尝试动态拼接路径
   return () => import(`@/views/${componentPath}.vue`);
 }
 
-/**
- * 递归将菜单树转换为 vue-router 路由
- * - menu_type=0(目录) → 递归处理 children
- * - menu_type=1(菜单) → 生成 RouteRecordRaw
- * - menu_type=2(按钮) → 跳过
- */
 function buildRoutesFromMenu(menus: MenuItem[]): RouteRecordRaw[] {
   const routes: RouteRecordRaw[] = [];
-
   for (const menu of menus) {
-    // 只处理可见且启用的菜单
     if (menu.visible !== 1 || menu.status !== 1) continue;
-
-    if (menu.menu_type === 1 && menu.path) {
-      // 菜单 → 注册路由
+    if (menu.menu_type === 1 && menu.path && menu.component) {
       routes.push({
         path: menu.path,
-        name: menu.menu_name,
+        name: menu.path?.replace(/\//g, "-").replace(/^-/, "") || `menu-${menu.id}`,
         component: getComponent(menu.component),
         meta: { title: menu.menu_name, icon: menu.icon },
       });
     }
-
-    // 目录 → 递归
     if (menu.children && menu.children.length > 0) {
       routes.push(...buildRoutesFromMenu(menu.children));
     }
   }
-
   return routes;
 }

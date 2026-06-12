@@ -1,4 +1,6 @@
+﻿import openpyxl
 from django.utils import timezone
+from django.http import HttpResponse
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -113,6 +115,52 @@ class DictTypeViewSet(viewsets.ModelViewSet):
             ])
         return response
 
+    @action(detail=False, methods=["get"], url_path="template")
+    def template(self, request):
+        from django.http import HttpResponse
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "DictType Template"
+        headers = ["Dict Name", "Dict Code", "Status(1/0)", "Remark"]
+        ws.append(headers)
+        ws.append(["User Gender", "sys_user_gender", "1", "Gender dict"])
+        response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        response["Content-Disposition"] = 'attachment; filename="dict_type_template.xlsx"'
+        wb.save(response)
+        return response
+
+    @action(detail=False, methods=["post"], url_path="import-types")
+    def import_types(self, request):
+        file = request.FILES.get("file")
+        if not file:
+            return APIResponse.error(message="Please upload a file")
+        try:
+            wb = openpyxl.load_workbook(file)
+            ws = wb.active
+        except Exception:
+            return APIResponse.error(message="Invalid file format")
+        rows = list(ws.iter_rows(min_row=2, values_only=True))
+        if not rows:
+            return APIResponse.error(message="File is empty")
+        success, skipped, errors = 0, 0, []
+        existing_types = set(DictType.objects.values_list("dict_type", flat=True))
+        for idx, row in enumerate(rows, start=2):
+            dict_name = str(row[0]).strip() if row[0] else ""
+            dict_type = str(row[1]).strip() if row[1] else ""
+            status = int(row[2]) if row[2] is not None else 1
+            remark = str(row[3]).strip() if row[3] else ""
+            if not dict_type:
+                errors.append(f"Row {idx}: dict code is empty")
+                continue
+            if dict_type in existing_types:
+                skipped += 1
+                continue
+            DictType.objects.create(dict_name=dict_name, dict_type=dict_type, status=status, remark=remark)
+            existing_types.add(dict_type)
+            success += 1
+        return APIResponse.success(data={"success": success, "skipped": skipped, "errors": errors})
+
+
 
 class DictDataViewSet(viewsets.ModelViewSet):
     queryset = DictData.objects.select_related("dict_type").all()
@@ -205,3 +253,53 @@ class DictDataViewSet(viewsets.ModelViewSet):
         ).select_related("dict_type").order_by("sort_order")
         serializer = self.get_serializer(queryset, many=True)
         return APIResponse.success(data=serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="data-template")
+    def data_template(self, request):
+        """\u4e0b\u8f7d\u5b57\u5178\u6570\u636e\u5bfc\u5165\u6a21\u677f"""
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "\u5b57\u5178\u6570\u636e\u6a21\u677f"
+        headers = ["\u5b57\u5178\u7f16\u7801", "\u6570\u636e\u6807\u7b7e", "\u6570\u636e\u503c", "\u6392\u5e8f", "\u72b6\u6001(1\u542f\u7528/0\u7981\u7528)"]
+        ws.append(headers)
+        ws.append(["sys_user_gender", "\u7537", "1", "0", "1"])
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = 'attachment; filename="dict_data_template.xlsx"'
+        wb.save(response)
+        return response
+
+    @action(detail=False, methods=["post"], url_path="import-data")
+    def import_data(self, request):
+        """\u5bfc\u5165\u5b57\u5178\u6570\u636e"""
+        file = request.FILES.get("file")
+        if not file:
+            return APIResponse.error(message="\u8bf7\u4e0a\u4f20\u6587\u4ef6")
+        try:
+            wb = openpyxl.load_workbook(file)
+            ws = wb.active
+        except Exception:
+            return APIResponse.error(message="\u6587\u4ef6\u683c\u5f0f\u9519\u8bef")
+        rows = list(ws.iter_rows(min_row=2, values_only=True))
+        if not rows:
+            return APIResponse.error(message="\u6587\u4ef6\u5185\u5bb9\u4e3a\u7a7a")
+        success, skipped, errors = 0, 0, []
+        for idx, row in enumerate(rows, start=2):
+            dict_type = str(row[0]).strip() if row[0] else ""
+            dict_label = str(row[1]).strip() if row[1] else ""
+            dict_value = str(row[2]).strip() if row[2] else ""
+            sort_order = int(row[3]) if row[3] is not None else 0
+            status = int(row[4]) if row[4] is not None else 1
+            if not dict_type:
+                errors.append(f"\u7b2c{idx}\u884c: \u5b57\u5178\u7f16\u7801\u4e3a\u7a7a")
+                continue
+            if DictData.objects.filter(dict_type=dict_type, dict_value=dict_value).exists():
+                skipped += 1
+                continue
+            DictData.objects.create(
+                dict_type=dict_type, dict_label=dict_label,
+                dict_value=dict_value, sort_order=sort_order, status=status,
+            )
+            success += 1
+        return APIResponse.success(data={"success": success, "skipped": skipped, "errors": errors})

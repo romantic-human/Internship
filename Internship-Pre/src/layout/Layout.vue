@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <el-container class="layout-container">
     <el-aside :width="sidebarCollapsed ? '64px' : '220px'" class="layout-aside">
       <div class="logo" :style="{ width: sidebarCollapsed ? '64px' : '220px' }">
@@ -87,7 +87,7 @@ import {
   Fold, Expand, ArrowDown, User, SwitchButton,
   House, Setting, Document, Tools, Key, OfficeBuilding,
   Menu as MenuIcon, Moon, Sunny, UserFilled,
-  Collection, Notebook, ChatDotRound, FolderOpened, Connection, Reading, TrendCharts, Avatar, Bell,
+  Monitor, Collection, Notebook, ChatDotRound, FolderOpened, Connection, Reading, TrendCharts, Avatar, Bell,
 } from "@element-plus/icons-vue";
 import { useAppStore } from "@/store/app";
 import { useAuthStore } from "@/store/auth";
@@ -109,7 +109,7 @@ const iconMap: Record<string, Component> = {
   UserFilled: markRaw(UserFilled), Document: markRaw(Document),
   Tools: markRaw(Tools), Key: markRaw(Key),
   Office: markRaw(OfficeBuilding), OfficeBuilding: markRaw(OfficeBuilding),
-  Menu: markRaw(MenuIcon), Moon: markRaw(Moon), Sunny: markRaw(Sunny),
+  Menu: markRaw(MenuIcon), Moon: markRaw(Moon), Sunny: markRaw(Sunny), Monitor: markRaw(Monitor),
   Collection: markRaw(Collection), Notebook: markRaw(Notebook),
   ChatDotRound: markRaw(ChatDotRound), FolderOpened: markRaw(FolderOpened),
   Connection: markRaw(Connection), Reading: markRaw(Reading), TrendCharts: markRaw(TrendCharts),

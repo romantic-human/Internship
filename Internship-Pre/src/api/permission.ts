@@ -63,3 +63,16 @@ export function exportPermissions(): Promise<Blob> {
 export function updatePermissionStatus(id: number, status: number): Promise<void> {
   return request.put(`/permission/${id}/status`, { status });
 }
+
+
+export function downloadPermissionTemplate(): Promise<Blob> {
+  return request.get("/permission/template", { responseType: "blob" });
+}
+
+export function importPermissions(file: File): Promise<{ success: number; skipped: number; errors: string[] }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return request.post("/permission/import-permissions", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+}
