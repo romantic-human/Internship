@@ -78,7 +78,7 @@ class DataSourceViewSet(viewsets.ModelViewSet):
                 port=instance.port,
                 db_name=instance.db_name,
                 username=instance.username,
-                password=instance.password_enc,
+                password=instance.get_password(),
             )
             return APIResponse.success(data=meta)
         except Exception as e:
@@ -94,7 +94,7 @@ class DataSourceViewSet(viewsets.ModelViewSet):
             port=instance.port,
             db_name=instance.db_name,
             username=instance.username,
-            password=instance.password_enc,
+            password=instance.get_password(),
         )
         if success:
             return APIResponse.success(message=msg)
@@ -142,7 +142,7 @@ class QueryHistoryViewSet(viewsets.GenericViewSet):
         if instance.user != request.user and not request.user.is_superuser:
             return APIResponse.error(message="无权操作他人记录", code=3003, http_status=403)
         instance.is_favorite = 1 if not instance.is_favorite else 0
-        instance.save(update_fields=["is_favorite", "update_time"])
+        instance.save(update_fields=["is_favorite"])
         return APIResponse.success(data={"is_favorite": instance.is_favorite}, message="操作成功")
 
 
@@ -167,13 +167,13 @@ class QueryView(APIView):
             meta = get_tables_and_columns(
                 db_type=ds.db_type, host=ds.host, port=ds.port,
                 db_name=ds.db_name, username=ds.username,
-                password=ds.password_enc,
+                password=ds.get_password(),
             )
             schema_ddl = build_schema_ddl(meta)
             generated_sql = NL2SQLService.generate_sql(schema_ddl, question)
             result = execute_sql(
                 host=ds.host, port=ds.port, db_name=ds.db_name,
-                username=ds.username, password=ds.password_enc,
+                username=ds.username, password=ds.get_password(),
                 sql=generated_sql,
             )
             elapsed = round(time.time() - start_time, 3)

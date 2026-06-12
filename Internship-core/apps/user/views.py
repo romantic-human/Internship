@@ -8,13 +8,10 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from rest_framework import viewsets
-
 from rest_framework.decorators import action
-
 from rest_framework.permissions import AllowAny, IsAuthenticated
-
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
-
 from django.http import HttpResponse
 
 from utils import APIResponse, HasPermission
@@ -132,8 +129,12 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return APIResponse.success(data={"records": serializer.data, "total": queryset.count()})
 
-    @action(detail=False, methods=["post"], permission_classes=[AllowAny])
-
+    @action(
+        detail=False,
+        methods=["post"],
+        permission_classes=[AllowAny],
+        throttle_classes=[AnonRateThrottle],
+    )
     def login(self, request):
 
         """
@@ -232,8 +233,12 @@ class UserViewSet(viewsets.ModelViewSet):
 
         )
 
-    @action(detail=False, methods=["post"], permission_classes=[AllowAny])
-
+    @action(
+        detail=False,
+        methods=["post"],
+        permission_classes=[AllowAny],
+        throttle_classes=[AnonRateThrottle],
+    )
     def register(self, request):
 
         """
