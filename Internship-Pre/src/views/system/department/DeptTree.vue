@@ -5,7 +5,7 @@
         <div class="card-header">
           <span>部门管理</span>
           <div>
-            <el-button :disabled="selectedIds.length === 0" type="danger" @click="handleBatchDelete">批量删除</el-button>
+            <el-button v-permission="'dept:delete'" :disabled="selectedIds.length === 0" type="danger" @click="handleBatchDelete">批量删除</el-button>
             <el-button type="success" @click="handleExport">导出</el-button>
             <el-button v-permission="'dept:add'" type="primary" @click="handleAdd">新增部门</el-button>
           </div>

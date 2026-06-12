@@ -40,8 +40,8 @@ watch(() => props.formData, (val: Partial<PermissionItem> | null) => {
 }, { immediate: true });
 function handleClose() { emit("close"); }
 async function handleSubmit() {
-  const valid = await formRef.value?.validate().catch(() => false);
-  if (!valid) return; submitting.value = true;
+  try { await formRef.value?.validate(); } catch { return; }
+  submitting.value = true;
   try {
     if (isEdit.value) { await updatePermission(props.formData!.id!, form.value); ElMessage.success("更新成功"); }
     else { await createPermission(form.value); ElMessage.success("新增成功"); }

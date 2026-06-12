@@ -5,7 +5,7 @@
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <span>权限管理</span>
           <div>
-            <el-button type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
+            <el-button v-permission="'permission:delete'" type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
             <el-button type="success" @click="handleExport">导出</el-button>
             <el-button v-permission="'permission:add'" type="primary" @click="handleAdd">新增权限</el-button>
           </div>

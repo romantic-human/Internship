@@ -5,7 +5,6 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from utils.response import APIResponse
 from utils.permissions import HasPermission
-from utils.excel import ExcelHandler
 from .models import Menu
 from .serializers import MenuSerializer, MenuTreeSerializer
 
@@ -15,7 +14,16 @@ class MenuViewSet(viewsets.ModelViewSet):
     serializer_class = MenuSerializer
     permission_key = "menu:list"
     permission_key_map = {
+        "create": "menu:add",
+        "update": "menu:edit",
+        "destroy": "menu:delete",
         "batch": "menu:delete",
+        "export": "menu:list",
+        "status": "menu:edit",
+        "sort": "menu:edit",
+        "batch_sort": "menu:edit",
+        "template": None,
+        "import_menus": "menu:add",
     }
 
     def get_permissions(self):
@@ -80,7 +88,10 @@ class MenuViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="tree")
     def tree(self, request):
-        qs = self.get_queryset()
+        menu_name = request.query_params.get("menu_name", "")
+        qs = Menu.objects.all()
+        if menu_name:
+            qs = qs.filter(menu_name__icontains=menu_name)
         all_menus = list(qs.order_by("sort_order"))
         parent_map = {}
         for m in all_menus:
@@ -105,7 +116,7 @@ class MenuViewSet(viewsets.ModelViewSet):
         if status_val not in (0, 1):
             return APIResponse.error(message="状态值无效")
         instance.status = status_val
-        instance.save()
+        instance.save(update_fields=["status", "update_time"])
         return APIResponse.success(message="状态更新成功")
 
     @action(detail=True, methods=["put"], url_path="sort")
@@ -113,7 +124,7 @@ class MenuViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         sort_order = request.data.get("sortOrder", 0)
         instance.sort_order = sort_order
-        instance.save()
+        instance.save(update_fields=["sort_order", "update_time"])
         return APIResponse.success(message="排序更新成功")
 
     @action(detail=False, methods=["post"], url_path="batch-sort")
@@ -132,11 +143,9 @@ class MenuViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["delete"], url_path="batch")
     def batch(self, request):
-        """批量删除菜单"""
         ids = request.data.get("ids", [])
         if not ids:
             return APIResponse.error(message="ids 不能为空")
-        # 检查是否有子菜单
         has_children = Menu.objects.filter(parent_id__in=ids).exclude(id__in=ids).exists()
         if has_children:
             return APIResponse.error(message="所选菜单中存在子菜单，无法批量删除")
@@ -145,23 +154,32 @@ class MenuViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="export")
     def export(self, request):
-        """\u5bfc\u51fa\u83dc\u5355"""
         menus = list(Menu.objects.all().order_by("sort_order"))
-        type_map = {0: "\u76ee\u5f55", 1: "\u83dc\u5355", 2: "\u6309\u94ae"}
-        headers = ["ID", "\u83dc\u5355\u540d\u79f0", "\u7c7b\u578b", "\u8def\u7531\u8def\u5f84", "\u7ec4\u4ef6", "\u56fe\u6807", "\u6743\u9650\u6807\u8bc6", "\u6392\u5e8f", "\u72b6\u6001"]
+        type_map = {0: "目录", 1: "菜单", 2: "按钮"}
+        headers = ["ID", "菜单名称", "类型", "路由路径", "组件", "图标", "权限标识", "排序", "状态"]
         rows = [
-            [m.id, m.menu_name, type_map.get(m.menu_type, "\u672a\u77e5"),
+            [m.id, m.menu_name, type_map.get(m.menu_type, "未知"),
              m.path, m.component, m.icon, m.permission,
-             m.sort_order, "\u542f\u7528" if m.status else "\u7981\u7528"]
+             m.sort_order, "启用" if m.status else "禁用"]
             for m in menus
         ]
         from datetime import datetime
         date_str = datetime.now().strftime("%Y%m%d")
-        return ExcelHandler.export_to_response(headers, rows, f"menus_{date_str}.xlsx", "\u83dc\u5355\u7ba1\u7406")
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "菜单管理"
+        ws.append(headers)
+        for row in rows:
+            ws.append(row)
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = f'attachment; filename="菜单列表_{date_str}.xlsx"'
+        wb.save(response)
+        return response
 
     @action(detail=False, methods=["get"], url_path="template")
     def template(self, request):
-        """下载菜单导入模板"""
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "菜单导入模板"
@@ -178,7 +196,6 @@ class MenuViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"], url_path="import-menus")
     def import_menus(self, request):
-        """导入菜单"""
         file = request.FILES.get("file")
         if not file:
             return APIResponse.error(message="请上传文件")

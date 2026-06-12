@@ -5,7 +5,7 @@
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <span>菜单管理</span>
           <div>
-            <el-button type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
+            <el-button v-permission="'menu:delete'" type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
             <el-button type="success" @click="handleExport">导出</el-button>
             <el-button @click="handleDownloadTemplate">下载模板</el-button>
             <el-button type="warning" @click="importDialogVisible = true">导入</el-button>
@@ -108,7 +108,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from "vue";
-import { getMenuTree, deleteMenu, updateMenuStatus, batchDeleteMenus, exportMenus, batchSortMenu, type MenuItem } from "@/api/menu";
+import { getMenuTree, deleteMenu, updateMenuStatus, batchDeleteMenus, exportMenus, batchSortMenu, importMenus, downloadMenuTemplate, type MenuItem } from "@/api/menu";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { markRaw, shallowRef, type Component } from "vue";
 import * as ElementPlusIcons from "@element-plus/icons-vue";
