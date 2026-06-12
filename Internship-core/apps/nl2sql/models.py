@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from utils.crypto import encrypt_password, decrypt_password
 
 
 class DataSource(models.Model):
@@ -27,6 +28,14 @@ class DataSource(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.db_type}://{self.host}:{self.port}/{self.db_name})"
+
+    def set_password(self, raw_password: str):
+        """加密并保存密码"""
+        self.password_enc = encrypt_password(raw_password) if raw_password else ""
+
+    def get_password(self) -> str:
+        """解密并返回密码明文"""
+        return decrypt_password(self.password_enc)
 
 
 class QueryHistory(models.Model):
