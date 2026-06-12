@@ -16,12 +16,26 @@ from apps.user.models import User
 from utils.response import APIResponse
 
 
+def _get_cached_data(key, timeout=60):
+    try:
+        return cache.get(key)
+    except Exception:
+        return None
+
+
+def _set_cached_data(key, data, timeout=60):
+    try:
+        cache.set(key, data, timeout=timeout)
+    except Exception:
+        pass
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def dashboard_stats(request):
     """仪表盘统计数据 — 含缓存"""
     cache_key = "dashboard_stats"
-    data = cache.get(cache_key)
+    data = _get_cached_data(cache_key)
     if data is not None:
         return APIResponse.success(data=data)
 
@@ -82,5 +96,5 @@ def dashboard_stats(request):
         ],
     }
 
-    cache.set(cache_key, data, timeout=60)
+    _set_cached_data(cache_key, data, timeout=60)
     return APIResponse.success(data=data)
