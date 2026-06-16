@@ -16,6 +16,7 @@
             <el-icon><ArrowLeft /></el-icon> 返回
           </el-button>
           <h3 style="margin: 0 0 0 12px">AI 问答 - {{ kbName }}</h3>
+          <el-tag v-if="imagePreview" type="success" size="small" style="margin-left: 12px">多模态模式</el-tag>
         </div>
         <el-button text @click="clearHistory">
           <el-icon><Delete /></el-icon> 清空对话
@@ -27,6 +28,7 @@
         <div v-if="messages.length === 0" class="empty-state">
           <el-icon :size="48" color="#c0c4cc"><ChatDotRound /></el-icon>
           <p>输入问题，基于知识库文档进行智能问答</p>
+          <p style="font-size:12px;color:#c0c4cc">支持上传图片进行多模态问答</p>
         </div>
 
         <div
@@ -40,6 +42,15 @@
             </el-avatar>
           </div>
           <div class="message-body">
+            <!-- 用户消息中的图片 -->
+            <div v-if="msg.image" class="message-image">
+              <el-image
+                :src="msg.image"
+                :preview-src-list="[msg.image]"
+                fit="contain"
+                style="max-width: 200px; max-height: 200px; border-radius: 8px;"
+              />
+            </div>
             <div class="message-content" v-html="renderMarkdown(msg.content)"></div>
 
             <!-- 来源引用 -->
@@ -101,20 +112,57 @@
         </div>
       </div>
 
+      <!-- 图片预览区 -->
+      <div v-if="imagePreview" class="image-preview-area">
+        <div class="preview-wrapper">
+          <el-image
+            :src="imagePreview"
+            fit="contain"
+            style="width: 60px; height: 60px; border-radius: 6px; border: 1px solid #dcdfe6;"
+          />
+          <el-button
+            type="danger"
+            :icon="Delete"
+            circle
+            size="small"
+            style="margin-left: 8px;"
+            @click="clearImage"
+          />
+          <span style="font-size: 12px; color: #909399; margin-left: 8px;">已选择图片</span>
+        </div>
+      </div>
+
       <!-- 输入框 -->
       <div class="input-area">
+        <!-- 图片上传按钮 -->
+        <el-upload
+          ref="uploadRef"
+          :auto-upload="false"
+          :show-file-list="false"
+          accept="image/*"
+          :on-change="handleImageSelect"
+          style="margin-right: 8px;"
+        >
+          <el-button
+            :disabled="thinking || streaming"
+            style="height: 54px;"
+          >
+            <el-icon size="20"><Picture /></el-icon>
+          </el-button>
+        </el-upload>
+
         <el-input
           v-model="inputText"
           type="textarea"
           :rows="2"
-          placeholder="请输入你的问题..."
+          :placeholder="imagePreview ? '请描述你关于图片的问题...' : '请输入你的问题...'"
           :disabled="thinking || streaming"
           @keydown.enter.ctrl="handleSendStream"
         />
         <el-button
           type="primary"
           :loading="thinking || streaming"
-          :disabled="!inputText.trim()"
+          :disabled="(!inputText.trim() && !imagePreview)"
           @click="handleSendStream"
           style="margin-left: 8px; height: 54px"
         >
@@ -129,8 +177,9 @@
 import { ref, nextTick, watch, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { ArrowLeft, Delete, ChatDotRound, Loading } from "@element-plus/icons-vue";
+import { ArrowLeft, Delete, ChatDotRound, Loading, Picture } from "@element-plus/icons-vue";
 import { chatWithKBStream, type ChatSource } from "@/api/rag";
+import type { UploadFile } from "element-plus";
 
 const route = useRoute();
 const router = useRouter();
@@ -145,6 +194,7 @@ const validKb = !!kbId && !isNaN(kbId);
 interface Message {
   role: "user" | "assistant";
   content: string;
+  image?: string;  // 用户消息附带的图片（data:image/...;base64,...）
   sources?: ChatSource[];
   tokens_used?: number;
 }
@@ -161,7 +211,9 @@ function loadHistory(): Message[] {
 }
 
 function saveHistory(msgs: Message[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs));
+  // 不保存图片到 localStorage（太大），只保存文本
+  const lite = msgs.map(({ image, ...rest }) => rest);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(lite));
 }
 
 const messages = ref<Message[]>(loadHistory());
@@ -172,6 +224,10 @@ const streamingContent = ref("");
 const streamingSources = ref<ChatSource[]>([]);
 const abortController = ref<AbortController | null>(null);
 const messageListRef = ref<HTMLElement>();
+
+// 图片相关
+const imagePreview = ref<string>("");  // 预览用的 data URL
+const imageBase64 = ref<string>("");   // 发送给后端的纯 base64
 
 watch(messages, (msgs) => saveHistory(msgs), { deep: true });
 
@@ -192,11 +248,50 @@ function renderMarkdown(text: string): string {
     .replace(/\n/g, "<br/>");
 }
 
+/** 选择图片后处理 */
+function handleImageSelect(file: UploadFile) {
+  const rawFile = file.raw;
+  if (!rawFile) return;
+
+  // 校验类型
+  if (!rawFile.type.startsWith("image/")) {
+    ElMessage.warning("请选择图片文件");
+    return;
+  }
+
+  // 校验大小（10MB）
+  if (rawFile.size > 10 * 1024 * 1024) {
+    ElMessage.warning("图片大小不能超过 10MB");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target?.result as string;
+    imagePreview.value = dataUrl;
+    // 提取纯 base64（去掉 data:image/...;base64, 前缀）
+    imageBase64.value = dataUrl.split(",")[1] || "";
+  };
+  reader.readAsDataURL(rawFile);
+}
+
+function clearImage() {
+  imagePreview.value = "";
+  imageBase64.value = "";
+}
+
 function handleSendStream() {
   const question = inputText.value.trim();
-  if (!question || thinking.value || streaming.value) return;
+  if ((!question && !imageBase64.value) || thinking.value || streaming.value) return;
 
-  messages.value.push({ role: "user", content: question });
+  // 如果有图片但没有问题，给一个默认问题
+  const finalQuestion = question || "请描述这张图片的内容";
+
+  messages.value.push({
+    role: "user",
+    content: question || "（图片问答）",
+    image: imagePreview.value || undefined,
+  });
   inputText.value = "";
   scrollToBottom();
 
@@ -208,7 +303,7 @@ function handleSendStream() {
 
   abortController.value = chatWithKBStream(
     kbId,
-    question,
+    finalQuestion,
     (token: string) => {
       fullContent += token;
       streamingContent.value = fullContent;
@@ -229,6 +324,7 @@ function handleSendStream() {
       streamingContent.value = "";
       streamingSources.value = [];
       abortController.value = null;
+      clearImage();  // 发送完成后清除图片
       scrollToBottom();
     },
     (err: string) => {
@@ -238,6 +334,7 @@ function handleSendStream() {
       streamingSources.value = [];
       abortController.value = null;
     },
+    imageBase64.value || undefined,  // 传递图片
   );
 }
 
@@ -294,6 +391,10 @@ function clearHistory() {
   max-width: 75%;
 }
 
+.message-image {
+  margin-bottom: 8px;
+}
+
 .message-content {
   padding: 10px 14px;
   border-radius: 12px;
@@ -323,6 +424,19 @@ function clearHistory() {
 .source-content { font-size: 12px; color: #606266; line-height: 1.5; }
 
 .message-meta { font-size: 11px; color: #c0c4cc; margin-top: 4px; }
+
+.image-preview-area {
+  padding: 8px 16px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.preview-wrapper {
+  display: flex;
+  align-items: center;
+}
 
 .input-area {
   display: flex;
