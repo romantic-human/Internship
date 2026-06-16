@@ -16,6 +16,7 @@ import csv
 import openpyxl
 from io import BytesIO
 from django.http import HttpResponse
+from django.core.cache import cache
 from rest_framework.permissions import IsAuthenticated
 from utils.permissions import HasPermission
 
@@ -301,3 +302,18 @@ class RoleViewSet(viewsets.ModelViewSet):
                 UserRoleRelation.objects.bulk_create(relations)
 
         return APIResponse.success(message="用户分配成功")
+    
+        def perform_destroy(self, instance):
+            instance.delete()
+            cache.delete("dashboard_stats")
+    def perform_create(self, serializer):
+        serializer.save()
+        cache.delete("dashboard_stats")
+
+    def perform_update(self, serializer):
+        serializer.save()
+        cache.delete("dashboard_stats")
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        cache.delete("dashboard_stats")

@@ -1,5 +1,6 @@
 import openpyxl
 from django.http import HttpResponse
+from django.core.cache import cache
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -207,3 +208,18 @@ class DepartmentViewSet(viewsets.ModelViewSet):
             )
             success += 1
         return APIResponse.success(data={"success": success, "skipped": skipped, "errors": errors})
+    
+        def perform_destroy(self, instance):
+            instance.delete()
+            cache.delete("dashboard_stats")
+    def perform_create(self, serializer):
+        serializer.save()
+        cache.delete("dashboard_stats")
+
+    def perform_update(self, serializer):
+        serializer.save()
+        cache.delete("dashboard_stats")
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        cache.delete("dashboard_stats")

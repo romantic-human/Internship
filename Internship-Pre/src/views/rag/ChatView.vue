@@ -1,6 +1,5 @@
 <template>
   <div class="chat-container">
-    <!-- 未选择知识库时的引导提示 -->
     <div v-if="!validKb" class="empty-state" style="padding:80px 0;text-align:center">
       <el-icon :size="64" color="#c0c4cc"><ChatDotRound /></el-icon>
       <p style="font-size:16px;color:#606266;margin:16px 0 8px">AI 智能问答</p>
@@ -8,7 +7,6 @@
       <el-button type="primary" @click="router.push('/rag/kb-list')">前往知识库列表</el-button>
     </div>
 
-    <!-- 已选择知识库时的对话区域 -->
     <el-card v-else shadow="never" class="chat-card">
       <div class="card-header">
         <div class="header-left">
@@ -22,18 +20,13 @@
         </el-button>
       </div>
 
-      <!-- 消息列表 -->
       <div class="message-list" ref="messageListRef">
         <div v-if="messages.length === 0" class="empty-state">
           <el-icon :size="48" color="#c0c4cc"><ChatDotRound /></el-icon>
           <p>输入问题，基于知识库文档进行智能问答</p>
         </div>
 
-        <div
-          v-for="(msg, idx) in messages"
-          :key="idx"
-          :class="['message', msg.role]"
-        >
+        <div v-for="(msg, idx) in messages" :key="idx" :class="['message', msg.role]">
           <div class="message-avatar">
             <el-avatar :size="36" :style="msg.role === 'user' ? { background: '#409eff' } : { background: '#67c23a' }">
               {{ msg.role === 'user' ? '我' : 'AI' }}
@@ -41,8 +34,6 @@
           </div>
           <div class="message-body">
             <div class="message-content" v-html="renderMarkdown(msg.content)"></div>
-
-            <!-- 来源引用 -->
             <div v-if="msg.sources && msg.sources.length > 0" class="message-sources">
               <el-collapse>
                 <el-collapse-item title="参考来源">
@@ -57,14 +48,12 @@
                 </el-collapse-item>
               </el-collapse>
             </div>
-
             <div v-if="msg.tokens_used" class="message-meta">
               消耗 {{ msg.tokens_used }} tokens
             </div>
           </div>
         </div>
 
-        <!-- AI 思考中（流式输出中） -->
         <div v-if="streaming" class="message assistant">
           <div class="message-avatar">
             <el-avatar :size="36" style="background: #67c23a">AI</el-avatar>
@@ -88,7 +77,6 @@
           </div>
         </div>
 
-        <!-- AI 思考中（非流式） -->
         <div v-if="thinking && !streaming" class="message assistant">
           <div class="message-avatar">
             <el-avatar :size="36" style="background: #67c23a">AI</el-avatar>
@@ -101,7 +89,6 @@
         </div>
       </div>
 
-      <!-- 输入框 -->
       <div class="input-area">
         <div class="input-toolbar">
           <el-upload
@@ -162,7 +149,6 @@ const kbId = Number(route.query.id);
 const kbName = String(route.query.name || "知识库");
 
 if (!kbId || isNaN(kbId)) {
-  // 不跳转，显示引导提示
 }
 const validKb = !!kbId && !isNaN(kbId);
 
@@ -253,7 +239,6 @@ function handleSendStream(multimodal = false) {
   messages.value.push(userMsg);
   inputText.value = "";
 
-  // 保存图片列表（用于消息显示）
   const images = [...selectedImages.value];
   selectedImages.value = [];
   scrollToBottom();

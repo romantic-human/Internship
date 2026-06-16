@@ -13,6 +13,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from django.http import HttpResponse
+from django.core.cache import cache
 
 from utils import APIResponse, HasPermission
 from .models import User, UserRoleRelation
@@ -727,3 +728,18 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.save()
 
         return APIResponse.success(message="更新成功", data=serializer.data)
+    
+        def perform_destroy(self, instance):
+            instance.delete()
+            cache.delete("dashboard_stats")
+    def perform_create(self, serializer):
+        serializer.save()
+        cache.delete("dashboard_stats")
+
+    def perform_update(self, serializer):
+        serializer.save()
+        cache.delete("dashboard_stats")
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        cache.delete("dashboard_stats")

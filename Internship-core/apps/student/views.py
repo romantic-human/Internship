@@ -13,6 +13,7 @@ from .serializers import (
 )
 import csv
 from django.http import HttpResponse
+from django.core.cache import cache
 from openpyxl import Workbook
 from openpyxl.styles import Font
 
@@ -259,8 +260,6 @@ class StudentInfoViewSet(viewsets.ModelViewSet):
             return APIResponse.success(data={"success": success, "skipped": skipped, "errors": errors[:100]}, message=message)
         except Exception as e:
             return APIResponse.error(message=f"导入失败：{str(e)}")
-
-
 class StudentScoreViewSet(viewsets.ModelViewSet):
     """学生成绩管理 — /api/student/score/"""
 
@@ -468,3 +467,14 @@ class StudentScoreViewSet(viewsets.ModelViewSet):
             return APIResponse.success(data={"success": success, "skipped": skipped, "errors": errors[:100]}, message=message)
         except Exception as e:
             return APIResponse.error(message=f"导入失败：{str(e)}")
+    def perform_create(self, serializer):
+        serializer.save()
+        cache.delete("dashboard_stats")
+
+    def perform_update(self, serializer):
+        serializer.save()
+        cache.delete("dashboard_stats")
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        cache.delete("dashboard_stats")

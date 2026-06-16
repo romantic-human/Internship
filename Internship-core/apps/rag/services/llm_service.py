@@ -52,17 +52,6 @@ class LLMService:
 
     @classmethod
     def chat(cls, question: str, context_chunks: list[dict]) -> dict:
-        """
-        问答：构建 Prompt → 调用 DeepSeek Chat API
-
-        Args:
-            question: 用户问题
-            context_chunks: [{"content": "...", "metadata": {"file_name": "...", "chunk_index": 0}}, ...]
-
-        Returns:
-            {"answer": "...", "tokens_used": 123}
-        """
-        # 拼接参考资料
         context_parts = []
         for i, chunk in enumerate(context_chunks, 1):
             meta = chunk.get("metadata", {})
@@ -89,17 +78,10 @@ class LLMService:
         answer = response.choices[0].message.content or ""
         tokens_used = response.usage.total_tokens if response.usage else 0
 
-        return {
-            "answer": answer,
-            "tokens_used": tokens_used,
-        }
+        return {"answer": answer, "tokens_used": tokens_used}
 
     @classmethod
     def chat_stream(cls, question: str, context_chunks: list[dict]) -> Generator[str, None, None]:
-        """
-        流式问答：逐 token 产出 SSE 格式的 JSON 字符串
-        Yields: SSE data lines with type "token"
-        """
         context_parts = []
         for i, chunk in enumerate(context_chunks, 1):
             meta = chunk.get("metadata", {})
@@ -135,14 +117,6 @@ class LLMService:
     def multimodal_chat_stream(
         cls, question: str, context_chunks: list[dict], image_paths: list[str] | None = None,
     ) -> Generator[str, None, None]:
-        """
-        多模态流式问答：支持图文混合输入，使用 DashScope 通义千问 VL
-
-        Args:
-            question: 用户问题
-            context_chunks: ChromaDB 检索结果
-            image_paths: 上传的图片文件路径列表（绝对路径）
-        """
         import dashscope
         from dashscope import MultiModalConversation
 
@@ -167,7 +141,6 @@ class LLMService:
 参考资料：
 {context_text}"""
 
-        # 构建 DashScope 多模态消息格式
         user_content: list[dict] = [{"text": question}]
         if image_paths:
             for img_path in image_paths:

@@ -214,4 +214,3 @@ export function chatWithKBStream(
 
   return controller;
 }
-
