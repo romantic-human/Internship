@@ -62,14 +62,14 @@
           </el-select>
         </el-form-item>
         <el-row :gutter="12">
-          <el-col :span="12">
+          <el-col :span="16">
             <el-form-item label="主机地址" prop="host">
               <el-input v-model="form.host" placeholder="127.0.0.1" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="端口" prop="port">
-              <el-input-number v-model="form.port" :min="1" :max="65535" :controls="false" style="width: 100%" />
+              <el-input-number v-model="form.port" :min="1" :max="65535" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -142,7 +142,7 @@ function openDialog(row?: DataSource) {
     form.name = row.name;
     form.db_type = row.db_type;
     form.host = row.host;
-    form.port = Number(row.port) || 3306;
+    form.port = row.port;
     form.db_name = row.db_name;
     form.username = row.username;
     form.password = "";
