@@ -89,8 +89,10 @@ export interface ChatResponse {
   tokens_used: number;
 }
 
-export function chatWithKB(kbId: number, question: string): Promise<ChatResponse> {
-  return request.post(`/rag/kb/${kbId}/chat`, { question });
+export function chatWithKB(kbId: number, question: string, image?: string): Promise<ChatResponse> {
+  const data: Record<string, any> = { question };
+  if (image) data.image = image;
+  return request.post(`/rag/kb/${kbId}/chat`, data);
 }
 
 export function chatWithKBStream(
@@ -100,10 +102,14 @@ export function chatWithKBStream(
   onSources: (sources: ChatSource[]) => void,
   onDone: () => void,
   onError: (err: string) => void,
+  image?: string,
 ): AbortController {
   const controller = new AbortController();
   const baseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
   const token = localStorage.getItem("access_token") || "";
+
+  const body: Record<string, any> = { question };
+  if (image) body.image = image;
 
   fetch(`${baseUrl}/rag/kb/${kbId}/chat-stream`, {
     method: "POST",
@@ -111,7 +117,7 @@ export function chatWithKBStream(
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify(body),
     signal: controller.signal,
   })
     .then(async (response) => {

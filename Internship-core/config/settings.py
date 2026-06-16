@@ -6,7 +6,7 @@ from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)  # 强制使用 .env 文件的配置覆盖系统环境变量
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -201,3 +201,6 @@ RAG_CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "500"))
 RAG_CHUNK_OVERLAP = int(os.getenv("RAG_CHUNK_OVERLAP", "100"))
 RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
 RAG_MAX_FILE_SIZE_MB = int(os.getenv("RAG_MAX_FILE_SIZE_MB", "20"))
+
+# 多模态模型配置（qwen-vl-plus 免费额度大，qwen-vl-max 效果更好）
+MULTIMODAL_MODEL = os.getenv("MULTIMODAL_MODEL", "qwen-vl-plus")
