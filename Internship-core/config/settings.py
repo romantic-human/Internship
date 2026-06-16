@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     # Third-party
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_filters",
     "drf_spectacular",
@@ -105,7 +106,7 @@ else:
     }
 
 # ── Redis / Cache ────────────────────────────────────────────────────
-REDIS_URL = os.getenv("REDIS_URL", "redis://:123456@127.0.0.1:6379/1")
+REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/1")
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
@@ -152,6 +153,13 @@ REST_FRAMEWORK = {
         "rest_framework.filters.OrderingFilter",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "30/minute",
+        "login": "5/minute",
+    },
 }
 
 # ── SimpleJWT 配置 ───────────────────────────────────────────────────
@@ -184,6 +192,9 @@ DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 DEEPSEEK_CHAT_MODEL = os.getenv("DEEPSEEK_CHAT_MODEL", "deepseek-chat")
 
 DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
+
+# -- Multimodal --
+MULTIMODAL_MODEL = os.getenv("MULTIMODAL_MODEL", "qwen-vl-max")
 
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", str(BASE_DIR / "chroma_data"))
 RAG_CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "500"))

@@ -1,18 +1,35 @@
 from rest_framework import serializers
 from .models import DataSource, QueryHistory
+from utils.crypto import encrypt_password
 
 
 class DataSourceSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source="created_by.username", read_only=True, default="")
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True, default="")
 
     class Meta:
         model = DataSource
         fields = [
             "id", "name", "db_type", "host", "port", "db_name",
-            "username", "password_enc", "description", "status",
+            "username", "password", "description", "status",
             "created_by", "created_by_name", "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_by", "created_at", "updated_at"]
+
+    def create(self, validated_data):
+        raw_password = validated_data.pop("password", "")
+        instance = super().create(validated_data)
+        instance.set_password(raw_password)
+        instance.save(update_fields=["password_enc"])
+        return instance
+
+    def update(self, instance, validated_data):
+        raw_password = validated_data.pop("password", None)
+        instance = super().update(instance, validated_data)
+        if raw_password is not None:
+            instance.set_password(raw_password)
+            instance.save(update_fields=["password_enc"])
+        return instance
 
 
 class QueryHistorySerializer(serializers.ModelSerializer):
