@@ -84,7 +84,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="密码">
-              <el-input v-model="form.password_enc" type="password" placeholder="数据库密码" show-password />
+              <el-input v-model="form.password" type="password" placeholder="数据库密码" show-password />
             </el-form-item>
           </el-col>
         </el-row>
@@ -106,7 +106,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox, type FormInstance } from "element-plus";
-import { Search, Plus, Connection } from "@element-plus/icons-vue";
+import { Search, Plus } from "@element-plus/icons-vue";
 import {
   getDataSourceList, createDataSource, updateDataSource, deleteDataSource,
   testDataSourceConnection, type DataSource,
@@ -126,7 +126,7 @@ const editId = ref<number | null>(null);
 const formRef = ref<FormInstance>();
 const form = reactive({
   name: "", db_type: "mysql", host: "127.0.0.1", port: 3306,
-  db_name: "", username: "root", password_enc: "",
+  db_name: "", username: "root", password: "",
   description: "", status: 1,
 });
 
@@ -145,7 +145,7 @@ function openDialog(row?: DataSource) {
     form.port = row.port;
     form.db_name = row.db_name;
     form.username = row.username;
-    form.password_enc = "";
+    form.password = "";
     form.description = row.description;
     form.status = row.status;
   } else {
@@ -156,7 +156,7 @@ function openDialog(row?: DataSource) {
     form.port = 3306;
     form.db_name = "";
     form.username = "root";
-    form.password_enc = "";
+    form.password = "";
     form.description = "";
     form.status = 1;
   }
@@ -183,7 +183,7 @@ async function handleSubmit() {
   submitting.value = true;
   try {
     const payload = { ...form };
-    if (!payload.password_enc) delete (payload as any).password_enc;
+    if (!payload.password) delete (payload as any).password;
     if (isEdit.value && editId.value) {
       await updateDataSource(editId.value, payload);
       ElMessage.success("更新成功");

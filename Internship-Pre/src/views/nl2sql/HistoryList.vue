@@ -17,7 +17,7 @@
         <el-table-column prop="question" label="自然语言问题" min-width="200" show-overflow-tooltip />
         <el-table-column prop="generated_sql" label="生成的SQL" min-width="250" show-overflow-tooltip>
           <template #default="{ row }">
-            <el-code style="font-size:12px">{{ row.generated_sql }}</el-code>
+            <code style="font-size:12px; font-family: monospace; color: #409eff">{{ row.generated_sql }}</code>
           </template>
         </el-table-column>
         <el-table-column prop="datasource_name" label="数据源" width="120" />

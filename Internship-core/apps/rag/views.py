@@ -18,7 +18,7 @@ from utils.permissions import HasPermission
 from .models import KnowledgeBase, Document, DocumentChunk
 from .serializers import (
     KnowledgeBaseSerializer, DocumentSerializer, DocumentChunkSerializer,
-    ChatRequestSerializer,
+    ChatRequestSerializer, MultimodalChatRequestSerializer,
 )
 from .services.vector_store import VectorStoreService
 from .services.document_processor import DocumentProcessor
@@ -344,6 +344,94 @@ class ChatStreamView(APIView):
                 logger.exception("流式问答处理失败")
                 yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
                 yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+        response = StreamingHttpResponse(
+            streaming_content=event_stream(),
+            content_type="text/event-stream",
+        )
+        response["Cache-Control"] = "no-cache"
+        response["X-Accel-Buffering"] = "no"
+        return response
+
+
+class ChatMultimodalView(APIView):
+    """多模态 RAG 问答接口（SSE 流式，支持图文混合输入）"""
+    permission_classes = [IsAuthenticated, HasPermission]
+    permission_key = "rag:chat"
+    parser_classes = [MultiPartParser]
+
+    def post(self, request, kb_id):
+        serializer = MultimodalChatRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        question = serializer.validated_data["question"]
+        images = serializer.validated_data.get("images", [])
+
+        try:
+            kb = KnowledgeBase.objects.get(id=kb_id, status=1)
+        except KnowledgeBase.DoesNotExist:
+            return APIResponse.error(message="知识库不存在或已禁用", code=2004, http_status=404)
+
+        def event_stream():
+            image_paths: list[str] = []
+            try:
+                # 保存上传的图片到临时文件
+                upload_dir = os.path.join(settings.MEDIA_ROOT, "temp_chat_images", str(kb_id))
+                os.makedirs(upload_dir, exist_ok=True)
+                for img in images:
+                    ext = os.path.splitext(img.name)[1].lower()
+                    if ext not in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
+                        continue
+                    safe_name = f"{os.urandom(8).hex()}{ext}"
+                    abs_path = os.path.join(upload_dir, safe_name)
+                    with open(abs_path, "wb") as f:
+                        for chunk in img.chunks():
+                            f.write(chunk)
+                    image_paths.append(abs_path)
+
+                # 向量检索
+                query_embedding = LLMService.generate_query_embedding(question)
+                results = VectorStoreService.search(
+                    kb_id=kb_id,
+                    query_embedding=query_embedding,
+                    top_k=settings.RAG_TOP_K,
+                )
+
+                if not results and not image_paths:
+                    yield f"data: {json.dumps({'type': 'answer', 'content': '根据现有知识库未找到相关信息。'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'done'})}\n\n"
+                    return
+
+                sources = []
+                for r in (results or []):
+                    meta = r.get("metadata", {})
+                    relevance = max(0, 1 - r.get("distance", 0))
+                    sources.append({
+                        "document_id": meta.get("doc_id", 0),
+                        "document_name": meta.get("file_name", "未知"),
+                        "chunk_index": meta.get("chunk_index", 0),
+                        "content": r.get("content", "")[:200],
+                        "relevance_score": round(relevance, 4),
+                    })
+
+                # 多模态 LLM 调用
+                for sse_data in LLMService.multimodal_chat_stream(question, results or [], image_paths):
+                    yield sse_data
+
+                yield f"data: {json.dumps({'type': 'sources', 'content': sources})}\n\n"
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+            except Exception as e:
+                logger.exception("多模态问答处理失败")
+                yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            finally:
+                # 清理临时图片
+                for p in image_paths:
+                    try:
+                        if os.path.exists(p):
+                            os.remove(p)
+                    except OSError:
+                        pass
 
         response = StreamingHttpResponse(
             streaming_content=event_stream(),
