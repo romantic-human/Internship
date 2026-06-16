@@ -1,4 +1,4 @@
-"""SQL 执行器：安全校验 + 执行 SQL + 返回结果"""
+﻿"""SQL 执行器：安全校验 + 执行 SQL + 返回结果"""
 import logging
 import re
 import pymysql
@@ -31,10 +31,9 @@ def validate_sql(sql: str) -> tuple[bool, str]:
     for kw in FORBIDDEN_KEYWORDS:
         pattern = r"\b" + re.escape(kw) + r"\b"
         if re.search(pattern, sql_upper):
-            # SELECT INTO 是特例，检查是否为 SELECT ... INTO ...
-            if kw != "INTO OUTFILE" and kw != "INTO DUMPFILE":
-                if re.search(pattern, sql_upper.split("FROM")[0] if "FROM" in sql_upper else sql_upper):
-                    return False, f"SQL 中包含禁止的关键字: {kw}"
+            return False, f"SQL 中包含禁止的关键字: {kw}"
+
+
 
     for col in SENSITIVE_COLUMNS:
         if col.lower() in sql.lower():
