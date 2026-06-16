@@ -13,4 +13,6 @@ urlpatterns = [
     path("kb/<int:kb_id>/chat", views.ChatView.as_view(), name="rag-chat"),
     # POST /api/rag/kb/<kb_id>/chat-stream （SSE 流式）
     path("kb/<int:kb_id>/chat-stream", views.ChatStreamView.as_view(), name="rag-chat-stream"),
+    # POST /api/rag/kb/<kb_id>/chat-multimodal （多模态 SSE 流式，支持图片上传）
+    path("kb/<int:kb_id>/chat-multimodal", views.ChatMultimodalView.as_view(), name="rag-chat-multimodal"),
 ]

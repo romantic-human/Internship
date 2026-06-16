@@ -5,7 +5,7 @@
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <span>系统配置</span>
           <div>
-            <el-button :disabled="selectedIds.length === 0" type="danger" @click="handleBatchDelete">批量删除</el-button>
+            <el-button v-permission="'config:delete'" :disabled="selectedIds.length === 0" type="danger" @click="handleBatchDelete">批量删除</el-button>
             <el-button v-permission="'config:export'" type="success" @click="handleExport">导出</el-button>
             <el-button v-permission="'config:add'" @click="handleImport">导入</el-button>
             <el-button v-permission="'config:add'" type="primary" @click="handleAdd">新增配置</el-button>
@@ -102,9 +102,11 @@ async function handleDelete(row: ConfigItem) {
   } catch { /* handled */ }
 }
 async function handleStatusChange(row: ConfigItem, val: number) {
-  await updateConfigStatus(row.id, val);
-  row.status = val;
-  ElMessage.success("状态更新成功");
+  try {
+    await updateConfigStatus(row.id, val);
+    row.status = val;
+    ElMessage.success("状态更新成功");
+  } catch { /* handled */ }
 }
 async function handleBatchDelete() {
   try {

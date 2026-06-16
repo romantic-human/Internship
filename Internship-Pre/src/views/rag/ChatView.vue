@@ -1,6 +1,5 @@
 <template>
   <div class="chat-container">
-    <!-- 未选择知识库时的引导提示 -->
     <div v-if="!validKb" class="empty-state" style="padding:80px 0;text-align:center">
       <el-icon :size="64" color="#c0c4cc"><ChatDotRound /></el-icon>
       <p style="font-size:16px;color:#606266;margin:16px 0 8px">AI 智能问答</p>
@@ -8,7 +7,6 @@
       <el-button type="primary" @click="router.push('/rag/kb-list')">前往知识库列表</el-button>
     </div>
 
-    <!-- 已选择知识库时的对话区域 -->
     <el-card v-else shadow="never" class="chat-card">
       <div class="card-header">
         <div class="header-left">
@@ -16,44 +14,26 @@
             <el-icon><ArrowLeft /></el-icon> 返回
           </el-button>
           <h3 style="margin: 0 0 0 12px">AI 问答 - {{ kbName }}</h3>
-          <el-tag v-if="imagePreview" type="success" size="small" style="margin-left: 12px">多模态模式</el-tag>
         </div>
         <el-button text @click="clearHistory">
           <el-icon><Delete /></el-icon> 清空对话
         </el-button>
       </div>
 
-      <!-- 消息列表 -->
       <div class="message-list" ref="messageListRef">
         <div v-if="messages.length === 0" class="empty-state">
           <el-icon :size="48" color="#c0c4cc"><ChatDotRound /></el-icon>
           <p>输入问题，基于知识库文档进行智能问答</p>
-          <p style="font-size:12px;color:#c0c4cc">支持上传图片进行多模态问答</p>
         </div>
 
-        <div
-          v-for="(msg, idx) in messages"
-          :key="idx"
-          :class="['message', msg.role]"
-        >
+        <div v-for="(msg, idx) in messages" :key="idx" :class="['message', msg.role]">
           <div class="message-avatar">
             <el-avatar :size="36" :style="msg.role === 'user' ? { background: '#409eff' } : { background: '#67c23a' }">
               {{ msg.role === 'user' ? '我' : 'AI' }}
             </el-avatar>
           </div>
           <div class="message-body">
-            <!-- 用户消息中的图片 -->
-            <div v-if="msg.image" class="message-image">
-              <el-image
-                :src="msg.image"
-                :preview-src-list="[msg.image]"
-                fit="contain"
-                style="max-width: 200px; max-height: 200px; border-radius: 8px;"
-              />
-            </div>
             <div class="message-content" v-html="renderMarkdown(msg.content)"></div>
-
-            <!-- 来源引用 -->
             <div v-if="msg.sources && msg.sources.length > 0" class="message-sources">
               <el-collapse>
                 <el-collapse-item title="参考来源">
@@ -68,14 +48,12 @@
                 </el-collapse-item>
               </el-collapse>
             </div>
-
             <div v-if="msg.tokens_used" class="message-meta">
               消耗 {{ msg.tokens_used }} tokens
             </div>
           </div>
         </div>
 
-        <!-- AI 思考中（流式输出中） -->
         <div v-if="streaming" class="message assistant">
           <div class="message-avatar">
             <el-avatar :size="36" style="background: #67c23a">AI</el-avatar>
@@ -99,7 +77,6 @@
           </div>
         </div>
 
-        <!-- AI 思考中（非流式） -->
         <div v-if="thinking && !streaming" class="message assistant">
           <div class="message-avatar">
             <el-avatar :size="36" style="background: #67c23a">AI</el-avatar>
@@ -112,62 +89,48 @@
         </div>
       </div>
 
-      <!-- 图片预览区 -->
-      <div v-if="imagePreview" class="image-preview-area">
-        <div class="preview-wrapper">
-          <el-image
-            :src="imagePreview"
-            fit="contain"
-            style="width: 60px; height: 60px; border-radius: 6px; border: 1px solid #dcdfe6;"
-          />
-          <el-button
-            type="danger"
-            :icon="Delete"
-            circle
-            size="small"
-            style="margin-left: 8px;"
-            @click="clearImage"
-          />
-          <span style="font-size: 12px; color: #909399; margin-left: 8px;">已选择图片</span>
-        </div>
-      </div>
-
-      <!-- 输入框 -->
       <div class="input-area">
-        <!-- 图片上传按钮 -->
-        <el-upload
-          ref="uploadRef"
-          :auto-upload="false"
-          :show-file-list="false"
-          accept="image/*"
-          :on-change="handleImageSelect"
-          style="margin-right: 8px;"
-        >
-          <el-button
-            :disabled="thinking || streaming"
-            style="height: 54px;"
+        <div class="input-toolbar">
+          <el-upload
+            ref="uploadRef"
+            :auto-upload="false"
+            multiple
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            :show-file-list="false"
+            :on-change="handleImageSelect"
           >
-            <el-icon size="20"><Picture /></el-icon>
+            <el-button :disabled="thinking || streaming" text>
+              <el-icon><PictureFilled /></el-icon> 图片
+            </el-button>
+          </el-upload>
+        </div>
+        <div v-if="selectedImages.length > 0" class="image-preview-area">
+          <div v-for="(img, idx) in selectedImages" :key="idx" class="image-preview-item">
+            <el-image :src="img.url" fit="cover" style="width: 64px; height: 64px; border-radius: 6px" />
+            <el-button class="image-remove-btn" size="small" circle text @click="removeImage(idx)">
+              <el-icon><Close /></el-icon>
+            </el-button>
+          </div>
+        </div>
+        <div class="input-row">
+          <el-input
+            v-model="inputText"
+            type="textarea"
+            :rows="2"
+            placeholder="请输入你的问题... (Ctrl+Enter 发送)"
+            :disabled="thinking || streaming"
+            @keydown.enter.ctrl="handleSendMultimodal"
+          />
+          <el-button
+            type="primary"
+            :loading="thinking || streaming"
+            :disabled="!inputText.trim()"
+            @click="handleSendMultimodal"
+            style="margin-left: 8px; height: 54px"
+          >
+            发送
           </el-button>
-        </el-upload>
-
-        <el-input
-          v-model="inputText"
-          type="textarea"
-          :rows="2"
-          :placeholder="imagePreview ? '请描述你关于图片的问题...' : '请输入你的问题...'"
-          :disabled="thinking || streaming"
-          @keydown.enter.ctrl="handleSendStream"
-        />
-        <el-button
-          type="primary"
-          :loading="thinking || streaming"
-          :disabled="(!inputText.trim() && !imagePreview)"
-          @click="handleSendStream"
-          style="margin-left: 8px; height: 54px"
-        >
-          发送
-        </el-button>
+        </div>
       </div>
     </el-card>
   </div>
@@ -177,9 +140,8 @@
 import { ref, nextTick, watch, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { ArrowLeft, Delete, ChatDotRound, Loading, Picture } from "@element-plus/icons-vue";
-import { chatWithKBStream, type ChatSource } from "@/api/rag";
-import type { UploadFile } from "element-plus";
+import { ArrowLeft, Delete, ChatDotRound, Loading, PictureFilled, Close } from "@element-plus/icons-vue";
+import { chatWithKBStream, chatMultimodalStream, type ChatSource } from "@/api/rag";
 
 const route = useRoute();
 const router = useRouter();
@@ -187,14 +149,12 @@ const kbId = Number(route.query.id);
 const kbName = String(route.query.name || "知识库");
 
 if (!kbId || isNaN(kbId)) {
-  // 不跳转，显示引导提示
 }
 const validKb = !!kbId && !isNaN(kbId);
 
 interface Message {
   role: "user" | "assistant";
   content: string;
-  image?: string;  // 用户消息附带的图片（data:image/...;base64,...）
   sources?: ChatSource[];
   tokens_used?: number;
 }
@@ -211,9 +171,7 @@ function loadHistory(): Message[] {
 }
 
 function saveHistory(msgs: Message[]) {
-  // 不保存图片到 localStorage（太大），只保存文本
-  const lite = msgs.map(({ image, ...rest }) => rest);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(lite));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs));
 }
 
 const messages = ref<Message[]>(loadHistory());
@@ -224,10 +182,8 @@ const streamingContent = ref("");
 const streamingSources = ref<ChatSource[]>([]);
 const abortController = ref<AbortController | null>(null);
 const messageListRef = ref<HTMLElement>();
-
-// 图片相关
-const imagePreview = ref<string>("");  // 预览用的 data URL
-const imageBase64 = ref<string>("");   // 发送给后端的纯 base64
+const selectedImages = ref<{ file: File; url: string }[]>([]);
+const uploadRef = ref();
 
 watch(messages, (msgs) => saveHistory(msgs), { deep: true });
 
@@ -248,51 +204,43 @@ function renderMarkdown(text: string): string {
     .replace(/\n/g, "<br/>");
 }
 
-/** 选择图片后处理 */
-function handleImageSelect(file: UploadFile) {
-  const rawFile = file.raw;
-  if (!rawFile) return;
-
-  // 校验类型
-  if (!rawFile.type.startsWith("image/")) {
-    ElMessage.warning("请选择图片文件");
+function handleImageSelect(uploadFile: any) {
+  const file = uploadFile.raw as File;
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) {
+    ElMessage.warning("图片不能超过 10MB");
     return;
   }
-
-  // 校验大小（10MB）
-  if (rawFile.size > 10 * 1024 * 1024) {
-    ElMessage.warning("图片大小不能超过 10MB");
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const dataUrl = e.target?.result as string;
-    imagePreview.value = dataUrl;
-    // 提取纯 base64（去掉 data:image/...;base64, 前缀）
-    imageBase64.value = dataUrl.split(",")[1] || "";
-  };
-  reader.readAsDataURL(rawFile);
+  selectedImages.value.push({ file, url: URL.createObjectURL(file) });
 }
 
-function clearImage() {
-  imagePreview.value = "";
-  imageBase64.value = "";
+function removeImage(idx: number) {
+  const img = selectedImages.value[idx];
+  if (img) URL.revokeObjectURL(img.url);
+  selectedImages.value.splice(idx, 1);
 }
 
-function handleSendStream() {
+function handleSendMultimodal() {
   const question = inputText.value.trim();
-  if ((!question && !imageBase64.value) || thinking.value || streaming.value) return;
+  if (!question || thinking.value || streaming.value) return;
 
-  // 如果有图片但没有问题，给一个默认问题
-  const finalQuestion = question || "请描述这张图片的内容";
+  if (selectedImages.value.length > 0) {
+    handleSendStream(true);
+  } else {
+    handleSendStream(false);
+  }
+}
 
-  messages.value.push({
-    role: "user",
-    content: question || "（图片问答）",
-    image: imagePreview.value || undefined,
-  });
+function handleSendStream(multimodal = false) {
+  const question = inputText.value.trim();
+  if (!question || thinking.value || streaming.value) return;
+
+  const userMsg: Message = { role: "user", content: question };
+  messages.value.push(userMsg);
   inputText.value = "";
+
+  const images = [...selectedImages.value];
+  selectedImages.value = [];
   scrollToBottom();
 
   streaming.value = true;
@@ -301,41 +249,49 @@ function handleSendStream() {
 
   let fullContent = "";
 
-  abortController.value = chatWithKBStream(
-    kbId,
-    finalQuestion,
-    (token: string) => {
-      fullContent += token;
-      streamingContent.value = fullContent;
-      scrollToBottom();
-    },
-    (sources: ChatSource[]) => {
-      streamingSources.value = sources;
-    },
-    () => {
-      if (fullContent) {
-        messages.value.push({
-          role: "assistant",
-          content: fullContent,
-          sources: streamingSources.value,
-        });
-      }
-      streaming.value = false;
-      streamingContent.value = "";
-      streamingSources.value = [];
-      abortController.value = null;
-      clearImage();  // 发送完成后清除图片
-      scrollToBottom();
-    },
-    (err: string) => {
-      ElMessage.error(err);
-      streaming.value = false;
-      streamingContent.value = "";
-      streamingSources.value = [];
-      abortController.value = null;
-    },
-    imageBase64.value || undefined,  // 传递图片
-  );
+  const onToken = (token: string) => {
+    fullContent += token;
+    streamingContent.value = fullContent;
+    scrollToBottom();
+  };
+
+  const onSources = (sources: ChatSource[]) => {
+    streamingSources.value = sources;
+  };
+
+  const onDone = () => {
+    if (fullContent) {
+      messages.value.push({
+        role: "assistant",
+        content: fullContent,
+        sources: streamingSources.value,
+      });
+    }
+    streaming.value = false;
+    streamingContent.value = "";
+    streamingSources.value = [];
+    abortController.value = null;
+    scrollToBottom();
+  };
+
+  const onError = (err: string) => {
+    ElMessage.error(err);
+    streaming.value = false;
+    streamingContent.value = "";
+    streamingSources.value = [];
+    abortController.value = null;
+  };
+
+  if (multimodal) {
+    abortController.value = chatMultimodalStream(
+      kbId, question, images.map((i) => i.file),
+      onToken, onSources, onDone, onError,
+    );
+  } else {
+    abortController.value = chatWithKBStream(
+      kbId, question, onToken, onSources, onDone, onError,
+    );
+  }
 }
 
 onUnmounted(() => {
@@ -391,10 +347,6 @@ function clearHistory() {
   max-width: 75%;
 }
 
-.message-image {
-  margin-bottom: 8px;
-}
-
 .message-content {
   padding: 10px 14px;
   border-radius: 12px;
@@ -425,22 +377,42 @@ function clearHistory() {
 
 .message-meta { font-size: 11px; color: #c0c4cc; margin-top: 4px; }
 
-.image-preview-area {
-  padding: 8px 16px;
-  background: #f5f7fa;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  flex-shrink: 0;
-}
-
-.preview-wrapper {
-  display: flex;
-  align-items: center;
-}
-
 .input-area {
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
   flex-shrink: 0;
+  gap: 6px;
+}
+
+.input-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.image-preview-area {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+
+.image-preview-item {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.image-remove-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+}
+
+.input-row {
+  display: flex;
+  align-items: flex-end;
 }
 </style>

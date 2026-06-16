@@ -16,7 +16,9 @@ class OperationLogViewSet(ListModelMixin, RetrieveModelMixin, DestroyModelMixin,
     serializer_class = OperationLogSerializer
     permission_key = "log:list"
     permission_key_map = {
+        "destroy": "log:delete",
         "clear": "log:delete",
+        "export": "log:list",
     }
 
     def get_permissions(self):

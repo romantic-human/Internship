@@ -106,7 +106,7 @@ router.beforeEach(async (to) => {
   if (!authStore.dynamicRoutesLoaded || (!routeExists && !regenerationAttempted)) {
     regenerationAttempted = true;
     if (!dynamicRoutesLoading) {
-      dynamicRoutesLoading = authStore.generateDynamicRoutes(true).finally(() => {
+      dynamicRoutesLoading = authStore.generateDynamicRoutes().finally(() => {
         dynamicRoutesLoading = null;
       });
     }

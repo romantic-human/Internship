@@ -6,7 +6,11 @@ from .models import OperationLog
 class OperationLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = OperationLog
-        fields = "__all__"
+        fields = [
+            "id", "username", "module", "operation", "method",
+            "request_url", "request_params", "response_result",
+            "ip", "status", "execution_time", "create_time",
+        ]
 
 
 class OperationLogListSerializer(serializers.ModelSerializer):

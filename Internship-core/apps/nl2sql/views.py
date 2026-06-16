@@ -31,6 +31,8 @@ class DataSourceViewSet(viewsets.ModelViewSet):
         "create": "nl2sql:add",
         "update": "nl2sql:edit",
         "destroy": "nl2sql:delete",
+        "tables": "nl2sql:list",
+        "test_conn": "nl2sql:list",
     }
 
     def get_permissions(self):
@@ -108,6 +110,7 @@ class QueryHistoryViewSet(viewsets.GenericViewSet):
     permission_key = "nl2sql:list"
     permission_key_map = {
         "destroy": "nl2sql:delete",
+        "favorite": "nl2sql:edit",
     }
 
     def get_permissions(self):

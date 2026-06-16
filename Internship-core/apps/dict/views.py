@@ -20,6 +20,9 @@ class DictTypeViewSet(viewsets.ModelViewSet):
         "destroy": "dict:type:delete",
         "batch": "dict:type:delete",
         "status": "dict:type:edit",
+        "export": "dict:type:list",
+        "template": None,
+        "import_types": "dict:type:add",
     }
 
     def get_permissions(self):
@@ -172,6 +175,8 @@ class DictDataViewSet(viewsets.ModelViewSet):
         "destroy": "dict:data:delete",
         "batch": "dict:data:delete",
         "status": "dict:data:edit",
+        "data_template": None,
+        "import_data": "dict:data:add",
     }
 
     def get_permissions(self):

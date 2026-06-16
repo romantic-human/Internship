@@ -6,6 +6,7 @@
           <span>用户管理</span>
           <div>
             <el-button
+              v-permission="'user:delete'"
               :disabled="selectedRows.length === 0"
               type="danger"
               @click="handleBatchDelete"
@@ -215,9 +216,11 @@ function handleEdit(row: UserRecord) {
 }
 
 async function handleDelete(row: UserRecord) {
-  await deleteUser(row.id);
-  ElMessage.success("删除成功");
-  await fetchList();
+  try {
+    await deleteUser(row.id);
+    ElMessage.success("删除成功");
+    await fetchList();
+  } catch { /* handled */ }
 }
 
 async function handleStatusChange(row: UserRecord, val: number) {
@@ -226,15 +229,16 @@ async function handleStatusChange(row: UserRecord, val: number) {
   ElMessage.success("状态更新成功");
 }
 
-function handleResetPwd(row: UserRecord) {
-  ElMessageBox.confirm(`确定将用户「${row.username}」的密码重置为 123456？`, "重置密码", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning",
-  }).then(async () => {
+async function handleResetPwd(row: UserRecord) {
+  try {
+    await ElMessageBox.confirm(`确定将用户「${row.username}」的密码重置为 123456？`, "重置密码", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
     await resetPassword({ userId: row.id });
     ElMessage.success("密码已重置为 123456");
-  }).catch(() => {});
+  } catch { /* cancel */ }
 }
 
 function handleSelectionChange(rows: UserRecord[]) {
@@ -248,14 +252,12 @@ async function handleBatchDelete() {
       cancelButtonText: "取消",
       type: "warning",
     });
-  } catch {
-    return;
-  }
-  const ids = selectedRows.value.map((r) => r.id);
-  await batchDeleteUsers(ids);
-  ElMessage.success("批量删除成功");
-  selectedRows.value = [];
-  await fetchList();
+    const ids = selectedRows.value.map((r) => r.id);
+    await batchDeleteUsers(ids);
+    ElMessage.success("批量删除成功");
+    selectedRows.value = [];
+    await fetchList();
+  } catch { /* cancel */ }
 }
 
 async function handleExport() {

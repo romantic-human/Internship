@@ -1,5 +1,4 @@
 ﻿from django.db import transaction
-import csv
 import openpyxl
 from django.http import HttpResponse
 from rest_framework import viewsets
@@ -17,7 +16,16 @@ class PermissionViewSet(viewsets.ModelViewSet):
     serializer_class = PermissionSerializer
     permission_key = "permission:list"
     permission_key_map = {
+        "create": "permission:add",
+        "update": "permission:edit",
+        "destroy": "permission:delete",
         "batch": "permission:delete",
+        "export": "permission:list",
+        "status": "permission:edit",
+        "sort": "permission:edit",
+        "batch_sort": "permission:edit",
+        "template": None,
+        "import_permissions": "permission:add",
     }
 
     def get_permissions(self):
@@ -115,14 +123,14 @@ class PermissionViewSet(viewsets.ModelViewSet):
         if status_val not in (0, 1):
             return APIResponse.error(message="状态值无效")
         instance.status = status_val
-        instance.save()
+        instance.save(update_fields=["status", "update_time"])
         return APIResponse.success(message="状态更新成功")
 
     @action(detail=True, methods=["put"], url_path="sort")
     def sort(self, request, pk=None):
         instance = self.get_object()
         instance.sort_order = request.data.get("sortOrder", 0)
-        instance.save()
+        instance.save(update_fields=["sort_order", "update_time"])
         return APIResponse.success(message="排序更新成功")
 
     @action(detail=False, methods=["post"], url_path="batch-sort")

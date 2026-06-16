@@ -26,9 +26,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "put", "delete"]
 
     def get_permissions(self):
-        if self.action in ("create", "destroy", "mark_read", "mark_all_read", "clear_read"):
-            return [IsAuthenticated(), HasPermission()]
-        return [IsAuthenticated()]
+        return [IsAuthenticated(), HasPermission()]
 
     def get_queryset(self):
         qs = Notification.objects.filter(user=self.request.user)

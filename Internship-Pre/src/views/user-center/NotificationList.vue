@@ -106,7 +106,7 @@ import {
   getUnreadCount,
   type NotificationRecord,
 } from "@/api/notification";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 
 const loading = ref(false);
 const list = ref<NotificationRecord[]>([]);
@@ -168,9 +168,12 @@ async function handleMarkAllRead() {
 }
 
 async function handleDelete(row: NotificationRecord) {
-  await deleteNotification(row.id);
-  ElMessage.success("删除成功");
-  await fetchList();
+  try {
+    await ElMessageBox.confirm("确定删除此通知？", "提示");
+    await deleteNotification(row.id);
+    ElMessage.success("删除成功");
+    await fetchList();
+  } catch { /* cancel */ }
 }
 
 async function handleClearRead() {

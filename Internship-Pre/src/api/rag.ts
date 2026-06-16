@@ -89,35 +89,31 @@ export interface ChatResponse {
   tokens_used: number;
 }
 
-export function chatWithKB(kbId: number, question: string, image?: string): Promise<ChatResponse> {
-  const data: Record<string, any> = { question };
-  if (image) data.image = image;
-  return request.post(`/rag/kb/${kbId}/chat`, data);
+export function chatWithKB(kbId: number, question: string): Promise<ChatResponse> {
+  return request.post(`/rag/kb/${kbId}/chat`, { question });
 }
 
-export function chatWithKBStream(
+export function chatMultimodalStream(
   kbId: number,
   question: string,
+  images: File[],
   onToken: (token: string) => void,
   onSources: (sources: ChatSource[]) => void,
   onDone: () => void,
   onError: (err: string) => void,
-  image?: string,
 ): AbortController {
   const controller = new AbortController();
   const baseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
   const token = localStorage.getItem("access_token") || "";
 
-  const body: Record<string, any> = { question };
-  if (image) body.image = image;
+  const formData = new FormData();
+  formData.append("question", question);
+  images.forEach((img) => formData.append("images", img));
 
-  fetch(`${baseUrl}/rag/kb/${kbId}/chat-stream`, {
+  fetch(`${baseUrl}/rag/kb/${kbId}/chat-multimodal`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
     signal: controller.signal,
   })
     .then(async (response) => {
@@ -159,3 +155,62 @@ export function chatWithKBStream(
   return controller;
 }
 
+export function chatWithKBStream(
+  kbId: number,
+  question: string,
+  onToken: (token: string) => void,
+  onSources: (sources: ChatSource[]) => void,
+  onDone: () => void,
+  onError: (err: string) => void,
+): AbortController {
+  const controller = new AbortController();
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
+  const token = localStorage.getItem("access_token") || "";
+
+  fetch(`${baseUrl}/rag/kb/${kbId}/chat-stream`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ question }),
+    signal: controller.signal,
+  })
+    .then(async (response) => {
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === "token" || data.type === "answer") {
+                onToken(data.content);
+              } else if (data.type === "sources") {
+                onSources(data.content);
+              } else if (data.type === "error") {
+                onError(data.content);
+              }
+            } catch {
+              // skip malformed SSE
+            }
+          }
+        }
+      }
+      onDone();
+    })
+    .catch((err) => {
+      if (err.name !== "AbortError") {
+        onError(err.message);
+      }
+    });
+
+  return controller;
+}

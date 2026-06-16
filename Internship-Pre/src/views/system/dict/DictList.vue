@@ -6,7 +6,7 @@
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <span>字典管理</span>
           <div>
-            <el-button type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
+            <el-button v-permission="'dict:type:delete'" type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
             <el-button type="success" @click="handleExport">导出</el-button>
             <el-button v-permission="'dict:type:add'" type="primary" @click="handleAddType">新增字典类型</el-button>
           </div>
@@ -170,7 +170,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import type { FormInstance } from "element-plus";
 import { useAuthStore } from "@/store/auth";
 import {
@@ -219,23 +219,32 @@ async function handleTypeStatusChange(row: DictType, val: number) {
 }
 
 async function handleDeleteType(row: DictType) {
-  await deleteDictType(row.id);
-  ElMessage.success("删除成功");
-  fetchTypeList();
+  try {
+    await ElMessageBox.confirm(`确定删除字典「${row.dict_name}」？`, "提示");
+    await deleteDictType(row.id);
+    ElMessage.success("删除成功");
+    fetchTypeList();
+  } catch { /* cancel */ }
 }
 
 async function handleBatchDelete() {
-  await batchDeleteDictTypes(selectedIds.value);
-  ElMessage.success("批量删除成功");
-  fetchTypeList();
+  try {
+    await ElMessageBox.confirm(`确定删除选中的 ${selectedIds.value.length} 个字典类型？`, "提示");
+    await batchDeleteDictTypes(selectedIds.value);
+    ElMessage.success("批量删除成功");
+    fetchTypeList();
+  } catch { /* cancel */ }
 }
 
-function handleExport() {
-  exportDictTypes().then((blob) => {
+async function handleExport() {
+  try {
+    const blob = await exportDictTypes() as unknown as Blob;
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "dict_types.csv"; a.click();
+    const a = document.createElement("a"); a.href = url; a.download = `dict_types_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
     URL.revokeObjectURL(url);
-  });
+  } catch {
+    ElMessage.error("导出失败");
+  }
 }
 
 // 字典类型 新增/编辑
@@ -265,8 +274,7 @@ function handleEditType(row: DictType) {
 }
 
 async function handleSubmitType() {
-  const valid = await typeFormRef.value?.validate().catch(() => false);
-  if (!valid) return;
+  try { await typeFormRef.value?.validate(); } catch { return; }
   typeSubmitting.value = true;
   try {
     if (isTypeEdit.value) {
@@ -311,9 +319,12 @@ async function fetchDataList() {
 }
 
 async function handleDeleteData(row: DictData) {
-  await deleteDictData(row.id);
-  ElMessage.success("删除成功");
-  fetchDataList();
+  try {
+    await ElMessageBox.confirm(`确定删除字典数据「${row.dict_label}」？`, "提示");
+    await deleteDictData(row.id);
+    ElMessage.success("删除成功");
+    fetchDataList();
+  } catch { /* cancel */ }
 }
 
 // 字典数据 新增/编辑
@@ -351,8 +362,7 @@ function handleEditData(row: DictData) {
 }
 
 async function handleSubmitData() {
-  const valid = await dataFormRef.value?.validate().catch(() => false);
-  if (!valid) return;
+  try { await dataFormRef.value?.validate(); } catch { return; }
   if (!currentType.value) return;
   dataSubmitting.value = true;
   try {

@@ -83,8 +83,7 @@ function handleClose() {
 }
 
 async function handleSubmit() {
-  const valid = await formRef.value?.validate().catch(() => false);
-  if (!valid) return;
+  try { await formRef.value?.validate(); } catch { return; }
   submitting.value = true;
   try {
     if (isEdit.value) {

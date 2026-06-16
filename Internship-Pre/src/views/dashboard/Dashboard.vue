@@ -38,6 +38,7 @@
             </div>
           </template>
           <el-table :data="stats.recent_logs" v-loading="loading" stripe size="small" max-height="320">
+            <template #empty><el-empty description="暂无日志" /></template>
             <el-table-column prop="username" label="用户" width="80" />
             <el-table-column prop="module" label="模块" width="80" />
             <el-table-column prop="operation" label="操作" width="100" />

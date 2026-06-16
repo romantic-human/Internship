@@ -18,12 +18,11 @@ from utils.permissions import HasPermission
 from .models import KnowledgeBase, Document, DocumentChunk
 from .serializers import (
     KnowledgeBaseSerializer, DocumentSerializer, DocumentChunkSerializer,
-    ChatRequestSerializer,
+    ChatRequestSerializer, MultimodalChatRequestSerializer,
 )
 from .services.vector_store import VectorStoreService
 from .services.document_processor import DocumentProcessor
 from .services.llm_service import LLMService
-from .services.image_processor import process_image_to_base64, validate_image
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +83,6 @@ class KnowledgeBaseViewSet(viewsets.ModelViewSet):
                     os.remove(abs_path)
             except OSError as e:
                 logger.warning("删除文件失败 %s: %s", abs_path, e)
-        # ORM 级联删除
         instance.delete()
         return APIResponse.success(message="删除成功")
 
@@ -161,7 +159,6 @@ class DocumentViewSet(viewsets.GenericViewSet):
         if not file:
             return APIResponse.error(message="请选择文件", code=2000, http_status=400)
 
-        # 校验文件类型
         ext = os.path.splitext(file.name)[1].lower().lstrip(".")
         allowed = ("pdf", "txt", "md", "docx")
         if ext not in allowed:
@@ -170,7 +167,6 @@ class DocumentViewSet(viewsets.GenericViewSet):
                 code=2000, http_status=400,
             )
 
-        # 校验文件大小
         max_size = settings.RAG_MAX_FILE_SIZE_MB * 1024 * 1024
         if file.size > max_size:
             return APIResponse.error(
@@ -178,7 +174,6 @@ class DocumentViewSet(viewsets.GenericViewSet):
                 code=2000, http_status=400,
             )
 
-        # 保存文件
         upload_dir = os.path.join(settings.MEDIA_ROOT, "rag_docs", str(kb_id))
         os.makedirs(upload_dir, exist_ok=True)
         safe_name = os.path.basename(file.name).replace("/", "_").replace("\\", "_")
@@ -189,7 +184,6 @@ class DocumentViewSet(viewsets.GenericViewSet):
             for chunk in file.chunks():
                 f.write(chunk)
 
-        # 创建 Document 记录
         doc = Document.objects.create(
             knowledge_base=kb,
             file_name=file.name,
@@ -199,7 +193,6 @@ class DocumentViewSet(viewsets.GenericViewSet):
             status=Document.Status.PENDING,
         )
 
-        # 后台线程处理
         close_old_connections()
         threading.Thread(
             target=DocumentProcessor.process_document,
@@ -215,7 +208,6 @@ class DocumentViewSet(viewsets.GenericViewSet):
         doc = self.get_object()
         if doc.status != Document.Status.FAILED:
             return APIResponse.error(message="只能重新处理失败的文档", code=2000, http_status=400)
-        # 清理旧数据（ChromDB + ORM）
         VectorStoreService.delete_by_document(doc.knowledge_base_id, doc.id)
         DocumentChunk.objects.filter(document=doc).delete()
         doc.status = Document.Status.PENDING
@@ -240,19 +232,14 @@ class ChatView(APIView):
         serializer = ChatRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         question = serializer.validated_data["question"]
-        image_data = serializer.validated_data.get("image", "")
 
-        # 验证知识库
         try:
             kb = KnowledgeBase.objects.get(id=kb_id, status=1)
         except KnowledgeBase.DoesNotExist:
             return APIResponse.error(message="知识库不存在或已禁用", code=2004, http_status=404)
 
         try:
-            # 1. 向量化问题
             query_embedding = LLMService.generate_query_embedding(question)
-
-            # 2. ChromaDB 检索
             results = VectorStoreService.search(
                 kb_id=kb_id,
                 query_embedding=query_embedding,
@@ -266,7 +253,6 @@ class ChatView(APIView):
                     "tokens_used": 0,
                 })
 
-            # 3. 构建来源信息
             sources = []
             for r in results:
                 meta = r.get("metadata", {})
@@ -279,11 +265,7 @@ class ChatView(APIView):
                     "relevance_score": round(relevance, 4),
                 })
 
-            # 4. 调用 LLM（有图片用多模态，无图片用纯文本）
-            if image_data:
-                llm_result = LLMService.chat_with_image(question, image_data, results)
-            else:
-                llm_result = LLMService.chat(question, results)
+            llm_result = LLMService.chat(question, results)
 
             return APIResponse.success(data={
                 "answer": llm_result["answer"],
@@ -305,7 +287,6 @@ class ChatStreamView(APIView):
         serializer = ChatRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         question = serializer.validated_data["question"]
-        image_data = serializer.validated_data.get("image", "")
 
         try:
             kb = KnowledgeBase.objects.get(id=kb_id, status=1)
@@ -339,13 +320,8 @@ class ChatStreamView(APIView):
                         "relevance_score": round(relevance, 4),
                     })
 
-                # 有图片用多模态流式，无图片用纯文本流式
-                if image_data:
-                    for sse_data in LLMService.chat_with_image_stream(question, image_data, results):
-                        yield sse_data
-                else:
-                    for sse_data in LLMService.chat_stream(question, results):
-                        yield sse_data
+                for sse_data in LLMService.chat_stream(question, results):
+                    yield sse_data
 
                 yield f"data: {json.dumps({'type': 'sources', 'content': sources})}\n\n"
                 yield f"data: {json.dumps({'type': 'done'})}\n\n"
@@ -354,6 +330,90 @@ class ChatStreamView(APIView):
                 logger.exception("流式问答处理失败")
                 yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
                 yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+        response = StreamingHttpResponse(
+            streaming_content=event_stream(),
+            content_type="text/event-stream",
+        )
+        response["Cache-Control"] = "no-cache"
+        response["X-Accel-Buffering"] = "no"
+        return response
+
+
+class ChatMultimodalView(APIView):
+    """多模态 RAG 问答接口（SSE 流式，支持图文混合输入）"""
+    permission_classes = [IsAuthenticated, HasPermission]
+    permission_key = "rag:chat"
+    parser_classes = [MultiPartParser]
+
+    def post(self, request, kb_id):
+        serializer = MultimodalChatRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        question = serializer.validated_data["question"]
+        images = serializer.validated_data.get("images", [])
+
+        try:
+            kb = KnowledgeBase.objects.get(id=kb_id, status=1)
+        except KnowledgeBase.DoesNotExist:
+            return APIResponse.error(message="知识库不存在或已禁用", code=2004, http_status=404)
+
+        def event_stream():
+            image_paths: list[str] = []
+            try:
+                upload_dir = os.path.join(settings.MEDIA_ROOT, "temp_chat_images", str(kb_id))
+                os.makedirs(upload_dir, exist_ok=True)
+                for img in images:
+                    ext = os.path.splitext(img.name)[1].lower()
+                    if ext not in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
+                        continue
+                    safe_name = f"{os.urandom(8).hex()}{ext}"
+                    abs_path = os.path.join(upload_dir, safe_name)
+                    with open(abs_path, "wb") as f:
+                        for chunk in img.chunks():
+                            f.write(chunk)
+                    image_paths.append(abs_path)
+
+                query_embedding = LLMService.generate_query_embedding(question)
+                results = VectorStoreService.search(
+                    kb_id=kb_id,
+                    query_embedding=query_embedding,
+                    top_k=settings.RAG_TOP_K,
+                )
+
+                if not results and not image_paths:
+                    yield f"data: {json.dumps({'type': 'answer', 'content': '根据现有知识库未找到相关信息。'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'done'})}\n\n"
+                    return
+
+                sources = []
+                for r in (results or []):
+                    meta = r.get("metadata", {})
+                    relevance = max(0, 1 - r.get("distance", 0))
+                    sources.append({
+                        "document_id": meta.get("doc_id", 0),
+                        "document_name": meta.get("file_name", "未知"),
+                        "chunk_index": meta.get("chunk_index", 0),
+                        "content": r.get("content", "")[:200],
+                        "relevance_score": round(relevance, 4),
+                    })
+
+                for sse_data in LLMService.multimodal_chat_stream(question, results or [], image_paths):
+                    yield sse_data
+
+                yield f"data: {json.dumps({'type': 'sources', 'content': sources})}\n\n"
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+            except Exception as e:
+                logger.exception("多模态问答处理失败")
+                yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            finally:
+                for p in image_paths:
+                    try:
+                        if os.path.exists(p):
+                            os.remove(p)
+                    except OSError:
+                        pass
 
         response = StreamingHttpResponse(
             streaming_content=event_stream(),

@@ -44,7 +44,6 @@ class DocumentChunkSerializer(serializers.ModelSerializer):
 
 class ChatRequestSerializer(serializers.Serializer):
     question = serializers.CharField(required=True, max_length=2000)
-    image = serializers.CharField(required=False, allow_blank=True, default="")
 
 
 class ChatSourceSerializer(serializers.Serializer):
@@ -59,3 +58,11 @@ class ChatResponseSerializer(serializers.Serializer):
     answer = serializers.CharField()
     sources = ChatSourceSerializer(many=True)
     tokens_used = serializers.IntegerField()
+
+
+class MultimodalChatRequestSerializer(serializers.Serializer):
+    question = serializers.CharField(required=True, max_length=2000)
+    images = serializers.ListField(
+        child=serializers.ImageField(allow_empty_file=False),
+        required=False, default=list,
+    )

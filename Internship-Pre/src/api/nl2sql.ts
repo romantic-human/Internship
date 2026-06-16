@@ -58,7 +58,7 @@ export function createDataSource(data: Partial<DataSource>): Promise<DataSource>
   return request.post("/nl2sql/datasource", data);
 }
 
-export function updateDataSource(id: number, data: Partial<DataSource>): Promise<DataSource> {
+export function updateDataSource(id: number, data: Partial<DataSource>): Promise<void> {
   return request.put(`/nl2sql/datasource/${id}`, data);
 }
 

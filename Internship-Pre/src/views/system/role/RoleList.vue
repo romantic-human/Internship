@@ -5,7 +5,7 @@
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <span>角色管理</span>
           <div>
-            <el-button type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
+            <el-button v-permission="'role:delete'" type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
             <el-button type="success" @click="handleExport">导出</el-button>
             <el-button type="info" @click="handleDownloadTemplate">下载模板</el-button>
             <el-upload :show-file-list="false" accept=".xlsx,.xls" :before-upload="handleImport" style="display:inline-block">
@@ -204,9 +204,12 @@ function handleEdit(row: RoleRecord) {
 }
 
 async function handleDelete(row: RoleRecord) {
-  await deleteRole(row.id);
-  ElMessage.success("删除成功");
-  await fetchList();
+  try {
+    await ElMessageBox.confirm(`确定删除角色「${row.role_name}」？`, "提示");
+    await deleteRole(row.id);
+    ElMessage.success("删除成功");
+    await fetchList();
+  } catch { /* cancel */ }
 }
 
 async function handleStatusChange(row: RoleRecord, val: number) {
