@@ -93,6 +93,43 @@ export function chatWithKB(kbId: number, question: string): Promise<ChatResponse
   return request.post(`/rag/kb/${kbId}/chat`, { question });
 }
 
+async function readSSEStream(
+  response: Response,
+  onToken: (token: string) => void,
+  onSources: (sources: ChatSource[]) => void,
+  onDone: () => void,
+  onError: (err: string) => void,
+) {
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        try {
+          const data = JSON.parse(line.slice(6));
+          if (data.type === "token" || data.type === "answer") {
+            onToken(data.content);
+          } else if (data.type === "sources") {
+            onSources(data.content);
+          } else if (data.type === "error") {
+            onError(data.content);
+          }
+        } catch {
+          // skip malformed SSE
+        }
+      }
+    }
+  }
+  onDone();
+}
+
 export function chatMultimodalStream(
   kbId: number,
   question: string,
@@ -116,40 +153,9 @@ export function chatMultimodalStream(
     body: formData,
     signal: controller.signal,
   })
-    .then(async (response) => {
-      const reader = response.body!.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.type === "token" || data.type === "answer") {
-                onToken(data.content);
-              } else if (data.type === "sources") {
-                onSources(data.content);
-              } else if (data.type === "error") {
-                onError(data.content);
-              }
-            } catch {
-              // skip malformed SSE
-            }
-          }
-        }
-      }
-      onDone();
-    })
+    .then((response) => readSSEStream(response, onToken, onSources, onDone, onError))
     .catch((err) => {
-      if (err.name !== "AbortError") {
-        onError(err.message);
-      }
+      if (err.name !== "AbortError") onError(err.message);
     });
 
   return controller;
@@ -176,40 +182,9 @@ export function chatWithKBStream(
     body: JSON.stringify({ question }),
     signal: controller.signal,
   })
-    .then(async (response) => {
-      const reader = response.body!.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.type === "token" || data.type === "answer") {
-                onToken(data.content);
-              } else if (data.type === "sources") {
-                onSources(data.content);
-              } else if (data.type === "error") {
-                onError(data.content);
-              }
-            } catch {
-              // skip malformed SSE
-            }
-          }
-        }
-      }
-      onDone();
-    })
+    .then((response) => readSSEStream(response, onToken, onSources, onDone, onError))
     .catch((err) => {
-      if (err.name !== "AbortError") {
-        onError(err.message);
-      }
+      if (err.name !== "AbortError") onError(err.message);
     });
 
   return controller;

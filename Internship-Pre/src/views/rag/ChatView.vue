@@ -148,8 +148,6 @@ const router = useRouter();
 const kbId = Number(route.query.id);
 const kbName = String(route.query.name || "知识库");
 
-if (!kbId || isNaN(kbId)) {
-}
 const validKb = !!kbId && !isNaN(kbId);
 
 interface Message {
