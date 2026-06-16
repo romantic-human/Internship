@@ -50,26 +50,25 @@ class DocumentProcessor:
 
     @staticmethod
     def generate_embeddings(texts: list[str]) -> list[list[float]]:
-        """调用通义千问 text-embedding-v3 批量向量化"""
-        import dashscope
-        from dashscope import TextEmbedding
+        """调用智谱 embedding-3 批量向量化（免费模型）"""
+        from openai import OpenAI
 
-        dashscope.api_key = settings.DASHSCOPE_API_KEY
+        client = OpenAI(
+            api_key=settings.DEEPSEEK_API_KEY,
+            base_url=settings.DEEPSEEK_BASE_URL,
+        )
 
         all_embeddings = []
-        batch_size = 25  # DashScope 单次最多 25 条
+        batch_size = 25  # 智谱单次最多 25 条
 
         for i in range(0, len(texts), batch_size):
             batch = texts[i:i + batch_size]
-            resp = TextEmbedding.call(
-                model="text-embedding-v3",
+            resp = client.embeddings.create(
+                model="embedding-3",
                 input=batch,
-                dimension=1024,
             )
-            if resp.status_code != 200:
-                raise RuntimeError(f"Embedding API 调用失败: {resp.code} - {resp.message}")
-            for item in resp.output["embeddings"]:
-                all_embeddings.append(item["embedding"])
+            for item in resp.data:
+                all_embeddings.append(item.embedding)
 
         return all_embeddings
 

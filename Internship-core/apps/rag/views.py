@@ -23,6 +23,7 @@ from .serializers import (
 from .services.vector_store import VectorStoreService
 from .services.document_processor import DocumentProcessor
 from .services.llm_service import LLMService
+from .services.image_processor import process_image_to_base64, validate_image
 
 logger = logging.getLogger(__name__)
 
@@ -239,6 +240,7 @@ class ChatView(APIView):
         serializer = ChatRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         question = serializer.validated_data["question"]
+        image_data = serializer.validated_data.get("image", "")
 
         # 验证知识库
         try:
@@ -268,7 +270,6 @@ class ChatView(APIView):
             sources = []
             for r in results:
                 meta = r.get("metadata", {})
-                # distance → relevance_score (cosine distance → similarity)
                 relevance = max(0, 1 - r.get("distance", 0))
                 sources.append({
                     "document_id": meta.get("doc_id", 0),
@@ -278,8 +279,11 @@ class ChatView(APIView):
                     "relevance_score": round(relevance, 4),
                 })
 
-            # 4. 调用 LLM
-            llm_result = LLMService.chat(question, results)
+            # 4. 调用 LLM（有图片用多模态，无图片用纯文本）
+            if image_data:
+                llm_result = LLMService.chat_with_image(question, image_data, results)
+            else:
+                llm_result = LLMService.chat(question, results)
 
             return APIResponse.success(data={
                 "answer": llm_result["answer"],
@@ -301,6 +305,7 @@ class ChatStreamView(APIView):
         serializer = ChatRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         question = serializer.validated_data["question"]
+        image_data = serializer.validated_data.get("image", "")
 
         try:
             kb = KnowledgeBase.objects.get(id=kb_id, status=1)
@@ -334,8 +339,13 @@ class ChatStreamView(APIView):
                         "relevance_score": round(relevance, 4),
                     })
 
-                for sse_data in LLMService.chat_stream(question, results):
-                    yield sse_data
+                # 有图片用多模态流式，无图片用纯文本流式
+                if image_data:
+                    for sse_data in LLMService.chat_with_image_stream(question, image_data, results):
+                        yield sse_data
+                else:
+                    for sse_data in LLMService.chat_stream(question, results):
+                        yield sse_data
 
                 yield f"data: {json.dumps({'type': 'sources', 'content': sources})}\n\n"
                 yield f"data: {json.dumps({'type': 'done'})}\n\n"
