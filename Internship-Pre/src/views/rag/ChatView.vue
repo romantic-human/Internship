@@ -341,8 +341,8 @@ function clearHistory() {
 </script>
 
 <style scoped>
-.chat-container { height: calc(100vh - 140px); display: flex; flex-direction: column; }
-.chat-card { flex: 1; display: flex; flex-direction: column; }
+.chat-container { height: calc(100vh - 140px); display: flex; flex-direction: column; overflow: hidden; }
+.chat-card { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0; }
 .header-left { display: flex; align-items: center; }
 
@@ -352,8 +352,7 @@ function clearHistory() {
   padding: 16px 0;
   border: 1px solid #ebeef5;
   border-radius: 8px;
-  margin-bottom: 12px;
-  min-height: 200px;
+  min-height: 0;
 }
 
 .empty-state {
@@ -418,6 +417,12 @@ function clearHistory() {
   flex-direction: column;
   flex-shrink: 0;
   gap: 6px;
+  position: sticky;
+  bottom: 0;
+  background: white;
+  padding: 12px 0;
+  border-top: 1px solid #ebeef5;
+  z-index: 10;
 }
 
 .input-toolbar {
@@ -450,5 +455,14 @@ function clearHistory() {
 .input-row {
   display: flex;
   align-items: flex-end;
+}
+
+/* 确保 el-card 内容区域正确滚动 */
+.chat-card :deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: 0;
 }
 </style>

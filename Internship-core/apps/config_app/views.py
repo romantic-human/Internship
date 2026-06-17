@@ -380,16 +380,29 @@ class AIModelConfigViewSet(viewsets.ModelViewSet):
                 api_key=instance.api_key,
                 base_url=instance.api_base_url,
             )
-            # 发送简单测试请求
-            response = client.chat.completions.create(
-                model=instance.model_name,
-                messages=[{"role": "user", "content": "你好"}],
-                max_tokens=10,
-            )
-            return APIResponse.success(message="连接成功", data={
-                "model": instance.model_name,
-                "response": response.choices[0].message.content[:100] if response.choices else "",
-            })
+
+            if instance.model_type == "embedding":
+                # Embedding 模型用 embeddings API 测试
+                response = client.embeddings.create(
+                    model=instance.model_name,
+                    input="Hello",
+                )
+                dim = len(response.data[0].embedding)
+                return APIResponse.success(message="连接成功", data={
+                    "model": instance.model_name,
+                    "response": f"向量维度: {dim}",
+                })
+            else:
+                # Chat / Multimodal 模型用 chat completions API 测试
+                response = client.chat.completions.create(
+                    model=instance.model_name,
+                    messages=[{"role": "user", "content": "你好"}],
+                    max_tokens=10,
+                )
+                return APIResponse.success(message="连接成功", data={
+                    "model": instance.model_name,
+                    "response": response.choices[0].message.content[:100] if response.choices else "",
+                })
         except Exception as e:
             return APIResponse.error(message=f"连接失败：{str(e)}")
 

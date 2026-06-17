@@ -80,9 +80,9 @@ class LLMService:
 
     @classmethod
     def generate_query_embedding(cls, text: str, model_id: Optional[int] = None) -> list[float]:
-        """单条文本向量化（用于问答检索）"""
-        config = get_model_config("embedding", model_id)
-        client = cls._get_client("embedding", model_id)
+        """单条文本向量化（用于问答检索）— 始终使用默认 embedding 模型"""
+        config = get_model_config("embedding")  # 不传 model_id，用默认 embedding 模型
+        client = cls._get_client("embedding")
         resp = client.embeddings.create(
             model=config["model_name"],
             input=text,
@@ -112,7 +112,7 @@ class LLMService:
             model=config["model_name"],
             messages=messages,
             temperature=0.3,
-            max_tokens=2000,
+            max_tokens=1024,
         )
 
         answer = response.choices[0].message.content or ""
@@ -143,7 +143,7 @@ class LLMService:
             model=config["model_name"],
             messages=messages,
             temperature=0.3,
-            max_tokens=2000,
+            max_tokens=1024,
             stream=True,
         )
 
@@ -158,8 +158,7 @@ class LLMService:
     def multimodal_chat_stream(
         cls, question: str, context_chunks: list[dict], image_paths: list[str] | None = None,
     ) -> Generator[str, None, None]:
-        import dashscope
-        from dashscope import MultiModalConversation
+        """多模态流式问答 — 使用智谱 GLM-4V 模型"""
 
         context_parts = []
         for i, chunk in enumerate(context_chunks, 1):
@@ -182,40 +181,51 @@ class LLMService:
 参考资料：
 {context_text}"""
 
-        user_content: list[dict] = [{"text": question}]
+        # 构建多模态消息内容
+        user_content: list[dict] = []
         if image_paths:
             for img_path in image_paths:
                 try:
                     abs_path = os.path.abspath(img_path)
-                    user_content.append({"image": f"file://{abs_path}"})
+                    with open(abs_path, "rb") as f:
+                        import base64
+                        img_base64 = base64.b64encode(f.read()).decode("utf-8")
+                    # 根据文件扩展名确定 mime type
+                    ext = os.path.splitext(abs_path)[1].lower()
+                    mime_map = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".gif": "image/gif", ".webp": "image/webp"}
+                    mime_type = mime_map.get(ext, "image/jpeg")
+                    user_content.append({
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{mime_type};base64,{img_base64}"},
+                    })
                 except Exception as e:
                     logger.warning("添加图片失败 %s: %s", img_path, e)
 
+        user_content.append({"type": "text", "text": question})
+
         messages = [
-            {"role": "system", "content": [{"text": MULTIMODAL_PROMPT}]},
+            {"role": "system", "content": MULTIMODAL_PROMPT},
             {"role": "user", "content": user_content},
         ]
 
-        dashscope.api_key = settings.DASHSCOPE_API_KEY
-        model = settings.DASHSCOPE_CHAT_MODEL
+        # 使用多模态模型配置（从数据库读取）
+        config = get_model_config("multimodal")
+        client = OpenAI(
+            api_key=config["api_key"],
+            base_url=config["api_base_url"],
+        )
 
-        responses = MultiModalConversation.call(
-            model=model,
+        response = client.chat.completions.create(
+            model=config["model_name"],
             messages=messages,
+            temperature=0.3,
+            max_tokens=1024,
             stream=True,
         )
 
-        prev_text = ""
-        for chunk in responses:
-            if chunk.output and chunk.output.get("choices"):
-                choice = chunk.output["choices"][0]
-                if choice.get("message") and choice["message"].get("content"):
-                    for item in choice["message"]["content"]:
-                        if item.get("text"):
-                            cur = item["text"]
-                            delta = cur[len(prev_text):]
-                            if delta:
-                                yield f"data: {json.dumps({'type': 'token', 'content': delta})}\n\n"
-                            prev_text = cur
+        for chunk in response:
+            delta = chunk.choices[0].delta if chunk.choices else None
+            if delta and delta.content:
+                yield f"data: {json.dumps({'type': 'token', 'content': delta.content})}\n\n"
 
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
