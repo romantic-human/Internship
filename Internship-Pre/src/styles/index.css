@@ -1,37 +1,82 @@
 @import "./variables.css";
 
 /* ========== Reset & Base ========== */
-*, *::before, *::after { box-sizing: border-box; }
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
-  font-family: var(--font-family);
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: var(--text-primary);
   background: var(--bg-color);
+  min-height: 100vh;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+a:hover {
+  color: var(--primary-dark);
 }
 
 /* ========== Page Transition ========== */
 .fade-slide-enter-active,
 .fade-slide-leave-active {
-  transition: all 0.25s ease;
+  transition: all var(--transition-normal);
 }
 .fade-slide-enter-from {
   opacity: 0;
-  transform: translateX(16px);
+  transform: translateY(12px);
 }
 .fade-slide-leave-to {
   opacity: 0;
-  transform: translateX(-16px);
+  transform: translateY(-12px);
 }
 
 /* ========== Scrollbar ========== */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--text-placeholder); border-radius: 3px; }
+::-webkit-scrollbar-thumb {
+  background: var(--text-tertiary);
+  border-radius: var(--radius-full);
+  transition: background var(--transition-fast);
+}
 ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
 
-/* ========== Card Header ========== */
+/* ========== Card ========== */
+.el-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-card);
+  transition: all var(--transition-normal);
+  overflow: hidden;
+  background: var(--card-bg);
+}
+.el-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.el-card__header {
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-color);
+}
+
 .el-card__header .card-header {
   display: flex;
   justify-content: space-between;
@@ -41,42 +86,529 @@ body {
   font-weight: 600;
   font-size: 15px;
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 .el-card__header .card-header .el-button + .el-button {
-  margin-left: 8px;
+  margin-left: var(--space-2);
+}
+
+.el-card__body {
+  padding: var(--space-5) var(--space-6);
+}
+
+/* 暗色模式卡片 */
+:global(.dark) .el-card {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+:global(.dark) .el-card__header {
+  background: var(--bg-color-secondary);
+  border-bottom-color: var(--border-color);
 }
 
 /* ========== Table ========== */
-.el-table { border-radius: var(--border-radius-sm); }
+.el-table {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
 .el-table th.el-table__cell {
   font-weight: 600;
   color: var(--text-secondary);
-  background: var(--el-fill-color-light, #f5f7fa);
+  background: var(--bg-color) !important;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.el-table td.el-table__cell {
+  padding: var(--space-3) 0;
 }
 .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
-  background: var(--el-fill-color-lighter, #fafafa);
+  background: var(--bg-color);
+}
+.el-table .el-table__row {
+  transition: background-color var(--transition-fast);
+}
+.el-table .el-table__row:hover > td.el-table__cell {
+  background-color: var(--primary-light) !important;
+}
+
+/* 暗色模式表格悬浮 */
+:global(.dark) .el-table .el-table__row:hover > td.el-table__cell {
+  background-color: rgba(99, 102, 241, 0.05) !important;
 }
 
 /* ========== Empty ========== */
-.el-empty { padding: 32px 0; }
+.el-empty { padding: var(--space-12) 0; }
+.el-empty__description p {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
 
 /* ========== Pagination ========== */
-.el-pagination { margin-top: 16px; justify-content: flex-end; }
-
-/* ========== El-card ========== */
-.el-card { border-radius: var(--border-radius); border: 1px solid var(--border-color); }
-.el-card__header {
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border-color);
-  min-height: 48px;
+.el-pagination {
+  margin-top: var(--space-5);
+  justify-content: flex-end;
+  padding: var(--space-2) 0;
 }
 
 /* ========== Form ========== */
-.mb-2 { margin-bottom: 12px; }
-.mr-2 { margin-right: 8px; }
+.mb-2 { margin-bottom: var(--space-4); }
+.mr-2 { margin-right: var(--space-2); }
+
+.el-form-item__label {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.el-input__wrapper,
+.el-select__wrapper,
+.el-textarea__inner {
+  border-radius: var(--radius-md) !important;
+  transition: all var(--transition-fast) !important;
+}
+.el-input__wrapper:focus-within,
+.el-select__wrapper:focus-within,
+.el-textarea__inner:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+  border-color: var(--primary-color) !important;
+}
+
+/* 暗色模式输入框 */
+:global(.dark) .el-input__wrapper,
+:global(.dark) .el-select__wrapper,
+:global(.dark) .el-textarea__inner {
+  background: var(--bg-color-secondary);
+  border-color: var(--border-color);
+}
+
+:global(.dark) .el-input__wrapper:focus-within,
+:global(.dark) .el-select__wrapper:focus-within,
+:global(.dark) .el-textarea__inner:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
+}
+
+/* ========== Button ========== */
+.el-button {
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  font-family: var(--font-body);
+}
+.el-button:hover {
+  transform: translateY(-1px);
+}
+.el-button:active {
+  transform: translateY(0);
+}
+.el-button--primary {
+  background: var(--primary-gradient);
+  border: none;
+  box-shadow: var(--shadow-primary);
+}
+.el-button--primary:hover {
+  background: var(--primary-gradient-vivid);
+  box-shadow: 0 12px 20px -5px rgba(99, 102, 241, 0.4);
+}
+
+/* 暗色模式主按钮 */
+:global(.dark) .el-button--primary {
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+:global(.dark) .el-button--primary:hover {
+  box-shadow: 0 8px 16px rgba(99, 102, 241, 0.4);
+}
 
 /* ========== Tag ========== */
-.el-tag { border-radius: 4px; }
+.el-tag {
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  border: none;
+  font-family: var(--font-body);
+}
+.el-tag--small {
+  padding: 0 var(--space-2);
+  height: 22px;
+  font-size: 12px;
+}
 
 /* ========== Switch ========== */
-.el-switch { --el-switch-off-color: #c0c4cc; }
+.el-switch {
+  --el-switch-off-color: var(--text-placeholder);
+}
+.el-switch__core {
+  border-radius: var(--radius-full);
+}
+
+/* ========== Dialog ========== */
+.el-dialog {
+  border-radius: var(--radius-2xl) !important;
+  overflow: hidden;
+  box-shadow: var(--shadow-2xl) !important;
+  border: 1px solid var(--border-color);
+}
+.el-dialog__header {
+  padding: var(--space-5) var(--space-6);
+  margin: 0;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-color);
+}
+.el-dialog__title {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+}
+.el-dialog__body {
+  padding: var(--space-6);
+}
+.el-dialog__footer {
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-color);
+}
+
+/* 暗色模式弹窗 */
+:global(.dark) .el-dialog {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+:global(.dark) .el-dialog__header {
+  background: var(--bg-color-secondary);
+  border-bottom-color: var(--border-color);
+}
+
+:global(.dark) .el-dialog__footer {
+  background: var(--bg-color-secondary);
+  border-top-color: var(--border-color);
+}
+
+/* ========== Select Dropdown ========== */
+.el-select-dropdown {
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+  border: 1px solid var(--border-color) !important;
+}
+.el-select-dropdown__item {
+  padding: var(--space-2) var(--space-4);
+  font-size: 14px;
+}
+.el-select-dropdown__item.is-hovering {
+  background: var(--primary-light);
+}
+.el-select-dropdown__item.is-selected {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* 暗色模式下拉 */
+:global(.dark) .el-select-dropdown {
+  background: var(--card-bg);
+  border-color: var(--border-color) !important;
+}
+
+:global(.dark) .el-select-dropdown__item {
+  color: var(--text-primary);
+}
+
+:global(.dark) .el-select-dropdown__item.is-hovering {
+  background: rgba(99, 102, 241, 0.08);
+}
+
+/* ========== Message ========== */
+.el-message {
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+  border: none !important;
+  font-family: var(--font-body);
+}
+
+/* 暗色模式消息 */
+:global(.dark) .el-message {
+  background: var(--card-bg);
+  color: var(--text-primary);
+}
+
+/* ========== Notification ========== */
+.el-notification {
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-xl) !important;
+  border: none !important;
+}
+
+/* 暗色模式通知 */
+:global(.dark) .el-notification {
+  background: var(--card-bg);
+}
+
+:global(.dark) .el-notification__title {
+  color: var(--text-primary);
+}
+
+:global(.dark) .el-notification__content {
+  color: var(--text-secondary);
+}
+
+/* ========== Loading ========== */
+.el-loading-mask {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+}
+
+/* 暗色模式加载 */
+:global(.dark) .el-loading-mask {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* ========== Tree ========== */
+.el-tree-node__content {
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast);
+}
+.el-tree-node__content:hover {
+  background-color: var(--primary-light);
+}
+.el-tree-node.is-current > .el-tree-node__content {
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+/* 暗色模式树 */
+:global(.dark) .el-tree-node__content:hover {
+  background-color: rgba(99, 102, 241, 0.05);
+}
+
+:global(.dark) .el-tree-node.is-current > .el-tree-node__content {
+  background-color: rgba(99, 102, 241, 0.1);
+  color: var(--primary-color);
+}
+
+/* ========== Collapse ========== */
+.el-collapse-item__header {
+  font-weight: 500;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+.el-collapse-item__wrap {
+  border-bottom: none;
+}
+
+/* 暗色模式折叠 */
+:global(.dark) .el-collapse-item__header {
+  color: var(--text-primary);
+  border-bottom-color: var(--border-color);
+}
+
+:global(.dark) .el-collapse-item__wrap {
+  background: var(--card-bg);
+}
+
+/* ========== Upload ========== */
+.el-upload-dragger {
+  border-radius: var(--radius-lg) !important;
+  border: 2px dashed var(--border-color) !important;
+  transition: all var(--transition-fast) !important;
+}
+.el-upload-dragger:hover {
+  border-color: var(--primary-color) !important;
+  background: var(--primary-light) !important;
+}
+
+/* ========== Breadcrumb ========== */
+.el-breadcrumb__item {
+  font-size: 13px;
+}
+.el-breadcrumb__inner {
+  color: var(--text-secondary);
+}
+.el-breadcrumb__inner.is-link:hover {
+  color: var(--primary-color);
+}
+
+/* ========== Dropdown ========== */
+.el-dropdown-menu {
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+  border: 1px solid var(--border-color) !important;
+  padding: var(--space-1) !important;
+}
+.el-dropdown-menu__item {
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+}
+.el-dropdown-menu__item:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+/* ========== Tabs ========== */
+.el-tabs__item {
+  font-weight: 500;
+  transition: color var(--transition-fast);
+}
+.el-tabs__item.is-active {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+.el-tabs__active-bar {
+  background: var(--primary-gradient);
+  border-radius: var(--radius-full);
+}
+
+/* ========== Badge ========== */
+.el-badge__content {
+  font-weight: 600;
+  box-shadow: 0 0 0 2px var(--card-bg);
+}
+
+/* ========== Tooltip ========== */
+.el-tooltip__popper {
+  border-radius: var(--radius-sm) !important;
+  font-size: 12px !important;
+}
+
+/* ========== 暗色模式全局悬浮样式 ========== */
+:global(.dark) .el-dropdown-menu__item:hover {
+  background: rgba(99, 102, 241, 0.08) !important;
+  color: var(--primary-color) !important;
+}
+
+:global(.dark) .el-select-dropdown__item.is-hovering {
+  background: rgba(99, 102, 241, 0.08) !important;
+}
+
+:global(.dark) .el-tree-node__content:hover {
+  background-color: rgba(99, 102, 241, 0.05) !important;
+}
+
+:global(.dark) .el-upload-dragger:hover {
+  border-color: var(--primary-color) !important;
+  background: rgba(99, 102, 241, 0.03) !important;
+}
+
+:global(.dark) .el-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+:global(.dark) .el-button--default:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+/* ========== Animations ========== */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.3s ease forwards;
+}
+
+/* ========== Utility Classes ========== */
+.text-gradient {
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glass {
+  background: var(--card-bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.card-hover {
+  transition: all var(--transition-normal);
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ========== Typography ========== */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.text-mono {
+  font-family: var(--font-mono);
+  font-variant-ligatures: none;
+}

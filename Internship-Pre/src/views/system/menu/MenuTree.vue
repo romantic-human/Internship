@@ -113,6 +113,9 @@ import { markRaw, shallowRef, type Component } from "vue";
 import * as ElementPlusIcons from "@element-plus/icons-vue";
 import MenuForm from "./MenuForm.vue";
 import Sortable from "sortablejs";
+import { useAuthStore } from "@/store/auth";
+
+const authStore = useAuthStore();
 
 const iconMap: Record<string, Component> = {};
 for (const [key, comp] of Object.entries(ElementPlusIcons)) {
@@ -250,6 +253,15 @@ function initDragSort() {
           await batchSortMenu(payload);
           ElMessage.success('排序更新成功');
           await fetchTree();
+          // 刷新侧边栏菜单
+          try {
+            await authStore.refreshMenuTree();
+            console.log('侧边栏菜单已刷新');
+          } catch (e) {
+            console.error('刷新侧边栏失败:', e);
+          }
+          // 重新初始化拖拽
+          initDragSort();
         } catch { /* handled by interceptor */ }
       },
     });

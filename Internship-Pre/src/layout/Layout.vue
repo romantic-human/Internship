@@ -2,8 +2,8 @@
   <el-container class="layout-container">
     <el-aside :width="sidebarCollapsed ? '64px' : '220px'" class="layout-aside">
       <div class="logo" :style="{ width: sidebarCollapsed ? '64px' : '220px' }">
-        <span v-if="!sidebarCollapsed">管理系统</span>
-        <span v-else>M</span>
+        <span v-if="!sidebarCollapsed">企业智能分析平台</span>
+        <span v-else>智</span>
       </div>
       <div class="menu-scroll">
       <div v-if="!sidebarCollapsed" class="breadcrumb-bar">
@@ -162,27 +162,219 @@ function handleLogout() {
 
 <style scoped>
 .layout-container { height: 100vh; }
-.layout-aside { background: var(--sidebar-bg); transition: width 0.28s; overflow: hidden; display: flex; flex-direction: column; }
-.logo { height: 56px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; font-weight: 700; background: rgba(0,0,0,0.15); white-space: nowrap; overflow: hidden; letter-spacing: 1px; }
-.layout-menu { border-right: none; }
-.breadcrumb-bar { display: flex; align-items: center; gap: 6px; padding: 10px 20px; color: rgba(255,255,255,0.6); font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.breadcrumb-bar .el-icon { font-size: 14px; flex-shrink: 0; }
-.menu-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; }
+
+/* ── 侧边栏 ──────────────────────────────────────── */
+.layout-aside {
+  background: var(--sidebar-bg);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 10;
+}
+
+.logo {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  overflow: hidden;
+  letter-spacing: 2px;
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.layout-menu {
+  border-right: none;
+}
+
+.breadcrumb-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.breadcrumb-bar .el-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.menu-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0;
+}
 .menu-scroll::-webkit-scrollbar { width: 4px; }
-.menu-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+.menu-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
 .menu-scroll::-webkit-scrollbar-track { background: transparent; }
-.layout-main { display: flex; flex-direction: column; }
-.layout-header { display: flex; align-items: center; justify-content: space-between; height: 50px; background: var(--el-bg-color, #fff); border-bottom: 1px solid var(--el-border-color-light, #e4e7ed); padding: 0 16px; }
-.header-right { display: flex; align-items: center; gap: 12px; }
-.theme-btn { font-size: 18px; cursor: pointer; color: #909399; transition: color 0.3s, transform 0.3s; }
-.theme-btn:hover { color: #409EFF; transform: rotate(15deg); }
-.user-dropdown { display: flex; align-items: center; gap: 6px; cursor: pointer; }
-.username { font-size: 14px; color: var(--el-text-color-regular, #606266); }
-.layout-content { background: var(--el-bg-color-page, #f5f7fa); padding: 16px; overflow-y: auto; height: calc(100vh - 50px); }
-:deep(.el-menu) { background: #304156; }
-:deep(.el-menu-item), :deep(.el-sub-menu__title) { color: #bfcbd9; }
-:deep(.el-menu-item:hover), :deep(.el-sub-menu__title:hover) { background: #263445; }
-:deep(.el-menu-item.is-active) { color: #409eff; background: #263445; }
-.collapse-all-btn { display: flex; align-items: center; gap: 6px; padding: 10px 20px; color: #bfcbd9; cursor: pointer; font-size: 13px; transition: background 0.2s; border-top: 1px solid rgba(255,255,255,0.06); }
-.collapse-all-btn:hover { background: #263445; }
+
+/* ── 菜单项样式 ──────────────────────────────────────── */
+:deep(.el-menu) {
+  background: transparent;
+  border-right: none;
+}
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--sidebar-text);
+  border-radius: 8px;
+  margin: 2px 8px;
+  height: 44px;
+  line-height: 44px;
+  transition: all 0.2s ease;
+}
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  background: var(--sidebar-hover);
+  color: #fff;
+}
+:deep(.el-menu-item.is-active) {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.4) 0%, rgba(139, 92, 246, 0.3) 100%);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+}
+:deep(.el-sub-menu .el-menu-item) {
+  padding-left: 52px !important;
+  height: 40px;
+  line-height: 40px;
+  font-size: 13px;
+}
+
+/* 暗色模式下的菜单样式 */
+:global(.dark) :deep(.el-menu-item:hover),
+:global(.dark) :deep(.el-sub-menu__title:hover) {
+  background: rgba(255, 255, 255, 0.05);
+  color: #c7d2fe;
+}
+:global(.dark) :deep(.el-menu-item.is-active) {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(139, 92, 246, 0.2) 100%);
+  color: #fff;
+}
+
+.collapse-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  color: var(--sidebar-text);
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.collapse-all-btn:hover {
+  background: var(--sidebar-hover);
+  color: #fff;
+}
+
+/* 暗色模式下的折叠按钮 */
+:global(.dark) .collapse-all-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ── 主内容区 ──────────────────────────────────────── */
+.layout-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.layout-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-height, 56px);
+  background: var(--header-bg, rgba(255, 255, 255, 0.8));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.theme-btn {
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+  padding: 6px;
+  border-radius: 8px;
+}
+.theme-btn:hover {
+  color: var(--primary-color);
+  transform: rotate(15deg);
+  background: var(--primary-light);
+}
+
+/* 暗色模式下的主题按钮 */
+:global(.dark) .theme-btn:hover {
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.user-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 12px 4px 4px;
+  border-radius: 24px;
+  transition: all 0.2s ease;
+}
+.user-dropdown:hover {
+  background: var(--bg-color-secondary);
+}
+
+/* 暗色模式下的用户下拉 */
+:global(.dark) .user-dropdown:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.username {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.layout-content {
+  background: var(--bg-color);
+  padding: 20px 24px;
+  overflow-y: auto;
+  height: calc(100vh - var(--header-height, 56px));
+  min-width: 0;
+}
+
+/* ── 暗色模式 ──────────────────────────────────────── */
+:global(.dark) .layout-header {
+  background: rgba(15, 23, 42, 0.85);
+  border-bottom-color: var(--border-color);
+}
+:global(.dark) .layout-content {
+  background: var(--bg-color);
+}
 </style>
