@@ -251,30 +251,21 @@ onUnmounted(() => {
 <style>
 .dashboard { padding: 16px; }
 .welcome-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.welcome-header h2 { font-size: 20px; color: var(--text-primary); margin: 0 0 2px; }
-.time-text { font-size: 13px; color: var(--text-secondary); margin: 0; font-family: monospace; }
+.welcome-header h2 { font-size: 20px; color: var(--text-primary); margin: 0 0 2px; font-weight: 600; }
+.time-text { font-size: 13px; color: var(--text-secondary); margin: 0; font-family: "JetBrains Mono", monospace; }
 .stats-row { margin-bottom: 16px; }
-.stat-card { cursor: default; transition: transform 0.2s, box-shadow 0.2s; border-top: 3px solid var(--card-color); }
-.stat-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px var(--shadow-color); }
-.stat-inner { display: flex; align-items: center; gap: 12px; }
-.stat-icon { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; background: var(--card-color); }
+.stat-card { cursor: default; transition: transform 0.25s, box-shadow 0.25s; border: none; background: linear-gradient(135deg, var(--card-color), color-mix(in srgb, var(--card-color) 70%, #fff)) !important; }
+.stat-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px color-mix(in srgb, var(--card-color) 30%, transparent); }
+.stat-inner { display: flex; align-items: center; gap: 14px; }
+.stat-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; background: rgba(255,255,255,0.2); backdrop-filter: blur(4px); flex-shrink: 0; }
 .stat-info { display: flex; flex-direction: column; }
-.stat-value { font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
-.stat-label { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+.stat-value { font-size: 26px; font-weight: 700; color: #fff; line-height: 1.2; text-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+.stat-label { font-size: 13px; color: rgba(255,255,255,0.8); margin-top: 2px; }
 .card-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-weight: 600; font-size: 15px; }
 .log-stats-badge { display: flex; gap: 6px; }
-.logs-row { margin-top: 0; }
-.log-stats { display: flex; flex-direction: column; gap: 16px; }
-.log-stat-item { display: flex; flex-direction: column; gap: 4px; }
-.log-stat-label { font-size: 14px; color: #606266; }
 
-.dark .welcome-header h2 { color: #e0e2e8; }
-.dark .stat-value { color: #e0e2e8; }
-.dark .time-text { color: #8b8d97; }
-.dark .stat-label { color: #8b8d97; }
-.dark .card-header { color: #c8cad0; }
-.dark .dashboard .el-card { background: #1e1f28; border-color: #2a2b35; }
-.dark .dashboard .el-card__header { border-bottom-color: #2a2b35; color: #c8cad0; }
+.dark .dashboard .el-card:not(.stat-card) { background: #1e1f28; border-color: #2a2b35; }
+.dark .dashboard .el-card__header { border-bottom-color: #2a2b35; }
 .dark .dashboard .el-table { --el-table-bg-color: #1a1b23; --el-table-tr-bg-color: #1a1b23; --el-table-header-bg-color: #1e1f28; --el-table-row-hover-bg-color: #25262f; --el-table-border-color: #2a2b35; --el-table-text-color: #c8cad0; --el-table-header-text-color: #8b8d97; }
 .dark .dashboard .el-tag { --el-tag-bg-color: rgba(64,158,255,0.15); --el-tag-border-color: transparent; --el-tag-text-color: #79b8f8; }
 

@@ -1,3 +1,16 @@
+@import "./variables.css";
+
+/* ========== Reset & Base ========== */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--text-primary);
+  background: var(--bg-color);
+}
+
 /* ========== Page Transition ========== */
 .fade-slide-enter-active,
 .fade-slide-leave-active {
@@ -15,8 +28,55 @@
 /* ========== Scrollbar ========== */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #c0c4cc; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #909399; }
+::-webkit-scrollbar-thumb { background: var(--text-placeholder); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
 
-/* ========== Element Plus Overrides ========== */
-body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+/* ========== Card Header ========== */
+.el-card__header .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.el-card__header .card-header > span:first-child {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+.el-card__header .card-header .el-button + .el-button {
+  margin-left: 8px;
+}
+
+/* ========== Table ========== */
+.el-table { border-radius: var(--border-radius-sm); }
+.el-table th.el-table__cell {
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+  background: var(--el-fill-color-lighter, #fafafa);
+}
+
+/* ========== Empty ========== */
+.el-empty { padding: 32px 0; }
+
+/* ========== Pagination ========== */
+.el-pagination { margin-top: 16px; justify-content: flex-end; }
+
+/* ========== El-card ========== */
+.el-card { border-radius: var(--border-radius); border: 1px solid var(--border-color); }
+.el-card__header {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-color);
+  min-height: 48px;
+}
+
+/* ========== Form ========== */
+.mb-2 { margin-bottom: 12px; }
+.mr-2 { margin-right: 8px; }
+
+/* ========== Tag ========== */
+.el-tag { border-radius: 4px; }
+
+/* ========== Switch ========== */
+.el-switch { --el-switch-off-color: #c0c4cc; }

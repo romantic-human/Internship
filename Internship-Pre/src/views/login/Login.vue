@@ -1,15 +1,9 @@
 <template>
   <div class="login-container">
-    <!-- 动态波浪背景 -->
-    <div class="wave-bg">
-      <svg class="wave-svg" viewBox="0 0 1440 320" preserveAspectRatio="none">
-        <path class="wave-1" fill="rgba(255,255,255,0.08)"
-          d="M0,160L48,144C96,128,192,96,288,106.7C384,117,480,171,576,181.3C672,192,768,160,864,138.7C960,117,1056,107,1152,112C1248,117,1344,139,1392,149.3L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z" />
-        <path class="wave-2" fill="rgba(255,255,255,0.06)"
-          d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,202.7C672,203,768,181,864,170.7C960,160,1056,160,1152,165.3C1248,171,1344,181,1392,186.7L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z" />
-        <path class="wave-3" fill="rgba(255,255,255,0.04)"
-          d="M0,256L48,245.3C96,235,192,213,288,213.3C384,213,480,235,576,234.7C672,235,768,213,864,202.7C960,192,1056,192,1152,197.3C1248,203,1344,213,1392,218.7L1440,224L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z" />
-      </svg>
+    <div class="login-bg-shapes">
+      <div class="shape shape-1" />
+      <div class="shape shape-2" />
+      <div class="shape shape-3" />
     </div>
 
     <div class="login-wrapper">
@@ -49,9 +43,15 @@
       <div class="login-card">
         <div class="login-header">
           <div class="login-logo">
-            <svg viewBox="0 0 40 40" width="40" height="40">
-              <rect width="40" height="40" rx="10" fill="var(--el-color-primary)" />
-              <text x="20" y="27" text-anchor="middle" fill="#fff" font-size="20" font-weight="bold">O</text>
+            <svg viewBox="0 0 48 48" width="48" height="48">
+              <defs>
+                <linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#409eff" />
+                  <stop offset="100%" stop-color="#6366f1" />
+                </linearGradient>
+              </defs>
+              <rect width="48" height="48" rx="12" fill="url(#lg)" />
+              <text x="24" y="31" text-anchor="middle" fill="#fff" font-size="22" font-weight="bold">O</text>
             </svg>
           </div>
           <h2 class="login-title">组织架构管理系统</h2>
@@ -71,7 +71,6 @@
               v-model="form.username"
               placeholder="请输入用户名"
               :prefix-icon="User"
-              class="login-input"
             />
           </el-form-item>
 
@@ -82,7 +81,6 @@
               placeholder="请输入密码"
               show-password
               :prefix-icon="Lock"
-              class="login-input"
             />
           </el-form-item>
 
@@ -173,28 +171,42 @@ async function handleLogin() {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-/* ── 波浪背景 ──────────────────────────────────────────── */
-.wave-bg {
+/* ── 背景装饰形状 ──────────────────────────────────────── */
+.login-bg-shapes {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 50%;
+  inset: 0;
   pointer-events: none;
+  overflow: hidden;
 }
-
-.wave-svg {
-  width: 100%;
-  height: 100%;
+.shape {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.15;
+  animation: shapeFloat 20s ease-in-out infinite;
 }
-
-.wave-1 { animation: waveMove 8s ease-in-out infinite alternate; }
-.wave-2 { animation: waveMove 10s ease-in-out infinite alternate-reverse; }
-.wave-3 { animation: waveMove 12s ease-in-out infinite alternate; }
-
-@keyframes waveMove {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50px); }
+.shape-1 {
+  width: 600px; height: 600px;
+  background: #6366f1;
+  top: -200px; right: -100px;
+  animation-delay: 0s;
+}
+.shape-2 {
+  width: 400px; height: 400px;
+  background: #409eff;
+  bottom: -100px; left: -100px;
+  animation-delay: -7s;
+}
+.shape-3 {
+  width: 300px; height: 300px;
+  background: #f472b6;
+  top: 50%; left: 50%;
+  animation-delay: -14s;
+}
+@keyframes shapeFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -30px) scale(1.05); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
 }
 
 /* ── 左右布局 ──────────────────────────────────────────── */
@@ -266,10 +278,16 @@ async function handleLogin() {
 .login-card {
   width: 400px;
   padding: 40px 36px 28px;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.2);
-  transition: box-shadow 0.3s, background-color 0.3s;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0,0,0,0.05);
+  transition: box-shadow 0.3s, background-color 0.3s, transform 0.3s;
+  animation: cardIn 0.6s ease-out;
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .login-header {
@@ -321,10 +339,14 @@ async function handleLogin() {
 
 .login-btn {
   width: 100%;
-  height: 44px;
-  border-radius: 8px;
+  height: 46px;
+  border-radius: 10px;
   font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  transition: all 0.3s;
 }
+.login-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(64,158,255,0.4); }
 
 /* ── 底部 ──────────────────────────────────────────────── */
 .login-footer {
@@ -342,23 +364,22 @@ async function handleLogin() {
 
 /* ── 夜间模式 ──────────────────────────────── */
 .dark .login-container {
-  background: linear-gradient(135deg, #1a1b23 0%, #1e1f2a 50%, #22232d 100%);
+  background: linear-gradient(135deg, #0f1019 0%, #1a1b28 50%, #1e1f2a 100%);
 }
-
 .dark .login-card {
-  background: #1e1f28;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+  background: rgba(30,31,40,0.95);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
 }
-
 .dark .login-title { color: #e0e2e8; }
 .dark .login-subtitle { color: #a0a2a8; }
 .dark .login-footer { border-top-color: #2a2b36; }
 .dark .copyright { color: #585a60; }
-.dark .el-input__wrapper { background: #2a2b36; box-shadow: 0 0 0 1px #333440; }
-.dark .el-input__inner { color: #e0e2e8; }
-.dark .el-checkbox__label { color: #a0a2a8; }
 .dark .illustration-title,
 .dark .illustration-desc,
 .dark .feature-item { color: #c8cad0 !important; }
+.dark .shape-1 { opacity: 0.08; }
+.dark .shape-2 { opacity: 0.08; }
+.dark .shape-3 { opacity: 0.06; }
 
 </style>
