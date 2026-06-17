@@ -197,28 +197,28 @@ class Command(BaseCommand):
         models_data = [
             # 对话模型
             dict(name="智谱 GLM-4-Flash", provider="zhipu", model_type="chat", model_name="glm-4-flash",
-                 api_key="{{ZHIPU_API_KEY}}", api_base_url="https://open.bigmodel.cn/api/paas/v4",
-                 is_default=True, status=1, remark="智谱免费模型，适合对话测试"),
+                 api_key="", api_base_url="https://open.bigmodel.cn/api/paas/v4",
+                 is_default=True, status=1, remark="智谱免费模型，适合对话测试。需在 .env 配置 ZHIPU_API_KEY"),
             dict(name="阿里云 通义千问-Turbo", provider="dashscope", model_type="chat", model_name="qwen-turbo",
-                 api_key="{{DASHSCOPE_API_KEY}}", api_base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-                 is_default=False, status=1, remark="阿里云轻量版对话模型"),
+                 api_key="", api_base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+                 is_default=False, status=1, remark="阿里云轻量版对话模型。需在 .env 配置 DASHSCOPE_API_KEY"),
             dict(name="OpenAI GPT-4o-mini", provider="openai", model_type="chat", model_name="gpt-4o-mini",
-                 api_key="{{OPENAI_API_KEY}}", api_base_url="https://api.openai.com/v1",
-                 is_default=False, status=1, remark="OpenAI 高性能小模型"),
+                 api_key="", api_base_url="https://api.openai.com/v1",
+                 is_default=False, status=1, remark="OpenAI 高性能小模型。需在页面填写 API Key"),
             dict(name="DeepSeek V3", provider="deepseek", model_type="chat", model_name="deepseek-chat",
-                 api_key="{{DEEPSEEK_API_KEY}}", api_base_url="https://api.deepseek.com/v1",
-                 is_default=False, status=1, remark="DeepSeek 最新对话模型"),
+                 api_key="", api_base_url="https://api.deepseek.com/v1",
+                 is_default=False, status=1, remark="DeepSeek 最新对话模型。需在 .env 配置 DEEPSEEK_API_KEY"),
             # 向量模型
             dict(name="阿里云 通义向量", provider="dashscope", model_type="embedding", model_name="text-embedding-v3",
-                 api_key="{{DASHSCOPE_API_KEY}}", api_base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-                 is_default=True, status=1, remark="阿里云向量模型，1536维"),
+                 api_key="", api_base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+                 is_default=True, status=1, remark="阿里云向量模型，1536维。需在 .env 配置 DASHSCOPE_API_KEY"),
             dict(name="OpenAI text-embedding-3-small", provider="openai", model_type="embedding", model_name="text-embedding-3-small",
-                 api_key="{{OPENAI_API_KEY}}", api_base_url="https://api.openai.com/v1",
-                 is_default=False, status=1, remark="OpenAI 向量模型，512维"),
+                 api_key="", api_base_url="https://api.openai.com/v1",
+                 is_default=False, status=1, remark="OpenAI 向量模型，512维。需在页面填写 API Key"),
             # 多模态模型
             dict(name="智谱 GLM-4V", provider="zhipu", model_type="multimodal", model_name="glm-4v",
-                 api_key="{{ZHIPU_API_KEY}}", api_base_url="https://open.bigmodel.cn/api/paas/v4",
-                 is_default=True, status=1, remark="智谱多模态模型，支持图片理解"),
+                 api_key="", api_base_url="https://open.bigmodel.cn/api/paas/v4",
+                 is_default=True, status=1, remark="智谱多模态模型，支持图片理解。需在页面填写 API Key"),
         ]
         for data in models_data:
             AIModelConfig.objects.get_or_create(

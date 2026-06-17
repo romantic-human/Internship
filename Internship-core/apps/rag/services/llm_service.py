@@ -40,7 +40,7 @@ def get_model_config(model_type: str = "chat", model_id: Optional[int] = None) -
             model_type=model_type, is_default=True, status=1
         ).first()
 
-    if config:
+    if config and config.api_key and "{{" not in config.api_key:
         return {
             "api_key": config.api_key,
             "api_base_url": config.api_base_url,

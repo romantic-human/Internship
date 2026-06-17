@@ -51,7 +51,7 @@ def get_nl2sql_model_config(model_id: Optional[int] = None) -> dict:
             model_type="chat", is_default=True, status=1
         ).first()
 
-    if config:
+    if config and config.api_key and "{{" not in config.api_key:
         return {
             "api_key": config.api_key,
             "api_base_url": config.api_base_url,
