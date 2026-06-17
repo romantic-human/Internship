@@ -130,6 +130,7 @@ const componentMap: Record<string, () => Promise<any>> = {
   "system/config/ConfigPanel": () => import("@/views/system/config/ConfigPanel.vue"),
   "system/config/ConfigAdvanced": () => import("@/views/system/config/ConfigList.vue"),
   "system/dict/DictList": () => import("@/views/system/dict/DictList.vue"),
+  "system/ai-model/AIModelList": () => import("@/views/system/ai-model/AIModelList.vue"),
   // NL2SQL
   "nl2sql/QueryView": () => import("@/views/nl2sql/QueryView.vue"),
   "nl2sql/HistoryList": () => import("@/views/nl2sql/HistoryList.vue"),

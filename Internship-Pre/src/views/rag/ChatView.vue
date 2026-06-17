@@ -87,6 +87,15 @@
             </div>
           </div>
         </div>
+
+        <el-button
+          v-show="showScrollBtn"
+          class="scroll-bottom-btn"
+          circle
+          @click="scrollToBottom"
+        >
+          <el-icon><ArrowDown /></el-icon>
+        </el-button>
       </div>
 
       <div class="input-area">
@@ -154,7 +163,7 @@
 import { ref, nextTick, watch, onUnmounted, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { ArrowLeft, Delete, ChatDotRound, Loading, PictureFilled, Close } from "@element-plus/icons-vue";
+import { ArrowLeft, ArrowDown, Delete, ChatDotRound, Loading, PictureFilled, Close } from "@element-plus/icons-vue";
 import { chatWithKBStream, chatMultimodalStream, type ChatSource } from "@/api/rag";
 import { getAvailableModels, type AIModelConfig } from "@/api/ai-model";
 
@@ -212,6 +221,7 @@ const streamingContent = ref("");
 const streamingSources = ref<ChatSource[]>([]);
 const abortController = ref<AbortController | null>(null);
 const messageListRef = ref<HTMLElement>();
+const showScrollBtn = ref(false);
 const selectedImages = ref<{ file: File; url: string }[]>([]);
 const uploadRef = ref();
 
@@ -326,12 +336,22 @@ function handleSendStream(multimodal = false) {
   }
 }
 
+function onScroll() {
+  const el = messageListRef.value;
+  if (!el) return;
+  showScrollBtn.value = el.scrollHeight - el.scrollTop - el.clientHeight > 100;
+}
+
 onMounted(() => {
   loadModels();
+  const el = messageListRef.value;
+  if (el) el.addEventListener("scroll", onScroll);
 });
 
 onUnmounted(() => {
   abortController.value?.abort();
+  const el = messageListRef.value;
+  if (el) el.removeEventListener("scroll", onScroll);
 });
 
 function clearHistory() {
@@ -412,6 +432,15 @@ function clearHistory() {
 .source-content { font-size: 12px; color: #606266; line-height: 1.5; }
 
 .message-meta { font-size: 11px; color: #c0c4cc; margin-top: 4px; }
+
+.scroll-bottom-btn {
+  position: sticky;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
 
 .input-area {
   display: flex;
