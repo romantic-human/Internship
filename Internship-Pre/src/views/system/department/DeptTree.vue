@@ -22,7 +22,7 @@
       </el-form>
       <el-table
         ref="tableRef"
-        :data="filteredTree" row-key="id" default-expand-all
+        :data="filteredTree" row-key="id"
         :tree-props="{ children: 'children' }" v-loading="loading" stripe
         @selection-change="(rows: DeptItem[]) => selectedIds = rows.map(r => r.id)"
       >

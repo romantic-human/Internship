@@ -69,7 +69,6 @@
         show-checkbox
         node-key="id"
         :props="{ label: 'menu_name', children: 'children' }"
-        default-expand-all
         check-strictly
       />
       <template #footer>
