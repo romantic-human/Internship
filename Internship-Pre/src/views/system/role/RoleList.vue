@@ -49,8 +49,9 @@
           </template>
         </el-table-column>
         <el-table-column prop="create_time" label="创建时间" width="170" />
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column label="操作" width="350" fixed="right">
           <template #default="{ row }">
+            <el-button v-permission="'role:list'" link type="primary" @click="handleViewPerms(row)">查看权限</el-button>
             <el-button v-permission="'role:edit'" link type="primary" @click="handleEdit(row)">编辑</el-button>
             <el-button v-permission="'role:assign'" link type="primary" @click="handleAssignMenu(row)">分配菜单</el-button>
             <el-button v-permission="'role:assign'" link type="primary" @click="handleAssignUser(row)">分配用户</el-button>
@@ -88,11 +89,17 @@
     <el-dialog
       v-model="menuDialogVisible"
       title="分配菜单权限"
-      width="400px"
+      width="450px"
     >
+      <div style="margin-bottom: 12px; display: flex; gap: 8px;">
+        <el-input v-model="menuSearch" placeholder="搜索菜单名称" clearable size="small" style="flex: 1" />
+        <el-button size="small" @click="handleCheckAllMenu(true)">全选</el-button>
+        <el-button size="small" @click="handleCheckAllMenu(false)">取消全选</el-button>
+      </div>
       <el-tree
         ref="menuTreeRef"
         :data="menuTreeData"
+        :filter-node-method="filterMenuNode"
         show-checkbox
         node-key="id"
         :props="{ label: 'menu_name', children: 'children' }"
@@ -109,10 +116,11 @@
     <el-dialog
       v-model="userDialogVisible"
       title="分配用户"
-      width="500px"
+      width="520px"
     >
+      <el-input v-model="userSearch" placeholder="搜索用户名或昵称" clearable size="small" style="margin-bottom: 12px" />
       <el-table
-        :data="userList"
+        :data="filteredUserList"
         ref="userTableRef"
         @selection-change="onUserSelectionChange"
         row-key="id"
@@ -126,11 +134,26 @@
         <el-button type="primary" :loading="userSaving" @click="handleSaveUser">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 权限预览弹窗 -->
+    <el-dialog
+      v-model="permDialogVisible"
+      :title="`「${currentRoleName}」的权限`"
+      width="600px"
+    >
+      <el-tag v-for="p in currentPerms" :key="p" style="margin: 4px">{{ p }}</el-tag>
+      <div v-if="!currentPerms.length" style="text-align: center; color: #999; padding: 20px">
+        <el-empty description="暂无权限数据" />
+      </div>
+      <template #footer>
+        <el-button @click="permDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, nextTick } from "vue";
+import { ref, onMounted, reactive, nextTick, computed, watch } from "vue";
 import {
   getRoleList,
   deleteRole,
@@ -143,6 +166,7 @@ import {
   exportRoles,
   importRoles,
   downloadRoleTemplate,
+  getRolePerms,
   type RoleRecord,
 } from "@/api/role";
 import { getMenuTree, type MenuItem } from "@/api/menu";
@@ -178,6 +202,27 @@ const selectedUserIds = ref<number[]>([]);
 const userSaving = ref(false);
 
 const selectedIds = ref<number[]>([]);
+
+// 菜单搜索
+const menuSearch = ref("");
+watch(menuSearch, (val) => {
+  menuTreeRef.value?.filter(val);
+});
+
+// 用户搜索
+const userSearch = ref("");
+const filteredUserList = computed(() => {
+  const q = userSearch.value.trim().toLowerCase();
+  if (!q) return userList.value;
+  return userList.value.filter(
+    (u) => u.username.toLowerCase().includes(q) || (u.nickname || "").toLowerCase().includes(q),
+  );
+});
+
+// 权限预览
+const permDialogVisible = ref(false);
+const currentRoleName = ref("");
+const currentPerms = ref<string[]>([]);
 
 async function fetchList() {
   loading.value = true;
@@ -216,6 +261,40 @@ async function handleStatusChange(row: RoleRecord, val: number) {
   await updateRoleStatus(row.id, val);
   row.status = val;
   ElMessage.success("状态更新成功");
+}
+
+function filterMenuNode(value: string, data: MenuItem) {
+  if (!value) return true;
+  return data.menu_name?.toLowerCase().includes(value.toLowerCase());
+}
+
+function handleCheckAllMenu(checked: boolean) {
+  const allIds = getAllNodeIds(menuTreeData.value);
+  if (checked) {
+    menuTreeRef.value?.setCheckedKeys(allIds);
+  } else {
+    menuTreeRef.value?.setCheckedKeys([]);
+  }
+}
+
+function getAllNodeIds(nodes: MenuItem[]): number[] {
+  const ids: number[] = [];
+  for (const n of nodes) {
+    ids.push(n.id);
+    if (n.children?.length) ids.push(...getAllNodeIds(n.children));
+  }
+  return ids;
+}
+
+// ── 权限预览 ─────────────────────────────────────────────
+async function handleViewPerms(row: RoleRecord) {
+  currentRoleName.value = row.role_name;
+  currentPerms.value = [];
+  permDialogVisible.value = true;
+  try {
+    const perms = await getRolePerms(row.id);
+    currentPerms.value = perms;
+  } catch { /* handled */ }
 }
 
 // ── 菜单分配 ─────────────────────────────────────────────

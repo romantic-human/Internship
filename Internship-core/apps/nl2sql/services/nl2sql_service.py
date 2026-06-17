@@ -23,6 +23,22 @@ NL2SQL_SYSTEM_PROMPT = """你是一个专业的 SQL 生成助手。请根据用�
 用户的自然语言问题是："""
 
 
+NL2SQL_EXPLAIN_PROMPT = """你是一个数据分析助手。请根据用户的自然语言问题、生成的SQL语句和查询结果，用自然语言总结回答用户的提问。
+
+要求：
+1. 用中文回答，简洁明了，直接给出结论。
+2. 如果结果中包含数据，请提取关键信息（如总数、平均值、趋势等）进行总结。
+3. 不要重复SQL语句，不要列出所有原始数据，只做摘要。
+4. 回答控制在100字以内。
+5. 如果查询失败或没有数据，如实说明。
+
+自然语言问题：{question}
+生成的SQL：{sql}
+查询结果（列名：{columns}，共 {row_count} 行）：{sample_rows}
+
+请给出自然语言回答："""
+
+
 class NL2SQLService:
     """NL2SQL 服务 — 调用 LLM 将自然语言转为 SQL"""
 
@@ -61,3 +77,36 @@ class NL2SQLService:
         if sql.endswith("```"):
             sql = sql[:-3]
         return sql.strip()
+
+    @classmethod
+    def generate_explanation(cls, question: str, sql: str, columns: list, rows: list, row_count: int) -> str:
+        """根据问题、SQL 和查询结果，生成自然语言解释"""
+        # 只取前 5 行作为样本，避免 prompt 超长
+        sample = rows[:5] if rows else []
+        sample_str = json.dumps(sample, ensure_ascii=False)
+        if len(sample_str) > 2000:
+            sample_str = sample_str[:2000] + "...(截断)"
+
+        prompt = NL2SQL_EXPLAIN_PROMPT.format(
+            question=question,
+            sql=sql,
+            columns=", ".join(columns),
+            row_count=row_count,
+            sample_rows=sample_str,
+        )
+        messages = [
+            {"role": "system", "content": "你是一个数据分析助手，用中文简洁回答。"},
+            {"role": "user", "content": prompt},
+        ]
+        client = cls._get_client()
+        try:
+            response = client.chat.completions.create(
+                model=settings.DEEPSEEK_CHAT_MODEL,
+                messages=messages,
+                temperature=0.3,
+                max_tokens=300,
+            )
+            return (response.choices[0].message.content or "").strip()
+        except Exception as e:
+            logger.warning(f"生成自然语言解释失败: {e}")
+            return ""

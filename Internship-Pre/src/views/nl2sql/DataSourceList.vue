@@ -69,7 +69,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="端口" prop="port">
-              <el-input-number v-model="form.port" :min="1" :max="65535" :controls="false" style="width: 100%" />
+              <el-input v-model.number="form.port" type="number" min="1" max="65535" placeholder="3306" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -142,7 +142,7 @@ function openDialog(row?: DataSource) {
     form.name = row.name;
     form.db_type = row.db_type;
     form.host = row.host;
-    form.port = Number(row.port) || 3306;
+    form.port = row.port ?? 3306;
     form.db_name = row.db_name;
     form.username = row.username;
     form.password = "";

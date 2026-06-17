@@ -41,6 +41,8 @@ class Command(BaseCommand):
         self._m(role_m, "新增角色", 2, "", 0, permission="role:add")
         self._m(role_m, "编辑角色", 2, "", 1, permission="role:edit")
         self._m(role_m, "删除角色", 2, "", 2, permission="role:delete")
+        self._m(role_m, "导出角色", 2, "", 3, permission="role:export")
+        self._m(role_m, "导入角色", 2, "", 4, permission="role:import")
 
         menu_m = self._m(sys_m, "菜单管理", 1, "Menu", 3, "/system/menu", "system/menu/MenuTree")
         self._m(menu_m, "新增菜单", 2, "", 0, permission="menu:add")
@@ -111,6 +113,7 @@ class Command(BaseCommand):
             "role:list": ("角色查询", role_m), "role:add": ("角色新增", role_m),
             "role:edit": ("角色编辑", role_m), "role:delete": ("角色删除", role_m),
             "role:assign": ("角色授权", role_m),
+            "role:export": ("角色导出", role_m), "role:import": ("角色导入", role_m),
             "menu:list": ("菜单查询", menu_m), "menu:add": ("菜单新增", menu_m),
             "menu:edit": ("菜单编辑", menu_m), "menu:delete": ("菜单删除", menu_m),
             "permission:list": ("权限查询", perm_m), "permission:add": ("权限新增", perm_m),

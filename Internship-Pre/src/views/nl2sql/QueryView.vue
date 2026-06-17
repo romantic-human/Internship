@@ -66,6 +66,16 @@
                 返回 {{ resultData.row_count }} 行
               </el-tag>
             </div>
+            <!-- 自然语言结果 -->
+            <div v-if="resultData.natural_language_result" style="
+              background: #f0f9eb; border: 1px solid #e1f3d8;
+              border-radius: 6px; padding: 12px 16px; margin-bottom: 12px;
+              font-size: 14px; line-height: 1.6; color: #303133;
+            ">
+              <el-icon style="margin-right: 6px; vertical-align: middle; color: #67c23a"><ChatLineSquare /></el-icon>
+              <span style="vertical-align: middle">{{ resultData.natural_language_result }}</span>
+            </div>
+
             <el-input v-model="resultData.sql" type="textarea" :rows="2" readonly
               style="margin-bottom: 12px; font-family: monospace; font-size: 13px" />
             <div style="max-height: 480px; overflow: auto">
@@ -85,7 +95,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
-import { CaretRight, CaretBottom } from "@element-plus/icons-vue";
+import { CaretRight, CaretBottom, ChatLineSquare } from "@element-plus/icons-vue";
 import {
   getDataSourceList, getDataSourceTables, executeQuery,
   type DataSource, type TableMeta, type QueryResult,

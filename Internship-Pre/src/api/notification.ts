@@ -46,3 +46,12 @@ export function getUnreadCount(): Promise<{ count: number }> {
 export function clearReadNotifications(): Promise<{ count: number }> {
   return request.delete("/notification/clear-read");
 }
+
+export function createNotification(data: {
+  title: string;
+  content?: string;
+  notification_type: number;
+  target_user_ids?: number[];
+}): Promise<{ count: number }> {
+  return request.post("/notification/", data);
+}
