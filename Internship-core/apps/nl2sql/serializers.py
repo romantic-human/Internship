@@ -52,6 +52,7 @@ class QueryHistorySerializer(serializers.ModelSerializer):
 class QueryRequestSerializer(serializers.Serializer):
     datasource_id = serializers.IntegerField(required=True)
     question = serializers.CharField(required=True, max_length=2000)
+    model_id = serializers.IntegerField(required=False, allow_null=True, default=None)
 
 
 class DbConnectionTestSerializer(serializers.Serializer):

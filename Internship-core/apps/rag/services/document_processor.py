@@ -49,22 +49,24 @@ class DocumentProcessor:
         return [chunk for chunk in splitter.split_text(text) if chunk.strip()]
 
     @staticmethod
-    def generate_embeddings(texts: list[str]) -> list[list[float]]:
-        """调用智谱 embedding-3 批量向量化（免费模型）"""
+    def generate_embeddings(texts: list[str], model_id: int = None) -> list[list[float]]:
+        """批量向量化（支持多模型）"""
         from openai import OpenAI
+        from .llm_service import get_model_config
 
+        config = get_model_config("embedding", model_id)
         client = OpenAI(
-            api_key=settings.DEEPSEEK_API_KEY,
-            base_url=settings.DEEPSEEK_BASE_URL,
+            api_key=config["api_key"],
+            base_url=config["api_base_url"],
         )
 
         all_embeddings = []
-        batch_size = 25  # 智谱单次最多 25 条
+        batch_size = 25
 
         for i in range(0, len(texts), batch_size):
             batch = texts[i:i + batch_size]
             resp = client.embeddings.create(
-                model="embedding-3",
+                model=config["model_name"],
                 input=batch,
             )
             for item in resp.data:

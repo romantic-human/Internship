@@ -91,6 +91,20 @@
 
       <div class="input-area">
         <div class="input-toolbar">
+          <el-select
+            v-model="selectedModelId"
+            placeholder="选择模型"
+            clearable
+            style="width: 200px; margin-right: 8px"
+            :disabled="thinking || streaming"
+          >
+            <el-option
+              v-for="model in chatModels"
+              :key="model.id"
+              :label="model.name"
+              :value="model.id"
+            />
+          </el-select>
           <el-upload
             ref="uploadRef"
             :auto-upload="false"
@@ -137,11 +151,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watch, onUnmounted } from "vue";
+import { ref, nextTick, watch, onUnmounted, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { ArrowLeft, Delete, ChatDotRound, Loading, PictureFilled, Close } from "@element-plus/icons-vue";
 import { chatWithKBStream, chatMultimodalStream, type ChatSource } from "@/api/rag";
+import { getAvailableModels, type AIModelConfig } from "@/api/ai-model";
 
 const route = useRoute();
 const router = useRouter();
@@ -149,6 +164,23 @@ const kbId = Number(route.query.id);
 const kbName = String(route.query.name || "知识库");
 
 const validKb = !!kbId && !isNaN(kbId);
+
+// 模型选择
+const chatModels = ref<AIModelConfig[]>([]);
+const selectedModelId = ref<number | undefined>(undefined);
+
+async function loadModels() {
+  try {
+    chatModels.value = await getAvailableModels("chat");
+    // 默认选中默认模型
+    const defaultModel = chatModels.value.find((m) => m.is_default);
+    if (defaultModel) {
+      selectedModelId.value = defaultModel.id;
+    }
+  } catch (e) {
+    console.error("加载模型列表失败", e);
+  }
+}
 
 interface Message {
   role: "user" | "assistant";
@@ -284,13 +316,19 @@ function handleSendStream(multimodal = false) {
     abortController.value = chatMultimodalStream(
       kbId, question, images.map((i) => i.file),
       onToken, onSources, onDone, onError,
+      selectedModelId.value,
     );
   } else {
     abortController.value = chatWithKBStream(
       kbId, question, onToken, onSources, onDone, onError,
+      selectedModelId.value,
     );
   }
 }
+
+onMounted(() => {
+  loadModels();
+});
 
 onUnmounted(() => {
   abortController.value?.abort();

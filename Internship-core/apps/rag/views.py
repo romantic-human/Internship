@@ -232,6 +232,7 @@ class ChatView(APIView):
         serializer = ChatRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         question = serializer.validated_data["question"]
+        model_id = serializer.validated_data.get("model_id")
 
         try:
             kb = KnowledgeBase.objects.get(id=kb_id, status=1)
@@ -239,7 +240,7 @@ class ChatView(APIView):
             return APIResponse.error(message="知识库不存在或已禁用", code=2004, http_status=404)
 
         try:
-            query_embedding = LLMService.generate_query_embedding(question)
+            query_embedding = LLMService.generate_query_embedding(question, model_id=model_id)
             results = VectorStoreService.search(
                 kb_id=kb_id,
                 query_embedding=query_embedding,
@@ -265,7 +266,7 @@ class ChatView(APIView):
                     "relevance_score": round(relevance, 4),
                 })
 
-            llm_result = LLMService.chat(question, results)
+            llm_result = LLMService.chat(question, results, model_id=model_id)
 
             return APIResponse.success(data={
                 "answer": llm_result["answer"],
@@ -287,6 +288,7 @@ class ChatStreamView(APIView):
         serializer = ChatRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         question = serializer.validated_data["question"]
+        model_id = serializer.validated_data.get("model_id")
 
         try:
             kb = KnowledgeBase.objects.get(id=kb_id, status=1)
@@ -295,7 +297,7 @@ class ChatStreamView(APIView):
 
         def event_stream():
             try:
-                query_embedding = LLMService.generate_query_embedding(question)
+                query_embedding = LLMService.generate_query_embedding(question, model_id=model_id)
                 results = VectorStoreService.search(
                     kb_id=kb_id,
                     query_embedding=query_embedding,
@@ -320,7 +322,7 @@ class ChatStreamView(APIView):
                         "relevance_score": round(relevance, 4),
                     })
 
-                for sse_data in LLMService.chat_stream(question, results):
+                for sse_data in LLMService.chat_stream(question, results, model_id=model_id):
                     yield sse_data
 
                 yield f"data: {json.dumps({'type': 'sources', 'content': sources})}\n\n"

@@ -1,6 +1,7 @@
-"""NL2SQL 服务：将自然语言转换为 SQL"""
+"""NL2SQL 服务：将自然语言转换为 SQL（支持多模型）"""
 import json
 import logging
+from typing import Optional
 from django.conf import settings
 from openai import OpenAI
 
@@ -39,31 +40,59 @@ NL2SQL_EXPLAIN_PROMPT = """你是一个数据分析助手。请根据用户的�
 请给出自然语言回答："""
 
 
+def get_nl2sql_model_config(model_id: Optional[int] = None) -> dict:
+    """获取 NL2SQL 模型配置"""
+    from apps.config_app.models import AIModelConfig
+
+    if model_id:
+        config = AIModelConfig.objects.filter(id=model_id, status=1).first()
+    else:
+        config = AIModelConfig.objects.filter(
+            model_type="chat", is_default=True, status=1
+        ).first()
+
+    if config:
+        return {
+            "api_key": config.api_key,
+            "api_base_url": config.api_base_url,
+            "model_name": config.model_name,
+        }
+
+    return {
+        "api_key": settings.DEEPSEEK_API_KEY,
+        "api_base_url": settings.DEEPSEEK_BASE_URL,
+        "model_name": settings.DEEPSEEK_CHAT_MODEL,
+    }
+
+
 class NL2SQLService:
-    """NL2SQL 服务 — 调用 LLM 将自然语言转为 SQL"""
+    """NL2SQL 服务 — 调用 LLM 将自然语言转为 SQL（支持多模型）"""
 
-    _client = None
+    _clients = {}
 
     @classmethod
-    def _get_client(cls) -> OpenAI:
-        if cls._client is None:
-            cls._client = OpenAI(
-                api_key=settings.DEEPSEEK_API_KEY,
-                base_url=settings.DEEPSEEK_BASE_URL,
+    def _get_client(cls, model_id: Optional[int] = None) -> OpenAI:
+        cache_key = f"nl2sql_{model_id or 'default'}"
+        if cache_key not in cls._clients:
+            config = get_nl2sql_model_config(model_id)
+            cls._clients[cache_key] = OpenAI(
+                api_key=config["api_key"],
+                base_url=config["api_base_url"],
             )
-        return cls._client
+        return cls._clients[cache_key]
 
     @classmethod
-    def generate_sql(cls, schema_ddl: str, question: str) -> str:
+    def generate_sql(cls, schema_ddl: str, question: str, model_id: Optional[int] = None) -> str:
         """将自然语言问题转为 SQL 语句"""
         prompt = NL2SQL_SYSTEM_PROMPT.format(schema_ddl=schema_ddl)
         messages = [
             {"role": "system", "content": prompt},
             {"role": "user", "content": question},
         ]
-        client = cls._get_client()
+        config = get_nl2sql_model_config(model_id)
+        client = cls._get_client(model_id)
         response = client.chat.completions.create(
-            model=settings.DEEPSEEK_CHAT_MODEL,
+            model=config["model_name"],
             messages=messages,
             temperature=0.1,
             max_tokens=1000,

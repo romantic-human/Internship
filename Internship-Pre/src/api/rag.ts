@@ -138,6 +138,7 @@ export function chatMultimodalStream(
   onSources: (sources: ChatSource[]) => void,
   onDone: () => void,
   onError: (err: string) => void,
+  modelId?: number,
 ): AbortController {
   const controller = new AbortController();
   const baseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
@@ -146,6 +147,7 @@ export function chatMultimodalStream(
   const formData = new FormData();
   formData.append("question", question);
   images.forEach((img) => formData.append("images", img));
+  if (modelId) formData.append("model_id", String(modelId));
 
   fetch(`${baseUrl}/rag/kb/${kbId}/chat-multimodal`, {
     method: "POST",
@@ -168,10 +170,14 @@ export function chatWithKBStream(
   onSources: (sources: ChatSource[]) => void,
   onDone: () => void,
   onError: (err: string) => void,
+  modelId?: number,
 ): AbortController {
   const controller = new AbortController();
   const baseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
   const token = localStorage.getItem("access_token") || "";
+
+  const body: Record<string, any> = { question };
+  if (modelId) body.model_id = modelId;
 
   fetch(`${baseUrl}/rag/kb/${kbId}/chat-stream`, {
     method: "POST",
@@ -179,7 +185,7 @@ export function chatWithKBStream(
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify(body),
     signal: controller.signal,
   })
     .then((response) => readSSEStream(response, onToken, onSources, onDone, onError))

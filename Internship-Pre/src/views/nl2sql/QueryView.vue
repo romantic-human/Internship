@@ -48,7 +48,20 @@
             placeholder="请输入自然语言问题，如：查询最近10个订单"
             @keydown.enter.prevent="handleQuery"
           />
-          <div style="margin-top: 12px">
+          <div style="margin-top: 12px; display: flex; align-items: center; gap: 12px">
+            <el-select
+              v-model="selectedModelId"
+              placeholder="选择模型"
+              clearable
+              style="width: 200px"
+            >
+              <el-option
+                v-for="model in chatModels"
+                :key="model.id"
+                :label="model.name"
+                :value="model.id"
+              />
+            </el-select>
             <el-button type="primary" :loading="querying" :disabled="!selectedDatasource || !question.trim()"
               @click="handleQuery">
               {{ querying ? '查询中...' : '执行查询' }}
@@ -100,6 +113,7 @@ import {
   getDataSourceList, getDataSourceTables, executeQuery,
   type DataSource, type TableMeta, type QueryResult,
 } from "@/api/nl2sql";
+import { getAvailableModels, type AIModelConfig } from "@/api/ai-model";
 import * as XLSX from "xlsx";
 
 const route = useRoute();
@@ -108,6 +122,22 @@ const selectedDatasource = ref<number | null>(null);
 const question = ref("");
 const querying = ref(false);
 const schemaLoading = ref(false);
+
+// 模型选择
+const chatModels = ref<AIModelConfig[]>([]);
+const selectedModelId = ref<number | undefined>(undefined);
+
+async function loadModels() {
+  try {
+    chatModels.value = await getAvailableModels("chat");
+    const defaultModel = chatModels.value.find((m) => m.is_default);
+    if (defaultModel) {
+      selectedModelId.value = defaultModel.id;
+    }
+  } catch (e) {
+    console.error("加载模型列表失败", e);
+  }
+}
 const schemaTables = ref<(TableMeta & { _expanded?: boolean })[]>([]);
 const resultData = ref<QueryResult | null>(null);
 
@@ -151,7 +181,7 @@ async function handleQuery() {
   if (!selectedDatasource.value || !question.value.trim()) return;
   querying.value = true;
   try {
-    const res = await executeQuery(selectedDatasource.value, question.value.trim());
+    const res = await executeQuery(selectedDatasource.value, question.value.trim(), selectedModelId.value);
     resultData.value = res;
   } catch {
     resultData.value = null;
@@ -172,7 +202,10 @@ function handleExport() {
   XLSX.writeFile(wb, `查询结果_${dateStr}.xlsx`);
 }
 
-onMounted(loadDataSources);
+onMounted(() => {
+  loadDataSources();
+  loadModels();
+});
 </script>
 
 <style scoped>
