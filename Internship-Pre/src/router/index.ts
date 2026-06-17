@@ -59,13 +59,6 @@ const staticRoutes: RouteRecordRaw[] = [
     component: () => import("@/views/nl2sql/DataSourceList.vue"),
     meta: { title: "数据源管理" },
   },
-  // AI 模型配置静态路由
-  {
-    path: "/system/ai-model",
-    name: "AIModelConfig",
-    component: () => import("@/views/system/ai-model/AIModelList.vue"),
-    meta: { title: "AI 模型配置" },
-  },
   {
     path: "/",
     redirect: "/dashboard",

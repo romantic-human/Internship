@@ -68,11 +68,6 @@ class Command(BaseCommand):
         self._m(dict_m, "编辑字典类型", 2, "", 1, permission="dict:type:edit")
         self._m(dict_m, "删除字典类型", 2, "", 2, permission="dict:type:delete")
 
-        ai_model_m = self._m(sys_m, "AI 模型配置", 1, "Cpu", 9, "/system/ai-model", "system/ai-model/AIModelList")
-        self._m(ai_model_m, "新增模型", 2, "", 0, permission="config:add")
-        self._m(ai_model_m, "编辑模型", 2, "", 1, permission="config:edit")
-        self._m(ai_model_m, "删除模型", 2, "", 2, permission="config:delete")
-
         # ── NL2SQL ─────────────────────────────────────────
         nl2sql_m = self._m(None, "自然语言查询", 0, "Connection", 2)
 
