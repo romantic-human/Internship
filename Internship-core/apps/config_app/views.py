@@ -10,8 +10,8 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from utils.response import APIResponse
 from utils.permissions import HasPermission
-from .models import SystemConfig
-from .serializers import SystemConfigSerializer
+from .models import SystemConfig, AIModelConfig
+from .serializers import SystemConfigSerializer, AIModelConfigSerializer
 
 PANEL_DEFAULTS = {
     "system.name": "企业智能分析平台",
@@ -293,6 +293,115 @@ class SystemConfigViewSet(viewsets.ModelViewSet):
             return APIResponse.success(data={"success": success, "skipped": skipped, "errors": errors[:100]}, message=message)
         except Exception as e:
             return APIResponse.error(message=f"导入失败：{str(e)}")
+
+
+class AIModelConfigViewSet(viewsets.ModelViewSet):
+    """AI 模型配置 CRUD"""
+    queryset = AIModelConfig.objects.all()
+    serializer_class = AIModelConfigSerializer
+    permission_key = "config:list"
+    permission_key_map = {
+        "create": "config:add",
+        "update": "config:edit",
+        "partial_update": "config:edit",
+        "destroy": "config:delete",
+        "set_default": "config:edit",
+        "test_connection": "config:list",
+    }
+
+    def get_permissions(self):
+        if self.action == "list_models":
+            return [IsAuthenticated()]
+        return [IsAuthenticated(), HasPermission()]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return APIResponse.success(data=serializer.data, message="新增成功")
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        # 按模型类型筛选
+        model_type = request.query_params.get("model_type")
+        if model_type:
+            queryset = queryset.filter(model_type=model_type)
+        # 按提供商筛选
+        provider = request.query_params.get("provider")
+        if provider:
+            queryset = queryset.filter(provider=provider)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
+        return APIResponse.success(data={"records": serializer.data, "total": queryset.count()})
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return APIResponse.success(data=serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return APIResponse.success(data=serializer.data, message="更新成功")
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.is_default:
+            return APIResponse.error(message="不能删除默认模型配置")
+        instance.delete()
+        return APIResponse.success(message="删除成功")
+
+    @action(detail=True, methods=["post"], url_path="set-default")
+    def set_default(self, request, pk=None):
+        """设置为默认模型 — POST /api/ai-model/{id}/set-default"""
+        instance = self.get_object()
+        # 取消同类型其他模型的默认状态
+        AIModelConfig.objects.filter(
+            model_type=instance.model_type, is_default=True
+        ).update(is_default=False)
+        # 设置当前模型为默认
+        instance.is_default = True
+        instance.save(update_fields=["is_default"])
+        return APIResponse.success(message="设置成功")
+
+    @action(detail=True, methods=["post"], url_path="test")
+    def test_connection(self, request, pk=None):
+        """测试模型连接 — POST /api/ai-model/{id}/test"""
+        instance = self.get_object()
+        try:
+            from openai import OpenAI
+            client = OpenAI(
+                api_key=instance.api_key,
+                base_url=instance.api_base_url,
+            )
+            # 发送简单测试请求
+            response = client.chat.completions.create(
+                model=instance.model_name,
+                messages=[{"role": "user", "content": "你好"}],
+                max_tokens=10,
+            )
+            return APIResponse.success(message="连接成功", data={
+                "model": instance.model_name,
+                "response": response.choices[0].message.content[:100] if response.choices else "",
+            })
+        except Exception as e:
+            return APIResponse.error(message=f"连接失败：{str(e)}")
+
+    @action(detail=False, methods=["get"], url_path="list-models")
+    def list_models(self, request):
+        """获取可用模型列表（按类型分组） — GET /api/ai-model/list-models"""
+        model_type = request.query_params.get("model_type")
+        queryset = AIModelConfig.objects.filter(status=1)
+        if model_type:
+            queryset = queryset.filter(model_type=model_type)
+        serializer = self.get_serializer(queryset, many=True)
+        return APIResponse.success(data=serializer.data)
 
 
 @api_view(["POST"])

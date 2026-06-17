@@ -1,8 +1,18 @@
 """用户模块单元测试 — 5 个核心测试用例"""
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 from .models import User, UserRoleRelation
 from apps.role.models import Role
+
+
+@override_settings(MIDDLEWARE=[
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+])
 
 
 class UserAPITests(TestCase):

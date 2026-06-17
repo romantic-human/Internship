@@ -44,6 +44,7 @@ class DocumentChunkSerializer(serializers.ModelSerializer):
 
 class ChatRequestSerializer(serializers.Serializer):
     question = serializers.CharField(required=True, max_length=2000)
+    model_id = serializers.IntegerField(required=False, allow_null=True, default=None)
 
 
 class ChatSourceSerializer(serializers.Serializer):

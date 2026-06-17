@@ -164,6 +164,7 @@ class QueryView(APIView):
         serializer.is_valid(raise_exception=True)
         datasource_id = serializer.validated_data["datasource_id"]
         question = serializer.validated_data["question"]
+        model_id = serializer.validated_data.get("model_id")
 
         try:
             ds = DataSource.objects.get(id=datasource_id, status=1)
@@ -178,7 +179,7 @@ class QueryView(APIView):
                 password=ds.get_password(),
             )
             schema_ddl = build_schema_ddl(meta)
-            generated_sql = NL2SQLService.generate_sql(schema_ddl, question)
+            generated_sql = NL2SQLService.generate_sql(schema_ddl, question, model_id=model_id)
             result = execute_sql(
                 host=ds.host, port=ds.port, db_name=ds.db_name,
                 username=ds.username, password=ds.get_password(),

@@ -88,6 +88,8 @@ export function toggleQueryHistoryFavorite(id: number): Promise<void> {
   return request.put(`/nl2sql/history/${id}/favorite`);
 }
 
-export function executeQuery(datasourceId: number, question: string): Promise<QueryResult> {
-  return request.post("/nl2sql/query", { datasource_id: datasourceId, question });
+export function executeQuery(datasourceId: number, question: string, modelId?: number): Promise<QueryResult> {
+  const data: Record<string, any> = { datasource_id: datasourceId, question };
+  if (modelId) data.model_id = modelId;
+  return request.post("/nl2sql/query", data);
 }

@@ -54,6 +54,10 @@ class OperationLogMiddleware(MiddlewareMixin):
         user = getattr(request, "user", None)
         username = user.username if user and user.is_authenticated else ""
 
+        # 跳过未认证用户的请求和登录请求
+        if not username or "login" in path:
+            return response
+
         parts = [p for p in path.split("/") if p]
         module = parts[1] if len(parts) > 1 else ""
 
@@ -63,15 +67,7 @@ class OperationLogMiddleware(MiddlewareMixin):
             "PUT": "更新",
             "DELETE": "删除",
         }
-        # 登录接口特殊处理
-        if "login" in path and request.method == "POST":
-            operation = "登录"
-            module = "认证"
-            # 登录时 user 还未认证，从 body 中取 username
-            body = getattr(request, "_log_body", {})
-            username = body.get("username", username)
-        else:
-            operation = operation_map.get(request.method, request.method)
+        operation = operation_map.get(request.method, request.method)
 
         request_params = ""
         if request.method in ("POST", "PUT"):
@@ -89,17 +85,20 @@ class OperationLogMiddleware(MiddlewareMixin):
             except (TypeError, AttributeError):
                 response_body = str(getattr(response, "content", b""))
 
-        OperationLog.objects.create(
-            username=username,
-            module=module,
-            operation=operation,
-            method=request.method,
-            request_url=path,
-            request_params=request_params[:2000] if request_params else "",
-            response_result=response_body[:2000] if response_body else "",
-            ip=request.META.get("REMOTE_ADDR", ""),
-            status=1 if 200 <= response.status_code < 300 else 0,
-            execution_time=duration,
-        )
+        try:
+            OperationLog.objects.create(
+                username=username,
+                module=module,
+                operation=operation,
+                method=request.method,
+                request_url=path,
+                request_params=request_params[:2000] if request_params else "",
+                response_result=response_body[:2000] if response_body else "",
+                ip=request.META.get("REMOTE_ADDR", ""),
+                status=1 if 200 <= response.status_code < 300 else 0,
+                execution_time=duration,
+            )
+        except Exception:
+            pass  # 日志记录失败不影响正常请求
 
         return response

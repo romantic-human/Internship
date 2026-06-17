@@ -1,8 +1,8 @@
-"""LLM 服务封装：DeepSeek Chat API + 通义千问 Embedding + 多模态"""
+"""LLM 服务封装：支持多模型切换"""
 import json
 import logging
 import os
-from typing import Generator
+from typing import Generator, Optional
 from django.conf import settings
 from openai import OpenAI
 
@@ -20,38 +20,77 @@ SYSTEM_PROMPT = """你是一个专业的企业知识库助手。请根据以下�
 {context}"""
 
 
+def get_model_config(model_type: str = "chat", model_id: Optional[int] = None) -> dict:
+    """
+    从数据库获取模型配置
+
+    Args:
+        model_type: 模型类型 (chat/embedding/multimodal)
+        model_id: 指定模型 ID（可选）
+
+    Returns:
+        {"api_key": "...", "api_base_url": "...", "model_name": "..."}
+    """
+    from apps.config_app.models import AIModelConfig
+
+    if model_id:
+        config = AIModelConfig.objects.filter(id=model_id, status=1).first()
+    else:
+        config = AIModelConfig.objects.filter(
+            model_type=model_type, is_default=True, status=1
+        ).first()
+
+    if config:
+        return {
+            "api_key": config.api_key,
+            "api_base_url": config.api_base_url,
+            "model_name": config.model_name,
+        }
+
+    # 回退到 settings.py 配置
+    if model_type == "embedding":
+        return {
+            "api_key": settings.DASHSCOPE_API_KEY,
+            "api_base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "model_name": "text-embedding-v3",
+        }
+    return {
+        "api_key": settings.DEEPSEEK_API_KEY,
+        "api_base_url": settings.DEEPSEEK_BASE_URL,
+        "model_name": settings.DEEPSEEK_CHAT_MODEL,
+    }
+
+
 class LLMService:
-    """DeepSeek Chat + DashScope Embedding"""
+    """支持多模型切换的 LLM 服务"""
 
-    _client = None
+    _clients = {}  # 缓存不同模型的 client
 
     @classmethod
-    def _get_client(cls) -> OpenAI:
-        if cls._client is None:
-            cls._client = OpenAI(
-                api_key=settings.DEEPSEEK_API_KEY,
-                base_url=settings.DEEPSEEK_BASE_URL,
+    def _get_client(cls, model_type: str = "chat", model_id: Optional[int] = None) -> OpenAI:
+        """获取或创建 OpenAI client（支持多模型）"""
+        cache_key = f"{model_type}_{model_id or 'default'}"
+        if cache_key not in cls._clients:
+            config = get_model_config(model_type, model_id)
+            cls._clients[cache_key] = OpenAI(
+                api_key=config["api_key"],
+                base_url=config["api_base_url"],
             )
-        return cls._client
+        return cls._clients[cache_key]
 
     @classmethod
-    def generate_query_embedding(cls, text: str) -> list[float]:
+    def generate_query_embedding(cls, text: str, model_id: Optional[int] = None) -> list[float]:
         """单条文本向量化（用于问答检索）"""
-        import dashscope
-        from dashscope import TextEmbedding
-
-        dashscope.api_key = settings.DASHSCOPE_API_KEY
-        resp = TextEmbedding.call(
-            model="text-embedding-v3",
+        config = get_model_config("embedding", model_id)
+        client = cls._get_client("embedding", model_id)
+        resp = client.embeddings.create(
+            model=config["model_name"],
             input=text,
-            dimension=1024,
         )
-        if resp.status_code != 200:
-            raise RuntimeError(f"Embedding API 失败: {resp.code} - {resp.message}")
-        return resp.output["embeddings"][0]["embedding"]
+        return resp.data[0].embedding
 
     @classmethod
-    def chat(cls, question: str, context_chunks: list[dict]) -> dict:
+    def chat(cls, question: str, context_chunks: list[dict], model_id: Optional[int] = None) -> dict:
         context_parts = []
         for i, chunk in enumerate(context_chunks, 1):
             meta = chunk.get("metadata", {})
@@ -67,9 +106,10 @@ class LLMService:
             {"role": "user", "content": question},
         ]
 
-        client = cls._get_client()
+        config = get_model_config("chat", model_id)
+        client = cls._get_client("chat", model_id)
         response = client.chat.completions.create(
-            model=settings.DEEPSEEK_CHAT_MODEL,
+            model=config["model_name"],
             messages=messages,
             temperature=0.3,
             max_tokens=2000,
@@ -81,7 +121,7 @@ class LLMService:
         return {"answer": answer, "tokens_used": tokens_used}
 
     @classmethod
-    def chat_stream(cls, question: str, context_chunks: list[dict]) -> Generator[str, None, None]:
+    def chat_stream(cls, question: str, context_chunks: list[dict], model_id: Optional[int] = None) -> Generator[str, None, None]:
         context_parts = []
         for i, chunk in enumerate(context_chunks, 1):
             meta = chunk.get("metadata", {})
@@ -97,9 +137,10 @@ class LLMService:
             {"role": "user", "content": question},
         ]
 
-        client = cls._get_client()
+        config = get_model_config("chat", model_id)
+        client = cls._get_client("chat", model_id)
         response = client.chat.completions.create(
-            model=settings.DEEPSEEK_CHAT_MODEL,
+            model=config["model_name"],
             messages=messages,
             temperature=0.3,
             max_tokens=2000,
