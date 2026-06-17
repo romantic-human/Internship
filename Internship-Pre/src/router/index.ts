@@ -102,7 +102,7 @@ let dynamicRoutesLoading: Promise<void> | null = null;
 let regenerationAttempted = false;
 
 router.beforeEach(async (to) => {
-  document.title = to.meta.title ? `${to.meta.title} - 管理系统` : "管理系统";
+  document.title = to.meta.title ? `${to.meta.title} - 企业智能分析平台` : "企业智能分析平台";
   const authStore = useAuthStore();
   if (to.path === "/login" && authStore.token) return "/dashboard";
   if (whiteList.includes(to.path)) return true;

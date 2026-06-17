@@ -91,6 +91,34 @@ export const useAuthStore = defineStore("auth", () => {
     return permissions.value.includes(perm) || permissions.value.includes("*:*:*");
   }
 
+  /** 刷新菜单树（用于菜单管理页面拖拽排序后） */
+  async function refreshMenuTree() {
+    try {
+      console.log('开始刷新菜单树...');
+      const menus = await getMenuTree();
+      console.log('获取到菜单数据:', menus.length, '个顶级菜单');
+      menuTree.value = menus;
+      console.log('menuTree 已更新');
+
+      // 重新注册动态路由
+      const { default: router } = await import("@/router");
+      const routes = buildRoutesFromMenu(menus);
+      console.log('生成路由:', routes.length, '个');
+
+      // 移除已存在的同名路由后重新添加
+      routes.forEach((r) => {
+        if (r.name) {
+          const existing = router.getRoutes().find((rr) => rr.name === r.name);
+          if (existing) router.removeRoute(r.name as string);
+        }
+        router.addRoute(r);
+      });
+      console.log('菜单树刷新完成');
+    } catch (e) {
+      console.error("刷新菜单树失败:", e);
+    }
+  }
+
   /** 设置 Token（用于 refresh 后更新） */
   function setTokens(access: string, refresh: string) {
     token.value = access;
@@ -111,6 +139,7 @@ export const useAuthStore = defineStore("auth", () => {
     logout,
     setTokens,
     generateDynamicRoutes,
+    refreshMenuTree,
     hasPermission,
   };
 });

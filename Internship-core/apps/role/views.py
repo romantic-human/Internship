@@ -11,6 +11,7 @@ from .serializers import (
     AssignUserSerializer,
 )
 from apps.menu.models import Menu
+from apps.permission.models import MenuPermissionRelation
 from apps.user.models import User, UserRoleRelation
 import csv
 import openpyxl

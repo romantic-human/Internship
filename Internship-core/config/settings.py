@@ -181,8 +181,8 @@ CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,
 
 # ── Swagger 配置 ─────────────────────────────────────────────────────
 SPECTACULAR_SETTINGS = {
-    "TITLE": "组织架构模块 API",
-    "DESCRIPTION": "企业级管理系统组织架构模块接口文档",
+    "TITLE": "企业智能分析平台 API",
+    "DESCRIPTION": "企业智能分析平台 API 接口文档",
     "VERSION": "1.0.0",
 }
 
