@@ -67,3 +67,4 @@ class MultimodalChatRequestSerializer(serializers.Serializer):
         child=serializers.ImageField(allow_empty_file=False),
         required=False, default=list,
     )
+    model_id = serializers.IntegerField(required=False, allow_null=True, default=None)

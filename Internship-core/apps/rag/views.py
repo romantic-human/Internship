@@ -353,6 +353,7 @@ class ChatMultimodalView(APIView):
         serializer.is_valid(raise_exception=True)
         question = serializer.validated_data["question"]
         images = serializer.validated_data.get("images", [])
+        model_id = serializer.validated_data.get("model_id")
 
         try:
             kb = KnowledgeBase.objects.get(id=kb_id, status=1)
@@ -399,7 +400,7 @@ class ChatMultimodalView(APIView):
                         "relevance_score": round(relevance, 4),
                     })
 
-                for sse_data in LLMService.multimodal_chat_stream(question, results or [], image_paths):
+                for sse_data in LLMService.multimodal_chat_stream(question, results or [], image_paths, model_id=model_id):
                     yield sse_data
 
                 yield f"data: {json.dumps({'type': 'sources', 'content': sources})}\n\n"

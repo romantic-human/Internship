@@ -1,4 +1,5 @@
 """LLM 服务封装：支持多模型切换"""
+import base64
 import json
 import logging
 import os
@@ -53,6 +54,12 @@ def get_model_config(model_type: str = "chat", model_id: Optional[int] = None) -
             "api_key": settings.DASHSCOPE_API_KEY,
             "api_base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
             "model_name": "text-embedding-v3",
+        }
+    if model_type == "multimodal":
+        return {
+            "api_key": settings.DASHSCOPE_API_KEY,
+            "api_base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "model_name": settings.DASHSCOPE_CHAT_MODEL,
         }
     return {
         "api_key": settings.DEEPSEEK_API_KEY,
@@ -156,11 +163,10 @@ class LLMService:
 
     @classmethod
     def multimodal_chat_stream(
-        cls, question: str, context_chunks: list[dict], image_paths: list[str] | None = None,
+        cls, question: str, context_chunks: list[dict],
+        image_paths: list[str] | None = None,
+        model_id: Optional[int] = None,
     ) -> Generator[str, None, None]:
-        import dashscope
-        from dashscope import MultiModalConversation
-
         context_parts = []
         for i, chunk in enumerate(context_chunks, 1):
             meta = chunk.get("metadata", {})
@@ -182,40 +188,41 @@ class LLMService:
 参考资料：
 {context_text}"""
 
-        user_content: list[dict] = [{"text": question}]
+        user_content: list[dict] = [{"type": "text", "text": question}]
         if image_paths:
             for img_path in image_paths:
                 try:
-                    abs_path = os.path.abspath(img_path)
-                    user_content.append({"image": f"file://{abs_path}"})
+                    with open(img_path, "rb") as f:
+                        img_data = base64.b64encode(f.read()).decode("utf-8")
+                    ext = os.path.splitext(img_path)[1].lstrip(".").lower()
+                    if ext == "jpg":
+                        ext = "jpeg"
+                    data_uri = f"data:image/{ext};base64,{img_data}"
+                    user_content.append({
+                        "type": "image_url",
+                        "image_url": {"url": data_uri},
+                    })
                 except Exception as e:
-                    logger.warning("添加图片失败 %s: %s", img_path, e)
+                    logger.warning("读取图片失败 %s: %s", img_path, e)
 
         messages = [
-            {"role": "system", "content": [{"text": MULTIMODAL_PROMPT}]},
+            {"role": "system", "content": MULTIMODAL_PROMPT},
             {"role": "user", "content": user_content},
         ]
 
-        dashscope.api_key = settings.DASHSCOPE_API_KEY
-        model = settings.DASHSCOPE_CHAT_MODEL
-
-        responses = MultiModalConversation.call(
-            model=model,
+        config = get_model_config("multimodal", model_id)
+        client = cls._get_client("multimodal", model_id)
+        response = client.chat.completions.create(
+            model=config["model_name"],
             messages=messages,
+            temperature=0.3,
+            max_tokens=2000,
             stream=True,
         )
 
-        prev_text = ""
-        for chunk in responses:
-            if chunk.output and chunk.output.get("choices"):
-                choice = chunk.output["choices"][0]
-                if choice.get("message") and choice["message"].get("content"):
-                    for item in choice["message"]["content"]:
-                        if item.get("text"):
-                            cur = item["text"]
-                            delta = cur[len(prev_text):]
-                            if delta:
-                                yield f"data: {json.dumps({'type': 'token', 'content': delta})}\n\n"
-                            prev_text = cur
+        for chunk in response:
+            delta = chunk.choices[0].delta if chunk.choices else None
+            if delta and delta.content:
+                yield f"data: {json.dumps({'type': 'token', 'content': delta.content})}\n\n"
 
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
