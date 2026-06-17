@@ -6,15 +6,19 @@
         <span v-else>M</span>
       </div>
       <div class="menu-scroll">
-        <el-menu
-          :default-active="route.path"
-          :collapse="sidebarCollapsed"
-          :router="true"
-          :collapse-transition="false"
-          unique-opened
-          :key="menuKey"
-          class="layout-menu"
-        >
+      <div v-if="!sidebarCollapsed" class="breadcrumb-bar">
+        <el-icon><House /></el-icon>
+        <span>{{ route.meta?.title || '' }}</span>
+      </div>
+      <el-menu
+        :default-active="route.path"
+        :collapse="sidebarCollapsed"
+        :router="true"
+        :collapse-transition="false"
+        unique-opened
+        :key="menuKey"
+        class="layout-menu"
+      >
           <template v-for="item in sidebarMenus" :key="item.id">
             <!-- 单页菜单 -->
             <el-menu-item v-if="item.menu_type === 1" :index="item.path!">
@@ -158,9 +162,11 @@ function handleLogout() {
 
 <style scoped>
 .layout-container { height: 100vh; }
-.layout-aside { background: #304156; transition: width 0.28s; overflow: hidden; display: flex; flex-direction: column; }
-.logo { height: 56px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; font-weight: 700; background: #2b3a4a; white-space: nowrap; overflow: hidden; }
+.layout-aside { background: var(--sidebar-bg); transition: width 0.28s; overflow: hidden; display: flex; flex-direction: column; }
+.logo { height: 56px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; font-weight: 700; background: rgba(0,0,0,0.15); white-space: nowrap; overflow: hidden; letter-spacing: 1px; }
 .layout-menu { border-right: none; }
+.breadcrumb-bar { display: flex; align-items: center; gap: 6px; padding: 10px 20px; color: rgba(255,255,255,0.6); font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.breadcrumb-bar .el-icon { font-size: 14px; flex-shrink: 0; }
 .menu-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; }
 .menu-scroll::-webkit-scrollbar { width: 4px; }
 .menu-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
