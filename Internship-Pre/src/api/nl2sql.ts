@@ -29,6 +29,7 @@ export interface QueryHistory {
   status: number;
   is_favorite: number;
   error_message: string;
+  natural_language_result?: string;
   created_at: string;
 }
 
@@ -38,6 +39,7 @@ export interface QueryResult {
   rows: any[][];
   row_count: number;
   execution_time: number;
+  natural_language_result?: string;
 }
 
 export interface TableMeta {

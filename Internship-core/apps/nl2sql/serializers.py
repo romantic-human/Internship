@@ -40,7 +40,8 @@ class QueryHistorySerializer(serializers.ModelSerializer):
         fields = [
             "id", "user", "datasource", "datasource_name",
             "question", "generated_sql", "execution_time",
-            "result_count", "status", "is_favorite", "error_message", "created_at",
+            "result_count", "status", "is_favorite", "error_message",
+            "natural_language_result", "created_at",
         ]
         read_only_fields = [
             "id", "user", "generated_sql", "execution_time",

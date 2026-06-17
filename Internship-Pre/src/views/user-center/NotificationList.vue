@@ -5,6 +5,9 @@
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <span>消息通知 <el-badge v-if="unreadCount > 0" :value="unreadCount" class="ml-2" /></span>
           <div>
+            <el-button v-permission="'notification:create'" type="primary" @click="openSendDialog">
+              <el-icon><Plus /></el-icon> 发送通知
+            </el-button>
             <el-button v-permission="'notification:read-all'" type="success" @click="handleMarkAllRead">全部已读</el-button>
             <el-button type="warning" @click="handleClearRead">清除已读</el-button>
           </div>
@@ -80,6 +83,42 @@
       />
     </el-card>
 
+    <!-- 发送通知弹窗 -->
+    <el-dialog v-model="sendVisible" title="发送通知" width="520px" destroy-on-close>
+      <el-form :model="sendForm" :rules="sendRules" ref="sendFormRef" label-width="100px">
+        <el-form-item label="通知标题" prop="title">
+          <el-input v-model="sendForm.title" placeholder="请输入通知标题" />
+        </el-form-item>
+        <el-form-item label="通知类型" prop="notification_type">
+          <el-select v-model="sendForm.notification_type" style="width: 100%">
+            <el-option label="系统通知" :value="0" />
+            <el-option label="待办事项" :value="1" />
+            <el-option label="提醒" :value="2" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="通知内容" prop="content">
+          <el-input v-model="sendForm.content" type="textarea" :rows="4" placeholder="请输入通知内容（可选）" />
+        </el-form-item>
+        <el-form-item label="发送范围">
+          <el-radio-group v-model="sendScope">
+            <el-radio value="all">全部活跃用户</el-radio>
+            <el-radio value="select">指定用户</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item v-if="sendScope === 'select'" label="选择用户" prop="target_user_ids">
+          <el-select v-model="sendForm.target_user_ids" multiple filterable remote
+            :remote-method="searchUsers" :loading="userSearching" style="width: 100%"
+            placeholder="搜索并选择用户">
+            <el-option v-for="u in userOptions" :key="u.id" :label="u.username + ' (' + u.nickname + ')'" :value="u.id" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="sendVisible = false">取消</el-button>
+        <el-button type="primary" :loading="sending" @click="handleSend">发送</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 详情弹窗 -->
     <el-dialog v-model="detailVisible" title="通知详情" width="500px">
       <template v-if="currentDetail">
@@ -104,9 +143,13 @@ import {
   markAllNotificationsRead,
   clearReadNotifications,
   getUnreadCount,
+  createNotification,
   type NotificationRecord,
 } from "@/api/notification";
+import { getUserList } from "@/api/user";
+import type { FormInstance } from "element-plus";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { Plus } from "@element-plus/icons-vue";
 
 const loading = ref(false);
 const list = ref<NotificationRecord[]>([]);
@@ -182,6 +225,65 @@ async function handleClearRead() {
     ElMessage.success(`已清除 ${res.count} 条已读通知`);
     await fetchList();
   } catch { /* handled */ }
+}
+
+// --- 发送通知 ---
+const sendVisible = ref(false);
+const sending = ref(false);
+const sendScope = ref("all");
+const sendFormRef = ref<FormInstance>();
+const userOptions = ref<{ id: number; username: string; nickname: string }[]>([]);
+const userSearching = ref(false);
+const sendForm = reactive({
+  title: "",
+  notification_type: 0,
+  content: "",
+  target_user_ids: [] as number[],
+});
+const sendRules = {
+  title: [{ required: true, message: "请输入通知标题", trigger: "blur" }],
+};
+
+function openSendDialog() {
+  sendScope.value = "all";
+  sendForm.title = "";
+  sendForm.notification_type = 0;
+  sendForm.content = "";
+  sendForm.target_user_ids = [];
+  sendVisible.value = true;
+}
+
+async function searchUsers(query: string) {
+  if (!query) return;
+  userSearching.value = true;
+  try {
+    const res = await getUserList({ username: query, page: 1, pageSize: 20 });
+    userOptions.value = res.records.map(r => ({ id: r.id, username: r.username, nickname: r.nickname || r.username }));
+  } finally {
+    userSearching.value = false;
+  }
+}
+
+async function handleSend() {
+  if (!sendFormRef.value) return;
+  try { await sendFormRef.value.validate(); } catch { return; }
+  sending.value = true;
+  try {
+    const payload: any = {
+      title: sendForm.title,
+      notification_type: sendForm.notification_type,
+    };
+    if (sendForm.content) payload.content = sendForm.content;
+    if (sendScope.value === "select") {
+      payload.target_user_ids = sendForm.target_user_ids;
+    }
+    const res = await createNotification(payload);
+    ElMessage.success(`已发送给 ${res.count} 人`);
+    sendVisible.value = false;
+    await fetchList();
+  } finally {
+    sending.value = false;
+  }
 }
 
 onMounted(fetchList);

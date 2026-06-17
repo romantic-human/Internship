@@ -54,6 +54,7 @@ class QueryHistory(models.Model):
     status = models.SmallIntegerField("状态", default=1, choices=[(0, "失败"), (1, "成功")])
     is_favorite = models.SmallIntegerField("是否收藏", default=0, choices=[(0, "否"), (1, "是")])
     error_message = models.TextField("错误信息", blank=True, default="")
+    natural_language_result = models.TextField("自然语言解释", blank=True, default="")
     created_at = models.DateTimeField("查询时间", auto_now_add=True)
 
     class Meta:

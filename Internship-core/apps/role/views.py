@@ -302,10 +302,20 @@ class RoleViewSet(viewsets.ModelViewSet):
                 UserRoleRelation.objects.bulk_create(relations)
 
         return APIResponse.success(message="用户分配成功")
-    
-        def perform_destroy(self, instance):
-            instance.delete()
-            cache.delete("dashboard_stats")
+
+    @action(detail=True, methods=["get"], url_path="permissions")
+    def permissions(self, request, pk=None):
+        """获取角色的所有权限标识"""
+        instance = self.get_object()
+        # 该角色拥有的菜单 → 菜单关联的权限 → 权限 key 列表
+        menu_ids = RoleMenuRelation.objects.filter(
+            role=instance
+        ).values_list("menu_id", flat=True)
+        perm_keys = MenuPermissionRelation.objects.filter(
+            menu_id__in=menu_ids
+        ).values_list("permission__permission_key", flat=True).distinct()
+        return APIResponse.success(data=list(perm_keys))
+
     def perform_create(self, serializer):
         serializer.save()
         cache.delete("dashboard_stats")

@@ -92,3 +92,7 @@ export function getRoleUsers(id: number): Promise<number[]> {
 export function assignRoleUsers(id: number, user_ids: number[]): Promise<void> {
   return request.put(`/role/${id}/users`, { user_ids });
 }
+
+export function getRolePerms(id: number): Promise<string[]> {
+  return request.get(`/role/${id}/permissions`);
+}

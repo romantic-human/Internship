@@ -38,11 +38,16 @@ class DataSourceViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         return [IsAuthenticated(), HasPermission()]
 
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return APIResponse.success(data=serializer.data)
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save(created_by=request.user)
-        return APIResponse.success(data=serializer.data, message="新增成功")
+        return APIResponse.created(data=serializer.data)
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -194,14 +199,34 @@ class QueryView(APIView):
                 )
 
             if "error" in result:
+                QueryHistory.objects.filter(
+                    user=request.user, question=question,
+                    created_at__gte=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start_time - 1)),
+                ).update(status=0, error_message=result["error"])
                 return APIResponse.error(message=result["error"], code=5000, http_status=500)
+
+            # 生成自然语言解释
+            columns = result.get("columns", [])
+            rows = result.get("rows", [])
+            row_count = result.get("row_count", 0)
+            explanation = NL2SQLService.generate_explanation(
+                question=question, sql=generated_sql,
+                columns=columns, rows=rows, row_count=row_count,
+            )
+
+            # 更新 history 记录
+            QueryHistory.objects.filter(
+                user=request.user, question=question,
+                created_at__gte=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start_time - 1)),
+            ).update(natural_language_result=explanation)
 
             return APIResponse.success(data={
                 "sql": generated_sql,
-                "columns": result.get("columns", []),
-                "rows": result.get("rows", []),
-                "row_count": result.get("row_count", 0),
+                "columns": columns,
+                "rows": rows,
+                "row_count": row_count,
                 "execution_time": elapsed,
+                "natural_language_result": explanation,
             })
         except Exception as e:
             logger.exception("NL2SQL 查询失败")
