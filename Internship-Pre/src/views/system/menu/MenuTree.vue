@@ -28,7 +28,6 @@
         ref="tableRef"
         :data="treeData"
         row-key="id"
-        default-expand-all
         :tree-props="{ children: 'children' }"
         v-loading="loading"
         stripe

@@ -17,6 +17,9 @@
           <Close />
         </el-icon>
       </div>
+      <el-tooltip content="关闭所有标签" placement="bottom">
+        <el-icon class="close-all-tabs" @click="handleCloseAll"><Close /></el-icon>
+      </el-tooltip>
     </div>
 
     <!-- 右键菜单 -->
@@ -191,6 +194,20 @@ function scrollToActiveTab() {
 
 .tab-item.active .tab-close:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+.close-all-tabs {
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--el-text-color-secondary, #909399);
+  flex-shrink: 0;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+.close-all-tabs:hover {
+  color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9);
 }
 
 .tab-context-menu {

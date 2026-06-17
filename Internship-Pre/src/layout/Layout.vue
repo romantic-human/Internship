@@ -5,37 +5,44 @@
         <span v-if="!sidebarCollapsed">管理系统</span>
         <span v-else>M</span>
       </div>
-      <el-menu
-        :default-active="route.path"
-        :collapse="sidebarCollapsed"
-        :router="true"
-        :collapse-transition="false"
-        class="layout-menu"
-      >
-        <template v-for="item in sidebarMenus" :key="item.id">
-          <!-- 单页菜单 -->
-          <el-menu-item v-if="item.menu_type === 1" :index="item.path!">
-            <el-icon><component :is="resolveIcon(item.icon)" /></el-icon>
-            <template #title>{{ item.menu_name }}</template>
-          </el-menu-item>
-
-          <!-- 目录菜单 -->
-          <el-sub-menu v-else-if="item.children && item.children.length > 0" :index="String(item.id)">
-            <template #title>
+      <div class="menu-scroll">
+        <el-menu
+          :default-active="route.path"
+          :collapse="sidebarCollapsed"
+          :router="true"
+          :collapse-transition="false"
+          unique-opened
+          :key="menuKey"
+          class="layout-menu"
+        >
+          <template v-for="item in sidebarMenus" :key="item.id">
+            <!-- 单页菜单 -->
+            <el-menu-item v-if="item.menu_type === 1" :index="item.path!">
               <el-icon><component :is="resolveIcon(item.icon)" /></el-icon>
-              <span>{{ item.menu_name }}</span>
-            </template>
-            <el-menu-item
-              v-for="child in flattenMenuChildren(item.children)"
-              :key="child.id"
-              :index="child.path!"
-            >
-              <el-icon><component :is="resolveIcon(child.icon)" /></el-icon>
-              <template #title>{{ child.menu_name }}</template>
+              <template #title>{{ item.menu_name }}</template>
             </el-menu-item>
-          </el-sub-menu>
-        </template>
-      </el-menu>
+
+            <!-- 目录菜单 -->
+            <el-sub-menu v-else-if="item.children && item.children.length > 0" :index="String(item.id)">
+              <template #title>
+                <el-icon><component :is="resolveIcon(item.icon)" /></el-icon>
+                <span>{{ item.menu_name }}</span>
+              </template>
+              <el-menu-item
+                v-for="child in flattenMenuChildren(item.children)"
+                :key="child.id"
+                :index="child.path!"
+              >
+                <el-icon><component :is="resolveIcon(child.icon)" /></el-icon>
+                <template #title>{{ child.menu_name }}</template>
+              </el-menu-item>
+            </el-sub-menu>
+          </template>
+        </el-menu>
+      </div>
+      <div v-if="!sidebarCollapsed" class="collapse-all-btn" @click="collapseAllMenus">
+        <el-icon><Fold /></el-icon><span>折叠菜单</span>
+      </div>
     </el-aside>
     <el-container class="layout-main">
       <el-header class="layout-header">
@@ -82,7 +89,7 @@
 
 <script setup lang="ts">
 import { useRouter, useRoute } from "vue-router";
-import { computed, markRaw, type Component } from "vue";
+import { computed, markRaw, ref, type Component } from "vue";
 import {
   Fold, Expand, ArrowDown, User, SwitchButton,
   House, Setting, Document, Tools, Key, OfficeBuilding,
@@ -99,6 +106,10 @@ const appStore = useAppStore();
 const authStore = useAuthStore();
 const sidebarCollapsed = computed(() => appStore.sidebarCollapsed);
 const isDark = computed(() => appStore.theme === "dark");
+const menuKey = ref(0);
+function collapseAllMenus() {
+  menuKey.value++;
+}
 
 function handleToggleTheme() {
   appStore.setTheme(appStore.theme === "dark" ? "light" : "dark");
@@ -147,9 +158,13 @@ function handleLogout() {
 
 <style scoped>
 .layout-container { height: 100vh; }
-.layout-aside { background: #304156; transition: width 0.28s; overflow: hidden; }
+.layout-aside { background: #304156; transition: width 0.28s; overflow: hidden; display: flex; flex-direction: column; }
 .logo { height: 56px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; font-weight: 700; background: #2b3a4a; white-space: nowrap; overflow: hidden; }
 .layout-menu { border-right: none; }
+.menu-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; }
+.menu-scroll::-webkit-scrollbar { width: 4px; }
+.menu-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+.menu-scroll::-webkit-scrollbar-track { background: transparent; }
 .layout-main { display: flex; flex-direction: column; }
 .layout-header { display: flex; align-items: center; justify-content: space-between; height: 50px; background: var(--el-bg-color, #fff); border-bottom: 1px solid var(--el-border-color-light, #e4e7ed); padding: 0 16px; }
 .header-right { display: flex; align-items: center; gap: 12px; }
@@ -162,4 +177,6 @@ function handleLogout() {
 :deep(.el-menu-item), :deep(.el-sub-menu__title) { color: #bfcbd9; }
 :deep(.el-menu-item:hover), :deep(.el-sub-menu__title:hover) { background: #263445; }
 :deep(.el-menu-item.is-active) { color: #409eff; background: #263445; }
+.collapse-all-btn { display: flex; align-items: center; gap: 6px; padding: 10px 20px; color: #bfcbd9; cursor: pointer; font-size: 13px; transition: background 0.2s; border-top: 1px solid rgba(255,255,255,0.06); }
+.collapse-all-btn:hover { background: #263445; }
 </style>

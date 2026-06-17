@@ -122,7 +122,7 @@ class UserViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(create_time__gte=start_date)
         if end_date:
             queryset = queryset.filter(create_time__lte=end_date)
-        queryset = queryset.order_by("-create_time")
+        queryset = queryset.order_by("create_time", "status")
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
