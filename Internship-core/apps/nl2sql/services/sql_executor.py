@@ -1,6 +1,8 @@
 ﻿"""SQL 执行器：安全校验 + 执行 SQL + 返回结果"""
 import logging
 import re
+from datetime import datetime, date, time
+from decimal import Decimal
 import pymysql
 
 logger = logging.getLogger(__name__)
@@ -19,6 +21,28 @@ SENSITIVE_COLUMNS = [
 MAX_LIMIT = 1000
 DEFAULT_LIMIT = 100
 EXECUTION_TIMEOUT = 30
+
+
+def _make_serializable(value):
+    """将数据库返回的值转换为 JSON 可序列化的类型"""
+    if value is None:
+        return None
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, time):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return float(value)
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    if isinstance(value, (int, float, str, bool)):
+        return value
+    return str(value)
+
+
+def _serialize_rows(rows: list) -> list:
+    """将查询结果中的所有值转换为 JSON 可序列化类型"""
+    return [[_make_serializable(cell) for cell in row] for row in rows]
 
 
 def validate_sql(sql: str) -> tuple[bool, str]:
@@ -85,6 +109,8 @@ def execute_sql(host: str, port: int, db_name: str, username: str,
                 columns = [desc[0] for desc in cursor.description]
                 rows = cursor.fetchall()
                 row_count = len(rows)
+                # 将 datetime/Decimal 等类型转换为 JSON 可序列化类型
+                rows = _serialize_rows(rows)
                 return {"columns": columns, "rows": rows, "row_count": row_count}
             return {"columns": [], "rows": [], "row_count": 0}
     finally:

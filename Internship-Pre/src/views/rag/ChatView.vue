@@ -346,13 +346,33 @@ function clearHistory() {
 .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0; }
 .header-left { display: flex; align-items: center; }
 
+/* 暗色模式头部 */
+:global(.dark) .card-header {
+  color: var(--text-primary);
+}
+
+:global(.dark) .header-left h3 {
+  color: var(--text-primary);
+}
+
+/* 暗色模式聊天容器 */
+:global(.dark) .chat-container {
+  background: var(--bg-color);
+}
+
+:global(.dark) .chat-card {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+}
+
 .message-list {
   flex: 1;
   overflow-y: auto;
   padding: 16px 0;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
   min-height: 0;
+  background: var(--bg-color);
 }
 
 .empty-state {
@@ -361,13 +381,13 @@ function clearHistory() {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 .message {
   display: flex;
-  padding: 8px 16px;
-  margin-bottom: 4px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
 }
 
 .message.user { flex-direction: row-reverse; }
@@ -383,7 +403,7 @@ function clearHistory() {
 }
 
 .message-content {
-  padding: 10px 14px;
+  padding: 12px 16px;
   border-radius: 12px;
   line-height: 1.6;
   font-size: 14px;
@@ -391,26 +411,41 @@ function clearHistory() {
 }
 
 .message.user .message-content {
-  background: #409eff;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   color: white;
   border-top-right-radius: 4px;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
 }
 
 .message.assistant .message-content {
-  background: #f4f4f5;
-  color: #303133;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
   border-top-left-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* 暗色模式消息样式 */
+:global(.dark) .message.user .message-content {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+:global(.dark) .message.assistant .message-content {
+  background: var(--bg-color-secondary);
+  border-color: var(--border-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .message-sources { margin-top: 8px; }
 .message-sources :deep(.el-collapse) { border: none; }
-.message-sources :deep(.el-collapse-item__header) { font-size: 12px; color: #909399; height: 28px; }
-.source-item { margin-bottom: 8px; padding: 8px; background: #fafafa; border-radius: 6px; }
+.message-sources :deep(.el-collapse-item__header) { font-size: 12px; color: var(--text-secondary); height: 28px; }
+.source-item { margin-bottom: 8px; padding: 8px; background: var(--bg-color); border-radius: 6px; }
 .source-header { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; }
-.source-meta { font-size: 12px; color: #909399; }
-.source-content { font-size: 12px; color: #606266; line-height: 1.5; }
+.source-meta { font-size: 12px; color: var(--text-secondary); }
+.source-content { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
 
-.message-meta { font-size: 11px; color: #c0c4cc; margin-top: 4px; }
+.message-meta { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
 
 .input-area {
   display: flex;
@@ -419,10 +454,15 @@ function clearHistory() {
   gap: 6px;
   position: sticky;
   bottom: 0;
-  background: white;
+  background: var(--card-bg);
   padding: 12px 0;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--border-color);
   z-index: 10;
+}
+
+/* 暗色模式输入区 */
+:global(.dark) .input-area {
+  background: var(--bg-color-secondary);
 }
 
 .input-toolbar {
@@ -455,6 +495,27 @@ function clearHistory() {
 .input-row {
   display: flex;
   align-items: flex-end;
+}
+
+/* 暗色模式输入框 */
+:global(.dark) .input-row :deep(.el-textarea__inner) {
+  background: var(--bg-color);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+:global(.dark) .input-row :deep(.el-textarea__inner:focus) {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+:global(.dark) .input-toolbar .el-button {
+  color: var(--text-secondary);
+}
+
+:global(.dark) .input-toolbar .el-button:hover {
+  color: var(--primary-color);
+  background: rgba(99, 102, 241, 0.1);
 }
 
 /* 确保 el-card 内容区域正确滚动 */
