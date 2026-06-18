@@ -5,6 +5,10 @@
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <span>菜单管理</span>
           <div>
+            <el-button v-if="sortDirty" type="success" :loading="sortSaving" @click="handleSaveSort">
+              <el-icon><Check /></el-icon>保存排序
+            </el-button>
+            <el-button v-if="sortDirty" @click="handleCancelSort">撤销</el-button>
             <el-button v-permission="'menu:delete'" type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
             <el-button type="success" @click="handleExport">导出</el-button>
             <el-button @click="handleDownloadTemplate">下载模板</el-button>
@@ -13,6 +17,15 @@
           </div>
         </div>
       </template>
+
+      <el-alert
+        v-if="sortDirty"
+        title="排序已变更，点击右上角「保存排序」提交更改，或「撤销」恢复原序"
+        type="warning"
+        show-icon
+        :closable="false"
+        style="margin-bottom: 16px; border-radius: 8px;"
+      />
 
       <el-form inline class="mb-2">
         <el-form-item label="菜单名称">
@@ -35,6 +48,11 @@
       >
         <template #empty><el-empty description="暂无数据" /></template>
         <el-table-column type="selection" width="50" reserve-selection />
+        <el-table-column label="" width="50" align="center">
+          <template #default>
+            <el-icon class="drag-handle" style="cursor:grab;font-size:16px;color:#909399"><Rank /></el-icon>
+          </template>
+        </el-table-column>
         <el-table-column prop="menu_name" label="菜单名称" min-width="200" />
         <el-table-column prop="icon" label="图标" width="80" align="center">
           <template #default="{ row }">
@@ -54,7 +72,19 @@
           </template>
         </el-table-column>
         <el-table-column prop="path" label="路由路径" min-width="160" />
-        <el-table-column prop="sort_order" label="排序" width="70" align="center" />
+        <el-table-column label="排序" width="100" align="center">
+          <template #default="{ row }">
+            <div style="display:flex;align-items:center;justify-content:center;gap:4px">
+              <el-button link :disabled="!canMoveUp(row)" @click="handleMoveUp(row)">
+                <el-icon><Top /></el-icon>
+              </el-button>
+              <span style="min-width:20px;text-align:center;font-size:12px;color:#909399">{{ row.sort_order }}</span>
+              <el-button link :disabled="!canMoveDown(row)" @click="handleMoveDown(row)">
+                <el-icon><Bottom /></el-icon>
+              </el-button>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column prop="permission" label="权限标识" min-width="150" />
         <el-table-column label="状态" width="80" align="center">
           <template #default="{ row }">
@@ -106,13 +136,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from "vue";
+import { ref, onMounted } from "vue";
 import { getMenuTree, deleteMenu, updateMenuStatus, batchDeleteMenus, exportMenus, batchSortMenu, importMenus, downloadMenuTemplate, type MenuItem } from "@/api/menu";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { markRaw, shallowRef, type Component } from "vue";
 import * as ElementPlusIcons from "@element-plus/icons-vue";
+import { Check, Rank, Top, Bottom } from "@element-plus/icons-vue";
 import MenuForm from "./MenuForm.vue";
-import Sortable from "sortablejs";
 import { useAuthStore } from "@/store/auth";
 
 const authStore = useAuthStore();
@@ -131,6 +161,10 @@ const currentFormData = ref<Partial<MenuItem> | null>(null);
 const searchKey = ref("");
 const selectedIds = ref<number[]>([]);
 const tableRef = ref();
+const sortDirty = ref(false);
+const sortSaving = ref(false);
+const pendingSortPayload = ref<{ id: number; sortOrder: number }[]>([]);
+const originalTreeJson = ref('');
 
 function onSelectionChange(rows: MenuItem[]) {
   selectedIds.value = rows.map(r => r.id);
@@ -158,6 +192,9 @@ async function fetchTree() {
     const params: Record<string, any> = {};
     if (searchKey.value) params.menu_name = searchKey.value;
     treeData.value = await getMenuTree(params);
+    originalTreeJson.value = JSON.stringify(treeData.value);
+    sortDirty.value = false;
+    pendingSortPayload.value = [];
   } finally {
     loading.value = false;
   }
@@ -224,48 +261,88 @@ async function handleExport() {
   } catch { /* handled by interceptor */ }
 }
 
+/** 在嵌套树中找到 item 所在的兄弟数组和索引 */
+function findInTree(id: number, list: MenuItem[], parent: MenuItem[] = list): { siblings: MenuItem[]; index: number } | null {
+  for (let i = 0; i < list.length; i++) {
+    if (list[i].id === id) return { siblings: parent, index: i };
+    if (list[i].children?.length) {
+      const found = findInTree(id, list[i].children!, list[i].children!);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/** 上移 */
+function handleMoveUp(row: MenuItem) {
+  const loc = findInTree(row.id, treeData.value);
+  if (!loc || loc.index <= 0) return;
+  const { siblings, index } = loc;
+  [siblings[index - 1], siblings[index]] = [siblings[index], siblings[index - 1]];
+  treeData.value = [...treeData.value]; // 触发响应式更新
+  markSortDirty();
+}
+
+/** 下移 */
+function handleMoveDown(row: MenuItem) {
+  const loc = findInTree(row.id, treeData.value);
+  if (!loc || loc.index >= loc.siblings.length - 1) return;
+  const { siblings, index } = loc;
+  [siblings[index], siblings[index + 1]] = [siblings[index + 1], siblings[index]];
+  treeData.value = [...treeData.value]; // 触发响应式更新
+  markSortDirty();
+}
+
+/** 判断是否可以上移 */
+function canMoveUp(row: MenuItem): boolean {
+  const loc = findInTree(row.id, treeData.value);
+  return !!loc && loc.index > 0;
+}
+
+/** 判断是否可以下移 */
+function canMoveDown(row: MenuItem): boolean {
+  const loc = findInTree(row.id, treeData.value);
+  return !!loc && loc.index < loc.siblings.length - 1;
+}
+
+/** 标记排序已变更，构建 payload（递归收集所有项） */
+function markSortDirty() {
+  const payload: { id: number; sortOrder: number }[] = [];
+  function collect(items: MenuItem[]) {
+    for (let i = 0; i < items.length; i++) {
+      payload.push({ id: items[i].id, sortOrder: i });
+      if (items[i].children?.length) collect(items[i].children!);
+    }
+  }
+  collect(treeData.value);
+  pendingSortPayload.value = payload;
+  sortDirty.value = true;
+}
+
 function initDragSort() {
-  nextTick(() => {
-    const el = tableRef.value?.$el?.querySelector('.el-table__body-wrapper tbody');
-    if (!el) return;
-    Sortable.create(el, {
-      handle: '.el-table__row',
-      animation: 150,
-      ghostClass: 'sortable-ghost',
-      onEnd: async (evt: any) => {
-        if (evt.oldIndex === evt.newIndex) return;
-        const flatRows = tableRef.value?.data;
-        if (!flatRows) return;
-        const oldItem = flatRows[evt.oldIndex];
-        const newItem = flatRows[evt.newIndex];
-        // Only reorder within same parent level
-        if (oldItem?.parent_id !== newItem?.parent_id) {
-          ElMessage.warning('只能在同一层级内拖拽排序');
-          await fetchTree();
-          return;
-        }
-        const siblings = flatRows.filter((r: MenuItem) => r.parent_id === oldItem.parent_id);
-        const payload = siblings.map((item: MenuItem, idx: number) => ({
-          id: item.id,
-          sortOrder: idx,
-        }));
-        try {
-          await batchSortMenu(payload);
-          ElMessage.success('排序更新成功');
-          await fetchTree();
-          // 刷新侧边栏菜单
-          try {
-            await authStore.refreshMenuTree();
-            console.log('侧边栏菜单已刷新');
-          } catch (e) {
-            console.error('刷新侧边栏失败:', e);
-          }
-          // 重新初始化拖拽
-          initDragSort();
-        } catch { /* handled by interceptor */ }
-      },
-    });
-  });
+  // 排序通过上移/下移按钮实现
+}
+
+/** 保存排序 */
+async function handleSaveSort() {
+  if (!pendingSortPayload.value.length) return;
+  sortSaving.value = true;
+  try {
+    await batchSortMenu(pendingSortPayload.value);
+    ElMessage.success('排序保存成功');
+    await fetchTree();
+    await authStore.refreshMenuTree();
+    initDragSort();
+  } catch { /* handled */ } finally {
+    sortSaving.value = false;
+  }
+}
+
+/** 撤销排序 */
+async function handleCancelSort() {
+  await fetchTree();
+  initDragSort();
+  ElMessage.info('已撤销排序变更');
 }
 
 onMounted(() => {
@@ -305,4 +382,37 @@ async function handleDownloadTemplate() {
 </script>
 
 <style scoped>
+/* ── 菜单树层级样式 ── */
+:deep(.el-table__row) {
+  transition: background-color 0.15s ease;
+}
+
+/* 顶层菜单：左侧蓝色竖线 + 加粗 */
+:deep(.el-table__row--level-0 td:first-child) {
+  border-left: 3px solid var(--el-color-primary, #409eff);
+  padding-left: 12px;
+}
+:deep(.el-table__row--level-0 .cell) {
+  font-weight: 600;
+  color: var(--el-text-color-primary, #303133);
+}
+
+/* 二级菜单：左侧绿色竖线 */
+:deep(.el-table__row--level-1 td:first-child) {
+  border-left: 3px solid #67c23a;
+  padding-left: 12px;
+}
+:deep(.el-table__row--level-1 .cell) {
+  color: var(--el-text-color-regular, #606266);
+}
+
+/* 三级菜单：左侧橙色竖线 */
+:deep(.el-table__row--level-2 td:first-child) {
+  border-left: 3px solid #e6a23c;
+  padding-left: 12px;
+}
+:deep(.el-table__row--level-2 .cell) {
+  color: var(--el-text-color-secondary, #909399);
+  font-size: 13px;
+}
 </style>
