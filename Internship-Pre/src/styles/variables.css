@@ -107,6 +107,18 @@
 }
 
 .dark {
+  /* 主色调在深色模式下保持可用 */
+  --primary-light: #2a2a2a;
+  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+  --primary-gradient-vivid: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);
+
+  /* 功能色在深色模式下的浅底 */
+  --success-light: #1a2e1a;
+  --warning-light: #2e2a1a;
+  --danger-light: #2e1a1a;
+  --info-light: #2a2a2a;
+
+  /* ── 背景 ── */
   --bg-color: #0b0a12;
   --bg-color-secondary: #141220;
   --bg-color-tertiary: #1e1b2e;

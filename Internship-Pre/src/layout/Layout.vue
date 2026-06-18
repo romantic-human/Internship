@@ -260,14 +260,14 @@ function handleLogout() {
 /* 暗色模式下的菜单样式 */
 :global(.dark) :deep(.el-menu-item:hover),
 :global(.dark) :deep(.el-sub-menu__title:hover) {
-  background: rgba(255, 255, 255, 0.04);
+  background: #2a2a2a;
   color: #e2e8f0;
 }
 :global(.dark) :deep(.el-menu-item.is-active) {
-  background: rgba(255, 255, 255, 0.06);
+  background: #333333;
   color: #f1f5f9;
   font-weight: 600;
-  border-left: 3px solid #64748b;
+  border-left: 3px solid #6b7280;
 }
 :global(.dark) :deep(.el-sub-menu.is-opened > .el-sub-menu__title) {
   color: #e2e8f0;
@@ -291,7 +291,7 @@ function handleLogout() {
 
 /* 暗色模式下的折叠按钮 */
 :global(.dark) .collapse-all-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: #2a2a2a;
 }
 
 /* ── 主内容区 ──────────────────────────────────────── */
@@ -339,7 +339,7 @@ function handleLogout() {
 
 /* 暗色模式下的主题按钮 */
 :global(.dark) .theme-btn:hover {
-  background: rgba(99, 102, 241, 0.08);
+  background: #2a2a2a;
 }
 
 .user-dropdown {
@@ -357,7 +357,7 @@ function handleLogout() {
 
 /* 暗色模式下的用户下拉 */
 :global(.dark) .user-dropdown:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: #2a2a2a;
 }
 
 .username {
@@ -376,8 +376,8 @@ function handleLogout() {
 
 /* ── 暗色模式 ──────────────────────────────────────── */
 :global(.dark) .layout-header {
-  background: rgba(15, 23, 42, 0.85);
-  border-bottom-color: var(--border-color);
+  background: #1a1a1a;
+  border-bottom-color: #2a2a2a;
 }
 :global(.dark) .layout-content {
   background: var(--bg-color);
