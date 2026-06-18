@@ -260,17 +260,17 @@ function handleLogout() {
 /* 暗色模式下的菜单样式 */
 :global(.dark) :deep(.el-menu-item:hover),
 :global(.dark) :deep(.el-sub-menu__title:hover) {
-  background: rgba(255, 255, 255, 0.06);
-  color: #e0e7ff;
+  background: rgba(255, 255, 255, 0.04);
+  color: #e2e8f0;
 }
 :global(.dark) :deep(.el-menu-item.is-active) {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.15) 100%);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f1f5f9;
   font-weight: 600;
-  border-right: 3px solid rgba(99, 102, 241, 0.6);
+  border-left: 3px solid #64748b;
 }
 :global(.dark) :deep(.el-sub-menu.is-opened > .el-sub-menu__title) {
-  color: #e0e7ff;
+  color: #e2e8f0;
 }
 
 .collapse-all-btn {

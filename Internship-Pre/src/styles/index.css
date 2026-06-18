@@ -380,13 +380,13 @@ a:hover {
 
 /* 暗色模式树 */
 :global(.dark) .el-tree-node__content:hover {
-  background-color: rgba(99, 102, 241, 0.1) !important;
-  color: #e0e7ff !important;
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  color: #e2e8f0 !important;
 }
 
 :global(.dark) .el-tree-node.is-current > .el-tree-node__content {
-  background-color: rgba(99, 102, 241, 0.15) !important;
-  color: #c7d2fe !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  color: #f1f5f9 !important;
 }
 
 /* ========== Collapse ========== */
@@ -475,30 +475,30 @@ a:hover {
 
 /* ── 暗色模式全局悬浮样式 ========== */
 :global(.dark) .el-dropdown-menu__item:hover {
-  background: rgba(99, 102, 241, 0.12) !important;
-  color: #e0e7ff !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #e2e8f0 !important;
 }
 
 :global(.dark) .el-select-dropdown__item.is-hovering {
-  background: rgba(99, 102, 241, 0.12) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
 }
 :global(.dark) .el-select-dropdown__item.is-hovering .el-select-dropdown__item-text,
 :global(.dark) .el-select-dropdown__item.is-hovering span {
-  color: #e0e7ff !important;
+  color: #e2e8f0 !important;
 }
 
 :global(.dark) .el-tree-node__content:hover {
-  background-color: rgba(99, 102, 241, 0.1) !important;
-  color: #e0e7ff !important;
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  color: #e2e8f0 !important;
 }
 :global(.dark) .el-tree-node.is-current > .el-tree-node__content {
-  background-color: rgba(99, 102, 241, 0.15) !important;
-  color: #c7d2fe !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  color: #f1f5f9 !important;
 }
 
 :global(.dark) .el-upload-dragger:hover {
-  border-color: var(--primary-color) !important;
-  background: rgba(99, 102, 241, 0.05) !important;
+  border-color: #475569 !important;
+  background: rgba(255, 255, 255, 0.03) !important;
 }
 
 :global(.dark) .el-button:hover {
@@ -506,27 +506,27 @@ a:hover {
 }
 
 :global(.dark) .el-button--default:hover {
-  border-color: var(--primary-color);
-  color: #c7d2fe;
+  border-color: #475569;
+  color: #e2e8f0;
 }
 
 /* 暗色模式：表格行悬浮/选中 */
 :global(.dark) .el-table .el-table__row:hover > td.el-table__cell {
-  background-color: rgba(99, 102, 241, 0.08) !important;
+  background-color: rgba(255, 255, 255, 0.03) !important;
 }
 :global(.dark) .el-table .el-table__row.current-row > td.el-table__cell {
-  background-color: rgba(99, 102, 241, 0.12) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
 /* 暗色模式：分页器悬浮 */
 :global(.dark) .el-pagination button:hover,
 :global(.dark) .el-pager li:hover {
-  background: rgba(99, 102, 241, 0.12) !important;
-  color: #e0e7ff !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #e2e8f0 !important;
 }
 :global(.dark) .el-pager li.is-active {
-  background: rgba(99, 102, 241, 0.25) !important;
-  color: #fff !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #f1f5f9 !important;
 }
 
 /* ========== Animations ========== */
